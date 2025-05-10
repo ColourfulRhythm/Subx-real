@@ -177,6 +177,7 @@ export default function InvestorDashboard() {
   const [success, setSuccess] = useState(null)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [expandedCard, setExpandedCard] = useState(null)
+  const [connections, setConnections] = useState([])
   
   // Initial profile data
   const [profile, setProfile] = useState({
@@ -405,7 +406,7 @@ export default function InvestorDashboard() {
     // Get developer profile
     const developer = mockDevelopers[project.developerId]
     if (!developer) {
-      showNotification('Developer profile not found', 'error')
+      handleToast('Developer profile not found', 'error')
       return
     }
     
@@ -465,14 +466,15 @@ export default function InvestorDashboard() {
     }
   }
 
-  const showNotification = (message, type = 'success') => {
-    setToastMessage(message)
-    setToastType(type)
-    setShowToast(true)
+  // Remove duplicate showToast function and use the existing one
+  const handleToast = (message, type = 'success') => {
+    setToastMessage(message);
+    setToastType(type);
+    setShowToast(true);
     setTimeout(() => {
-      setShowToast(false)
-    }, 3000)
-  }
+      setShowToast(false);
+    }, 3000);
+  };
 
   const handleRequestSubmit = () => {
     if (!validateInvestment(selectedUnits)) {
@@ -481,6 +483,7 @@ export default function InvestorDashboard() {
     setShowConfirmation(true)
   }
 
+  // Update submitConnectionRequest to use handleToast
   const submitConnectionRequest = async () => {
     try {
       if (!validateInvestment(selectedUnits)) {
@@ -489,51 +492,52 @@ export default function InvestorDashboard() {
 
       setIsSendingRequest(true);
       
-      // Try ports 3000-3005 for the backend
-      let response;
-      let lastError;
+      // Since we don't have a backend server yet, simulate a successful request
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
       
-      for (let port = 3000; port <= 3005; port++) {
-        try {
-          response = await fetch(`http://localhost:${port}/api/connections/request`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              investorId: 'current-user-id', // TODO: Get from auth context
-              developerId: selectedProject.developerId,
-              projectId: selectedProject.id,
-              units: selectedUnits,
-              investmentAmount: selectedUnits * unitPrice,
-              notes: investmentNotes
-            })
-          });
-          
-          if (response.ok) {
-            break;
-          }
-        } catch (error) {
-          lastError = error;
-          continue;
-        }
-      }
+      // Add the connection to the local state
+      const newConnection = {
+        id: Date.now(),
+        developerId: selectedProject.developerId,
+        developer: selectedProject.developer,
+        projectId: selectedProject.id,
+        projectTitle: selectedProject.title,
+        units: selectedUnits,
+        amount: investmentAmount,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        notes: investmentNotes
+      };
 
-      if (!response || !response.ok) {
-        throw new Error(lastError?.message || 'Failed to connect to backend server');
-      }
-
-      const data = await response.json();
+      // Update connections list
+      setConnections(prev => [...prev, newConnection]);
       
+      // Reset all states
+      setSelectedProject(null);
+      setSelectedUnits(1);
+      setInvestmentAmount('');
+      setInvestmentNotes('');
+      setUnitPrice(0);
+      setMinUnits(1);
+      setMaxUnits(100);
+      setInvestmentError('');
+      
+      // Close modals
       setShowConnectionModal(false);
       setShowConfirmation(false);
-      showNotification(
+      
+      // Show success message
+      handleToast(
         `Request Sent! We've notified ${selectedProject.developer} about your interest in ${selectedUnits} unit(s) (${investmentAmount}).`
       );
+
+      // Switch to discover tab
+      setActiveTab('discover');
+      
     } catch (error) {
       console.error('Error sending connection request:', error);
-      showNotification(
-        error.message || 'Failed to send connection request. Please try again later.',
+      handleToast(
+        'Failed to send connection request. Please try again later.',
         'error'
       );
     } finally {
@@ -1244,7 +1248,7 @@ export default function InvestorDashboard() {
                       onClick={() => {
                         // TODO: Implement cancel request functionality
                         setShowConnectionDetails(false)
-                        showNotification('Connection request cancelled', 'success')
+                        handleToast('Connection request cancelled', 'success')
                       }}
                       className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     >
@@ -1438,6 +1442,111 @@ export default function InvestorDashboard() {
                   </motion.button>
                 </div>
               </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Confirmation Modal */}
+      <AnimatePresence>
+        {showConfirmation && selectedProject && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-gray-500/75 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full p-8 shadow-xl"
+            >
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Confirm Your Request
+                  </h3>
+                  <p className="mt-2 text-gray-600 dark:text-gray-400">
+                    Please review your connection request details before proceeding.
+                  </p>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setShowConfirmation(false)}
+                  className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </motion.button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6">
+                  <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    Request Summary
+                  </h4>
+                  <div className="space-y-4">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Project:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{selectedProject.title}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Developer:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{selectedProject.developer}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Units:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{selectedUnits}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Investment Amount:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{investmentAmount}</span>
+                    </div>
+                    {investmentNotes && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Notes:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{investmentNotes}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-4">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowConfirmation(false)}
+                    className="px-6 py-3 text-base font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={submitConnectionRequest}
+                    disabled={isSendingRequest}
+                    className={`px-6 py-3 text-base font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+                      isSendingRequest ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {isSendingRequest ? (
+                      <span className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Sending Request...
+                      </span>
+                    ) : (
+                      'Confirm Request'
+                    )}
+                  </motion.button>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}

@@ -142,6 +142,19 @@ export default function DeveloperDashboard() {
   const [toastType, setToastType] = useState('success');
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [analytics, setAnalytics] = useState(mockAnalytics);
+
+  // Add new state for form data
+  const [newProject, setNewProject] = useState({
+    title: '',
+    location: '',
+    type: '',
+    amount: '',
+    units: '',
+    startDate: '',
+    expectedCompletion: '',
+    description: ''
+  });
 
   // Form handling with react-hook-form
   const { register, handleSubmit, formState: { errors }, reset, watch } = useForm({
@@ -362,6 +375,74 @@ export default function DeveloperDashboard() {
     setTimeout(() => setShowToast(false), 3000);
   };
 
+  // Handle form input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewProject(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Handle project submission
+  const handleProjectSubmit = (e) => {
+    e.preventDefault();
+    
+    // Create new project object
+    const project = {
+      id: projects.length + 1, // Temporary ID generation
+      title: newProject.title,
+      location: newProject.location,
+      type: newProject.type,
+      amount: `₦${Number(newProject.amount).toLocaleString()}`,
+      status: 'Active',
+      units: parseInt(newProject.units),
+      soldUnits: 0,
+      startDate: newProject.startDate,
+      expectedCompletion: newProject.expectedCompletion,
+      investors: 0,
+      totalInvestment: '₦0'
+    };
+
+    // Update projects list
+    setProjects(prev => [...prev, project]);
+
+    // Update analytics
+    setAnalytics(prev => ({
+      ...prev,
+      totalProjects: prev.totalProjects + 1,
+      activeProjects: prev.activeProjects + 1,
+      projectStatus: {
+        ...prev.projectStatus,
+        active: prev.projectStatus.active + 1
+      },
+      projectTypes: {
+        ...prev.projectTypes,
+        [newProject.type.toLowerCase()]: (prev.projectTypes[newProject.type.toLowerCase()] || 0) + 1
+      },
+      locationDistribution: {
+        ...prev.locationDistribution,
+        [newProject.location.toLowerCase()]: (prev.locationDistribution[newProject.location.toLowerCase()] || 0) + 1
+      }
+    }));
+
+    // Close modal and show success message
+    setShowAddProjectModal(false);
+    handleToast('success', 'Project added successfully');
+
+    // Reset form
+    setNewProject({
+      title: '',
+      location: '',
+      type: '',
+      amount: '',
+      units: '',
+      startDate: '',
+      expectedCompletion: '',
+      description: ''
+    });
+  };
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       {console.log('Rendering with state:', { isLoading, activeTab })}
@@ -475,7 +556,7 @@ export default function DeveloperDashboard() {
                                   Total Projects
                                 </dt>
                                 <dd className="text-2xl font-semibold text-gray-900 dark:text-white">
-                                  {mockAnalytics.totalProjects}
+                                  {analytics.totalProjects}
                                 </dd>
                               </dl>
                             </div>
@@ -500,7 +581,7 @@ export default function DeveloperDashboard() {
                                   Total Investment
                                 </dt>
                                 <dd className="text-2xl font-semibold text-gray-900 dark:text-white">
-                                  {mockAnalytics.totalInvestment}
+                                  {analytics.totalInvestment}
                                 </dd>
                               </dl>
                             </div>
@@ -525,7 +606,7 @@ export default function DeveloperDashboard() {
                                   Total Investors
                                 </dt>
                                 <dd className="text-2xl font-semibold text-gray-900 dark:text-white">
-                                  {mockAnalytics.totalInvestors}
+                                  {analytics.totalInvestors}
                                 </dd>
                               </dl>
                             </div>
@@ -544,7 +625,7 @@ export default function DeveloperDashboard() {
                           Project Status
                         </h3>
                         <div className="space-y-4">
-                          {Object.entries(mockAnalytics.projectStatus).map(([status, count]) => (
+                          {Object.entries(analytics.projectStatus).map(([status, count]) => (
                             <div key={status} className="flex items-center justify-between">
                               <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
                                 {status}
@@ -565,7 +646,7 @@ export default function DeveloperDashboard() {
                           Investment Distribution
                         </h3>
                         <div className="space-y-4">
-                          {Object.entries(mockAnalytics.investmentDistribution).map(([type, amount]) => (
+                          {Object.entries(analytics.investmentDistribution).map(([type, amount]) => (
                             <div key={type} className="flex items-center justify-between">
                               <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
                                 {type}
@@ -589,7 +670,7 @@ export default function DeveloperDashboard() {
                           Recent Connections
                         </h3>
                         <div className="space-y-4">
-                          {mockAnalytics.recentConnections.map((connection) => (
+                          {analytics.recentConnections.map((connection) => (
                             <div key={connection.id} className="flex items-center justify-between">
                               <div>
                                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -630,7 +711,7 @@ export default function DeveloperDashboard() {
                                 className="text-green-500"
                                 strokeWidth="8"
                                 strokeDasharray={251.2}
-                                strokeDashoffset={251.2 - (251.2 * mockAnalytics.responseRate) / 100}
+                                strokeDashoffset={251.2 - (251.2 * analytics.responseRate) / 100}
                                 strokeLinecap="round"
                                 stroke="currentColor"
                                 fill="transparent"
@@ -640,7 +721,7 @@ export default function DeveloperDashboard() {
                               />
                             </svg>
                             <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-gray-900 dark:text-white">
-                              {mockAnalytics.responseRate}%
+                              {analytics.responseRate}%
                             </span>
                           </div>
                         </div>
@@ -657,7 +738,7 @@ export default function DeveloperDashboard() {
                           Project Types
                         </h3>
                         <div className="space-y-4">
-                          {Object.entries(mockAnalytics.projectTypes).map(([type, count]) => (
+                          {Object.entries(analytics.projectTypes).map(([type, count]) => (
                             <div key={type} className="flex items-center justify-between">
                               <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
                                 {type}
@@ -678,7 +759,7 @@ export default function DeveloperDashboard() {
                           Location Distribution
                         </h3>
                         <div className="space-y-4">
-                          {Object.entries(mockAnalytics.locationDistribution).map(([location, count]) => (
+                          {Object.entries(analytics.locationDistribution).map(([location, count]) => (
                             <div key={location} className="flex items-center justify-between">
                               <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
                                 {location}
@@ -1173,12 +1254,7 @@ export default function DeveloperDashboard() {
                 </motion.button>
               </div>
 
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                // Handle project creation
-                setShowAddProjectModal(false);
-                handleToast('success', 'Project added successfully');
-              }} className="space-y-6">
+              <form onSubmit={handleProjectSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div>
                     <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -1188,6 +1264,8 @@ export default function DeveloperDashboard() {
                       type="text"
                       id="title"
                       name="title"
+                      value={newProject.title}
+                      onChange={handleInputChange}
                       required
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                     />
@@ -1201,6 +1279,8 @@ export default function DeveloperDashboard() {
                       type="text"
                       id="location"
                       name="location"
+                      value={newProject.location}
+                      onChange={handleInputChange}
                       required
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                     />
@@ -1213,6 +1293,8 @@ export default function DeveloperDashboard() {
                     <select
                       id="type"
                       name="type"
+                      value={newProject.type}
+                      onChange={handleInputChange}
                       required
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                     >
@@ -1232,6 +1314,8 @@ export default function DeveloperDashboard() {
                       type="number"
                       id="amount"
                       name="amount"
+                      value={newProject.amount}
+                      onChange={handleInputChange}
                       required
                       min="0"
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
@@ -1246,6 +1330,8 @@ export default function DeveloperDashboard() {
                       type="number"
                       id="units"
                       name="units"
+                      value={newProject.units}
+                      onChange={handleInputChange}
                       required
                       min="1"
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
@@ -1260,19 +1346,23 @@ export default function DeveloperDashboard() {
                       type="date"
                       id="startDate"
                       name="startDate"
+                      value={newProject.startDate}
+                      onChange={handleInputChange}
                       required
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="completionDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label htmlFor="expectedCompletion" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Expected Completion
                     </label>
                     <input
                       type="date"
-                      id="completionDate"
-                      name="completionDate"
+                      id="expectedCompletion"
+                      name="expectedCompletion"
+                      value={newProject.expectedCompletion}
+                      onChange={handleInputChange}
                       required
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                     />
@@ -1286,6 +1376,8 @@ export default function DeveloperDashboard() {
                   <textarea
                     id="description"
                     name="description"
+                    value={newProject.description}
+                    onChange={handleInputChange}
                     rows={4}
                     required
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
