@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
+import { motion, AnimatePresence } from 'framer-motion'
 
 // API endpoints (to be implemented)
 const API_ENDPOINTS = {
@@ -559,45 +560,59 @@ export default function InvestorDashboard() {
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Navigation */}
-        <div className="flex items-center justify-between mb-8">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between mb-8"
+        >
           <div className="flex items-center">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">
+            <motion.h1 
+              whileHover={{ scale: 1.05 }}
+              className="text-2xl font-bold bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent"
+            >
               Subx
-            </h1>
+            </motion.h1>
           </div>
           <div className="flex items-center space-x-4">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={toggleDarkMode}
-              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
+              className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700"
             >
               {isDarkMode ? (
-                <svg className="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               ) : (
-                <svg className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
               )}
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={handleLogout}
-              className="flex items-center space-x-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              <span>Logout</span>
-            </button>
+              Logout
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200 dark:border-gray-700 mb-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="border-b border-gray-200 dark:border-gray-700 mb-8"
+        >
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
             {['dashboard', 'discover', 'connections', 'profile'].map((tab) => (
-              <button
+              <motion.button
                 key={tab}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab(tab)}
                 className={`${
                   activeTab === tab
@@ -606,580 +621,730 @@ export default function InvestorDashboard() {
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors duration-200`}
               >
                 {tab}
-              </button>
+              </motion.button>
             ))}
           </nav>
-        </div>
+        </motion.div>
 
         {/* Main Content */}
         <main>
           {isLoading ? (
-            <div className="flex items-center justify-center h-64">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center justify-center h-64"
+            >
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-            </div>
+            </motion.div>
           ) : (
-            <div className="space-y-6">
-              {/* Dashboard Tab */}
-              {activeTab === 'dashboard' && (
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {/* Overview Card */}
-                  <div className={`bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg transition-all duration-200 hover:shadow-lg`}>
-                    <div className="p-5">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 bg-indigo-500 rounded-md p-3">
-                          <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                          </svg>
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                          <dl>
-                            <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                              Total Investment
-                            </dt>
-                            <dd className="flex items-baseline">
-                              <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                                ₦1,250,000,000
-                              </div>
-                              <div className="ml-2 flex items-baseline text-sm font-semibold text-green-600 dark:text-green-400">
-                                <svg className="self-center flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                                </svg>
-                                <span className="sr-only">Increased by</span>
-                                12%
-                              </div>
-                            </dd>
-                          </dl>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Projects Card */}
-                  <div className={`bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg transition-all duration-200 hover:shadow-lg`}>
-                    <div className="p-5">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 bg-indigo-500 rounded-md p-3">
-                          <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                          </svg>
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                          <dl>
-                            <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                              Active Projects
-                            </dt>
-                            <dd className="flex items-baseline">
-                              <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                                12
-                              </div>
-                              <div className="ml-2 flex items-baseline text-sm font-semibold text-green-600 dark:text-green-400">
-                                <svg className="self-center flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                                </svg>
-                                <span className="sr-only">Increased by</span>
-                                3
-                              </div>
-                            </dd>
-                          </dl>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ROI Card */}
-                  <div className={`bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg transition-all duration-200 hover:shadow-lg`}>
-                    <div className="p-5">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 bg-indigo-500 rounded-md p-3">
-                          <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                          <dl>
-                            <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                              Average ROI
-                            </dt>
-                            <dd className="flex items-baseline">
-                              <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                                22%
-                              </div>
-                              <div className="ml-2 flex items-baseline text-sm font-semibold text-green-600 dark:text-green-400">
-                                <svg className="self-center flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                                </svg>
-                                <span className="sr-only">Increased by</span>
-                                2%
-                              </div>
-                            </dd>
-                          </dl>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Discover Tab */}
-              {activeTab === 'discover' && (
-                <div className="space-y-6">
-                  {/* Filters */}
-                  <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                      <div>
-                        <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Location
-                        </label>
-                        <select
-                          id="location"
-                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          value={filters.location}
-                          onChange={(e) => handleFilterChange('location', e.target.value)}
-                        >
-                          {locationOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Project Type
-                        </label>
-                        <select
-                          id="type"
-                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          value={filters.type}
-                          onChange={(e) => handleFilterChange('type', e.target.value)}
-                        >
-                          {typeOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label htmlFor="search" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Search
-                        </label>
-                        <input
-                          type="text"
-                          id="search"
-                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          placeholder="Search projects..."
-                          value={filters.search}
-                          onChange={(e) => handleFilterChange('search', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Projects Grid */}
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {filteredProjects.map((project) => (
-                      <div
-                        key={project.id}
-                        className={`bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg transition-all duration-200 hover:shadow-lg`}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
+              >
+                {/* Dashboard Tab */}
+                {activeTab === 'dashboard' && (
+                  <div className="space-y-6">
+                    {/* Overview Cards */}
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-xl transition-all duration-200"
                       >
-                        <div className="relative h-48">
-                          <img
-                            className="w-full h-full object-cover"
-                            src={project.images[0]}
-                            alt={project.title}
-                          />
-                          <div className="absolute top-2 right-2">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              project.riskLevel === 'Low' ? 'bg-green-100 text-green-800' :
-                              project.riskLevel === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {project.riskLevel} Risk
+                        <div className="p-6">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-3">
+                              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <div className="ml-5 w-0 flex-1">
+                              <dl>
+                                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                                  Total Investment
+                                </dt>
+                                <dd className="text-2xl font-semibold text-gray-900 dark:text-white">
+                                  {analytics.totalInvestment.amount}
+                                </dd>
+                              </dl>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-xl transition-all duration-200"
+                      >
+                        <div className="p-6">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-3">
+                              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <div className="ml-5 w-0 flex-1">
+                              <dl>
+                                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                                  Active Projects
+                                </dt>
+                                <dd className="text-2xl font-semibold text-gray-900 dark:text-white">
+                                  {analytics.activeProjects || 0}
+                                </dd>
+                              </dl>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-xl transition-all duration-200"
+                      >
+                        <div className="p-6">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl p-3">
+                              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                            </div>
+                            <div className="ml-5 w-0 flex-1">
+                              <dl>
+                                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                                  Connected Developers
+                                </dt>
+                                <dd className="text-2xl font-semibold text-gray-900 dark:text-white">
+                                  {analytics.connectionRequests.developers.length}
+                                </dd>
+                              </dl>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </div>
+
+                    {/* Detailed Analytics */}
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                      {/* Investment Distribution */}
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                      >
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                          Investment Distribution
+                        </h3>
+                        <div className="space-y-4">
+                          {Object.entries(analytics.totalInvestment.breakdown).map(([location, amount]) => (
+                            <div key={location} className="flex items-center justify-between">
+                              <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                                {location}
+                              </span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {amount}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+
+                      {/* Recent Activity */}
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                      >
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                          Recent Activity
+                        </h3>
+                        <div className="space-y-4">
+                          {analytics.savedProjects.recent.map((project) => (
+                            <div key={project.id} className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {project.title}
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  {project.location} • {new Date(project.date).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {project.amount}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    </div>
+
+                    {/* Performance Metrics */}
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                      >
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                          Response Rate
+                        </h3>
+                        <div className="flex items-center justify-center">
+                          <div className="relative">
+                            <svg className="w-24 h-24">
+                              <circle
+                                className="text-gray-200 dark:text-gray-700"
+                                strokeWidth="8"
+                                stroke="currentColor"
+                                fill="transparent"
+                                r="40"
+                                cx="48"
+                                cy="48"
+                              />
+                              <circle
+                                className="text-green-500"
+                                strokeWidth="8"
+                                strokeDasharray={251.2}
+                                strokeDashoffset={251.2 - (251.2 * analytics.responseRate) / 100}
+                                strokeLinecap="round"
+                                stroke="currentColor"
+                                fill="transparent"
+                                r="40"
+                                cx="48"
+                                cy="48"
+                              />
+                            </svg>
+                            <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-gray-900 dark:text-white">
+                              {analytics.responseRate}%
                             </span>
                           </div>
                         </div>
-                        <div className="p-4">
-                          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                            {project.title}
-                          </h3>
-                          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            {project.developer} • {project.location}
-                          </p>
-                          <div className="mt-4 grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">Amount</p>
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{project.amount}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">ROI</p>
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{project.roi}</p>
-                            </div>
-                          </div>
-                          <div className="mt-4">
-                            <button
-                              onClick={() => handleConnectionRequest(project)}
-                              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                            >
-                              Request Connection
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                      </motion.div>
 
-              {/* Connections Tab */}
-              {activeTab === 'connections' && (
-                <div className="space-y-6">
-                  <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                      Your Connections
-                    </h3>
-                    <div className="space-y-4">
-                      {analytics.connectionRequests.developers.map((developer) => (
-                        <div
-                          key={developer.name}
-                          className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                        >
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                              <span className="text-indigo-600 dark:text-indigo-300 font-medium">
-                                {developer.name.charAt(0)}
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                      >
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                          Project Types
+                        </h3>
+                        <div className="space-y-4">
+                          {Object.entries(analytics.projectsViewed.breakdown).map(([type, count]) => (
+                            <div key={type} className="flex items-center justify-between">
+                              <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                                {type}
+                              </span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {count} projects
                               </span>
                             </div>
-                            <div className="ml-4">
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {developer.name}
-                              </p>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Status: {developer.status}
-                              </p>
+                          ))}
+                        </div>
+                      </motion.div>
+
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                      >
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                          Location Distribution
+                        </h3>
+                        <div className="space-y-4">
+                          {Object.entries(analytics.projectsViewed.locations).map(([location, count]) => (
+                            <div key={location} className="flex items-center justify-between">
+                              <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                                {location}
+                              </span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {count} projects
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Discover Tab */}
+                {activeTab === 'discover' && (
+                  <div className="space-y-6">
+                    {/* Search and Filters */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                    >
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div>
+                          <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Location
+                          </label>
+                          <motion.select
+                            whileHover={{ scale: 1.02 }}
+                            id="location"
+                            value={filters.location}
+                            onChange={(e) => handleFilterChange('location', e.target.value)}
+                            className="mt-1 block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                          >
+                            {locationOptions.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </motion.select>
+                        </div>
+                        {/* Similar motion.select for type filter */}
+                      </div>
+                    </motion.div>
+
+                    {/* Project Grid */}
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                      {filteredProjects.map((project) => (
+                        <motion.div
+                          key={project.id}
+                          whileHover={{ scale: 1.02 }}
+                          className="bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden"
+                        >
+                          <div className="relative">
+                            <img
+                              src={project.images[0]}
+                              alt={project.title}
+                              className="w-full h-48 object-cover"
+                            />
+                            <div className="absolute top-4 right-4">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                project.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                              }`}>
+                                {project.status}
+                              </span>
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleViewConnectionDetails(developer)}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                          >
-                            View Details
-                          </button>
-                        </div>
+                          <div className="p-6">
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                              {project.title}
+                            </h3>
+                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                              {project.developer} • {project.location}
+                            </p>
+                            <div className="mt-4 grid grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Amount</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{project.amount}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">ROI</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{project.roi}</p>
+                              </div>
+                            </div>
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => handleConnectionRequest(project)}
+                              className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                              Request Connection
+                            </motion.button>
+                          </div>
+                        </motion.div>
                       ))}
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Profile Tab */}
-              {activeTab === 'profile' && (
-                <div className="space-y-6">
-                  <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                        Profile Information
+                {/* Connections Tab */}
+                {activeTab === 'connections' && (
+                  <div className="space-y-6">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                    >
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                        Your Connections
                       </h3>
-                      <button
-                        onClick={() => setIsEditingProfile(!isEditingProfile)}
-                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      >
-                        {isEditingProfile ? 'Cancel' : 'Edit Profile'}
-                      </button>
-                    </div>
-
-                    {isEditingProfile ? (
-                      <form onSubmit={handleSubmit(handleProfileSave)} className="space-y-6">
-                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                          <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Name
-                            </label>
-                            <input
-                              type="text"
-                              {...register('name')}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            />
-                            {errors.name && (
-                              <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-                            )}
-                          </div>
-
-                          <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Email
-                            </label>
-                            <input
-                              type="email"
-                              {...register('email')}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            />
-                            {errors.email && (
-                              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-                            )}
-                          </div>
-
-                          <div>
-                            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Phone
-                            </label>
-                            <input
-                              type="tel"
-                              {...register('phone')}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            />
-                            {errors.phone && (
-                              <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
-                            )}
-                          </div>
-
-                          <div>
-                            <label htmlFor="investmentExperience" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Investment Experience
-                            </label>
-                            <select
-                              {...register('investmentExperience')}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            >
-                              <option value="">Select experience</option>
-                              <option value="Beginner">Beginner (0-2 years)</option>
-                              <option value="Intermediate">Intermediate (2-5 years)</option>
-                              <option value="Advanced">Advanced (5+ years)</option>
-                            </select>
-                            {errors.investmentExperience && (
-                              <p className="mt-1 text-sm text-red-600">{errors.investmentExperience.message}</p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div>
-                          <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Bio
-                          </label>
-                          <textarea
-                            {...register('bio')}
-                            rows={3}
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          />
-                          {errors.bio && (
-                            <p className="mt-1 text-sm text-red-600">{errors.bio.message}</p>
-                          )}
-                        </div>
-
-                        <div className="flex justify-end">
-                          <button
-                            type="submit"
-                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      <div className="space-y-4">
+                        {analytics.connectionRequests.developers.map((developer) => (
+                          <motion.div
+                            key={developer.name}
+                            whileHover={{ scale: 1.02 }}
+                            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl"
                           >
-                            Save Changes
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                          <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Name</p>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.name}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</p>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.email}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</p>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.phone}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Experience</p>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.investmentExperience}</p>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Bio</p>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.bio}</p>
-                        </div>
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center">
+                                <span className="text-white font-medium">
+                                  {developer.name.charAt(0)}
+                                </span>
+                              </div>
+                              <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {developer.name}
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  Status: {developer.status}
+                                </p>
+                              </div>
+                            </div>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleViewConnectionDetails(developer)}
+                              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                              View Details
+                            </motion.button>
+                          </motion.div>
+                        ))}
                       </div>
-                    )}
+                    </motion.div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+
+                {/* Profile Tab */}
+                {activeTab === 'profile' && (
+                  <div className="space-y-6">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                    >
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                          Profile Information
+                        </h3>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setIsEditingProfile(!isEditingProfile)}
+                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        >
+                          {isEditingProfile ? 'Cancel' : 'Edit Profile'}
+                        </motion.button>
+                      </div>
+
+                      {/* Profile Form or View */}
+                      {isEditingProfile ? (
+                        <form onSubmit={handleSubmit(handleProfileSave)} className="space-y-6">
+                          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div>
+                              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Name
+                              </label>
+                              <input
+                                type="text"
+                                {...register('name')}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              />
+                              {errors.name && (
+                                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Email
+                              </label>
+                              <input
+                                type="email"
+                                {...register('email')}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              />
+                              {errors.email && (
+                                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Phone
+                              </label>
+                              <input
+                                type="tel"
+                                {...register('phone')}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              />
+                              {errors.phone && (
+                                <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label htmlFor="investmentExperience" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Investment Experience
+                              </label>
+                              <select
+                                {...register('investmentExperience')}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              >
+                                <option value="">Select experience</option>
+                                <option value="Beginner">Beginner (0-2 years)</option>
+                                <option value="Intermediate">Intermediate (2-5 years)</option>
+                                <option value="Advanced">Advanced (5+ years)</option>
+                              </select>
+                              {errors.investmentExperience && (
+                                <p className="mt-1 text-sm text-red-600">{errors.investmentExperience.message}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div>
+                            <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Bio
+                            </label>
+                            <textarea
+                              {...register('bio')}
+                              rows={3}
+                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                            />
+                            {errors.bio && (
+                              <p className="mt-1 text-sm text-red-600">{errors.bio.message}</p>
+                            )}
+                          </div>
+
+                          <div className="flex justify-end">
+                            <button
+                              type="submit"
+                              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                              Save Changes
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Name</p>
+                              <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.name}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</p>
+                              <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.email}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</p>
+                              <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.phone}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Experience</p>
+                              <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.investmentExperience}</p>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Bio</p>
+                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.bio}</p>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
           )}
         </main>
       </div>
 
       {/* Connection Details Modal */}
-      {showConnectionDetails && selectedConnection && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full p-6">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                Connection Details
-              </h3>
-              <button
-                onClick={() => setShowConnectionDetails(false)}
-                className="text-gray-400 hover:text-gray-500"
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <div className="flex-shrink-0 h-12 w-12 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                  <span className="text-indigo-600 dark:text-indigo-300 text-lg font-medium">
-                    {selectedConnection.name.charAt(0)}
-                  </span>
-                </div>
-                <div>
-                  <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                    {selectedConnection.name}
-                  </h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Status: <span className={`font-medium ${
-                      selectedConnection.status === 'approved' ? 'text-green-600' :
-                      selectedConnection.status === 'pending' ? 'text-yellow-600' :
-                      'text-red-600'
-                    }`}>
-                      {selectedConnection.status.charAt(0).toUpperCase() + selectedConnection.status.slice(1)}
+      <AnimatePresence>
+        {showConnectionDetails && selectedConnection && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-gray-500/75 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full p-8 shadow-xl"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                  Connection Details
+                </h3>
+                <button
+                  onClick={() => setShowConnectionDetails(false)}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="flex-shrink-0 h-12 w-12 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
+                    <span className="text-indigo-600 dark:text-indigo-300 text-lg font-medium">
+                      {selectedConnection.name.charAt(0)}
                     </span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <h5 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  Project Information
-                </h5>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Project Title</p>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {selectedConnection.projectTitle || 'Not specified'}
-                    </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Units</p>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {selectedConnection.units || 'Not specified'}
+                    <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                      {selectedConnection.name}
+                    </h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Status: <span className={`font-medium ${
+                        selectedConnection.status === 'approved' ? 'text-green-600' :
+                        selectedConnection.status === 'pending' ? 'text-yellow-600' :
+                        'text-red-600'
+                      }`}>
+                        {selectedConnection.status.charAt(0).toUpperCase() + selectedConnection.status.slice(1)}
+                      </span>
                     </p>
                   </div>
                 </div>
-              </div>
 
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <h5 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  Connection Timeline
-                </h5>
-                <div className="space-y-2">
-                  <div className="flex items-center text-sm">
-                    <div className="flex-shrink-0 h-2 w-2 rounded-full bg-green-400"></div>
-                    <p className="ml-2 text-gray-500 dark:text-gray-400">
-                      Connection requested on {new Date(selectedConnection.createdAt).toLocaleDateString()}
-                    </p>
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <h5 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                    Project Information
+                  </h5>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Project Title</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {selectedConnection.projectTitle || 'Not specified'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Units</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {selectedConnection.units || 'Not specified'}
+                      </p>
+                    </div>
                   </div>
-                  {selectedConnection.status === 'approved' && (
+                </div>
+
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <h5 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                    Connection Timeline
+                  </h5>
+                  <div className="space-y-2">
                     <div className="flex items-center text-sm">
                       <div className="flex-shrink-0 h-2 w-2 rounded-full bg-green-400"></div>
                       <p className="ml-2 text-gray-500 dark:text-gray-400">
-                        Connection approved on {new Date(selectedConnection.updatedAt || Date.now()).toLocaleDateString()}
+                        Connection requested on {new Date(selectedConnection.createdAt).toLocaleDateString()}
                       </p>
                     </div>
+                    {selectedConnection.status === 'approved' && (
+                      <div className="flex items-center text-sm">
+                        <div className="flex-shrink-0 h-2 w-2 rounded-full bg-green-400"></div>
+                        <p className="ml-2 text-gray-500 dark:text-gray-400">
+                          Connection approved on {new Date(selectedConnection.updatedAt || Date.now()).toLocaleDateString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex justify-end space-x-3">
+                  {selectedConnection.status === 'pending' && (
+                    <button
+                      onClick={() => {
+                        // TODO: Implement cancel request functionality
+                        setShowConnectionDetails(false)
+                        showNotification('Connection request cancelled', 'success')
+                      }}
+                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Cancel Request
+                    </button>
                   )}
+                  <button
+                    onClick={() => setShowConnectionDetails(false)}
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Close
+                  </button>
                 </div>
               </div>
-
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex justify-end space-x-3">
-                {selectedConnection.status === 'pending' && (
-                  <button
-                    onClick={() => {
-                      // TODO: Implement cancel request functionality
-                      setShowConnectionDetails(false)
-                      showNotification('Connection request cancelled', 'success')
-                    }}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    Cancel Request
-                  </button>
-                )}
-                <button
-                  onClick={() => setShowConnectionDetails(false)}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Connection Request Modal */}
-      {showConnectionModal && selectedProject && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full p-6">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                Request Connection
-              </h3>
-              <button
-                onClick={() => setShowConnectionModal(false)}
-                className="text-gray-400 hover:text-gray-500"
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="space-y-6">
-              {/* Project Summary */}
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  Project Details
-                </h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Project</p>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {selectedProject.title}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Developer</p>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {selectedProject.developer}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Project Value</p>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {selectedProject.amount}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Expected ROI</p>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {selectedProject.roi}
-                    </p>
-                  </div>
-                </div>
+      <AnimatePresence>
+        {showConnectionModal && selectedProject && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-gray-500/75 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full p-8 shadow-xl"
+            >
+              <div className="flex justify-between items-start mb-6">
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    Request Connection
+                  </h3>
+                  <p className="mt-2 text-gray-600 dark:text-gray-400">
+                    Connect with {selectedProject.developer} to invest in {selectedProject.title}
+                  </p>
+                </motion.div>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setShowConnectionModal(false)}
+                  className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </motion.button>
               </div>
 
-              {/* Investment Details */}
-              <div>
-                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">
-                  Investment Details
-                </h4>
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="space-y-6"
+              >
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/50 dark:to-purple-900/50 rounded-xl p-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Project</p>
+                      <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{selectedProject.title}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Location</p>
+                      <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{selectedProject.location}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Unit Price</p>
+                      <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        ₦{unitPrice.toLocaleString('en-NG')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Available Units</p>
+                      <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        {minUnits} - {maxUnits.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-4">
                   <div>
                     <label htmlFor="units" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Number of Units
                     </label>
-                    <div className="mt-1 flex rounded-md shadow-sm">
+                    <motion.div 
+                      whileHover={{ scale: 1.02 }}
+                      className="mt-1"
+                    >
                       <input
                         type="number"
                         id="units"
@@ -1187,82 +1352,112 @@ export default function InvestorDashboard() {
                         onChange={handleUnitChange}
                         min={minUnits}
                         max={maxUnits}
-                        step="1"
-                        className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400"
+                        className={`block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm ${
+                          investmentError ? 'border-red-300 dark:border-red-500' : ''
+                        }`}
                       />
-                    </div>
+                    </motion.div>
                     {investmentError && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{investmentError}</p>
+                      <motion.p 
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-2 text-sm text-red-600 dark:text-red-400"
+                      >
+                        {investmentError}
+                      </motion.p>
                     )}
-                    <div className="mt-2 space-y-1">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Available units: {minUnits.toLocaleString()} - {maxUnits.toLocaleString()}
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Price per unit: ₦{unitPrice.toLocaleString('en-NG')}
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Minimum units required by {selectedProject?.developer}: {minUnits.toLocaleString()}
-                      </p>
-                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label htmlFor="investmentAmount" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Total Investment Amount
                     </label>
-                    <p className="mt-1 text-lg font-medium text-gray-900 dark:text-gray-100">
-                      {investmentAmount}
-                    </p>
+                    <motion.div 
+                      whileHover={{ scale: 1.02 }}
+                      className="mt-1"
+                    >
+                      <input
+                        type="text"
+                        id="investmentAmount"
+                        value={investmentAmount}
+                        readOnly
+                        className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm bg-gray-50 dark:bg-gray-700 dark:text-white sm:text-sm"
+                      />
+                    </motion.div>
                   </div>
 
                   <div>
                     <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Additional Notes (Optional)
                     </label>
-                    <textarea
-                      id="notes"
-                      rows={3}
-                      value={investmentNotes}
-                      onChange={(e) => setInvestmentNotes(e.target.value)}
-                      className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      placeholder="Add any specific requirements or questions for the developer..."
-                    />
+                    <motion.div 
+                      whileHover={{ scale: 1.02 }}
+                      className="mt-1"
+                    >
+                      <textarea
+                        id="notes"
+                        rows={3}
+                        value={investmentNotes}
+                        onChange={(e) => setInvestmentNotes(e.target.value)}
+                        className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                        placeholder="Add any additional information or questions..."
+                      />
+                    </motion.div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowConnectionModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleRequestSubmit}
-                  disabled={!!investmentError || isSendingRequest}
-                  className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
-                    (!!investmentError || isSendingRequest) ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {isSendingRequest ? (
-                    <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Sending...
-                    </span>
-                  ) : (
-                    'Submit Request'
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+                <div className="flex justify-end space-x-4 pt-4">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowConnectionModal(false)}
+                    className="px-6 py-3 text-base font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleRequestSubmit}
+                    disabled={!!investmentError || isSendingRequest}
+                    className={`px-6 py-3 text-base font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+                      (!!investmentError || isSendingRequest) ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {isSendingRequest ? (
+                      <span className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Sending Request...
+                      </span>
+                    ) : (
+                      'Submit Request'
+                    )}
+                  </motion.button>
+                </div>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast Notifications */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg ${
+              toastType === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}
+          >
+            {toastMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

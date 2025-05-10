@@ -1,246 +1,328 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 
 export default function LandingPage() {
   const navigate = useNavigate()
 
+  const fadeInUp = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.5 }
+  }
+
+  const staggerContainer = {
+    animate: {
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="bg-white shadow">
+      <motion.nav 
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b border-gray-100"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
-                <h1 className="text-xl font-bold text-indigo-600">Subx</h1>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="flex items-center"
+            >
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Subx</h1>
+            </motion.div>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="flex items-center space-x-4"
+            >
               <button
                 onClick={() => navigate('/login')}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors"
               >
                 Log in
               </button>
               <button
                 onClick={() => navigate('/signup/investor')}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:opacity-90 transition-opacity"
               >
                 Sign up
               </button>
-            </div>
+            </motion.div>
           </div>
         </div>
-      </nav>
+      </motion.nav>
 
       {/* Hero Section */}
-      <div className="relative bg-white overflow-hidden">
-        <div className="max-w-7xl mx-auto">
-          <div className="relative z-10 pb-8 bg-white sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
-            <main className="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
-              <div className="sm:text-center lg:text-left">
-                <h1 className="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
-                  <span className="block">Connect with</span>
-                  <span className="block text-indigo-600">Real Estate Developers</span>
-          </h1>
-                <p className="mt-3 text-base text-gray-500 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
-                  Join Subx to discover investment opportunities, connect with developers, and grow your real estate portfolio.
-          </p>
-                <div className="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
-            <div className="rounded-md shadow">
-                    <button
-                      onClick={() => navigate('/signup/investor')}
-                className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10"
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+        className="pt-24 pb-16 bg-gradient-to-b from-white to-indigo-50"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6"
+            >
+              <span className="block">Real Estate Investment</span>
+              <span className="block bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Made Simple</span>
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="mt-4 text-xl text-gray-600 max-w-3xl mx-auto"
+            >
+              Join Subx to discover investment opportunities, connect with developers, and grow your real estate portfolio with like-minded investors.
+            </motion.p>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+              className="mt-8 flex justify-center gap-4"
+            >
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/signup/investor')}
+                className="px-8 py-3 text-base font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:opacity-90 transition-opacity"
               >
-                      Get started as Investor
-                    </button>
-                  </div>
-                  <div className="mt-3 sm:mt-0 sm:ml-3">
-                    <button
-                      onClick={() => navigate('/signup/developer')}
-                      className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 md:py-4 md:text-lg md:px-10"
-                    >
-                      Get started as Developer
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </main>
+                Get Started as Investor
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/signup/developer')}
+                className="px-8 py-3 text-base font-medium text-indigo-600 border-2 border-indigo-600 rounded-full hover:bg-indigo-50 transition-colors"
+              >
+                Get Started as Developer
+              </motion.button>
+            </motion.div>
           </div>
         </div>
-        <div className="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2">
-          <img
-            className="h-56 w-full object-cover sm:h-72 md:h-96 lg:w-full lg:h-full"
-            src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60"
-            alt="Real Estate Development"
-          />
-        </div>
-      </div>
+      </motion.div>
 
-      {/* How It Works Section */}
-      <div className="bg-white py-12">
+      {/* Features Grid */}
+      <motion.div 
+        initial="initial"
+        whileInView="animate"
+        viewport={{ once: true }}
+        variants={staggerContainer}
+        className="py-20 bg-white"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-              How Subx Works
-            </h2>
-            <p className="mt-3 max-w-2xl mx-auto text-xl text-gray-500 sm:mt-4">
-              Join forces with others to make real estate investment accessible to everyone
-            </p>
-          </div>
-          <div className="mt-10">
-            <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="relative">
-                <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white">
-                  1
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
+                title: "Group Investment",
+                description: "Pool resources with others to access larger, more profitable real estate opportunities."
+              },
+              {
+                icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
+                title: "Secure Platform",
+                description: "Your investments are protected with industry-leading security and transparent processes."
+              },
+              {
+                icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6",
+                title: "Growth Potential",
+                description: "Access premium real estate opportunities and maximize your investment returns."
+              }
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                variants={fadeInUp}
+                whileHover={{ y: -5 }}
+                className="p-6 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50"
+              >
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={feature.icon} />
+                  </svg>
                 </div>
-                <div className="ml-16">
-                  <h3 className="text-lg font-medium text-gray-900">Create Your Profile</h3>
-                  <p className="mt-2 text-base text-gray-500">
-                    Sign up and create your profile to showcase your investment preferences and expertise.
-                  </p>
-                </div>
-              </div>
-              <div className="relative">
-                <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white">
-                  2
-                </div>
-                <div className="ml-16">
-                  <h3 className="text-lg font-medium text-gray-900">Find Your Investment Group</h3>
-                  <p className="mt-2 text-base text-gray-500">
-                    Connect with others who share your investment goals and risk appetite.
-                  </p>
-                </div>
-              </div>
-              <div className="relative">
-                <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white">
-                  3
-                </div>
-                <div className="ml-16">
-                  <h3 className="text-lg font-medium text-gray-900">Pool & Invest Together</h3>
-                  <p className="mt-2 text-base text-gray-500">
-                    Combine resources with your group to invest in projects that were previously out of reach.
-                  </p>
-                </div>
-              </div>
-            </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Features Section */}
-      <div className="bg-gray-50 py-12">
+      {/* How It Works */}
+      <motion.div 
+        initial="initial"
+        whileInView="animate"
+        viewport={{ once: true }}
+        variants={staggerContainer}
+        className="py-20 bg-gradient-to-b from-indigo-50 to-white"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-              Why Choose Subx
-            </h2>
-          </div>
-          <div className="mt-10">
-            <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="px-4 py-5 sm:p-6">
-                  <h3 className="text-lg font-medium text-gray-900">Group Investment</h3>
-                  <p className="mt-2 text-base text-gray-500">
-                    Pool resources with others to access larger, more profitable real estate opportunities.
-                  </p>
-                </div>
-              </div>
-              <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="px-4 py-5 sm:p-6">
-                  <h3 className="text-lg font-medium text-gray-900">Shared Ownership</h3>
-                  <p className="mt-2 text-base text-gray-500">
-                    Co-own properties with like-minded investors, sharing both risks and rewards.
-                  </p>
-                </div>
-              </div>
-              <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="px-4 py-5 sm:p-6">
-                  <h3 className="text-lg font-medium text-gray-900">Diversified Portfolio</h3>
-                  <p className="mt-2 text-base text-gray-500">
-                    Spread your investment across multiple properties through group participation.
-                  </p>
-                </div>
-              </div>
-            </div>
+          <motion.h2 
+            variants={fadeInUp}
+            className="text-3xl font-bold text-center mb-12"
+          >
+            How It Works
+          </motion.h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                number: "1",
+                title: "Create Your Profile",
+                description: "Sign up and set your investment preferences"
+              },
+              {
+                number: "2",
+                title: "Find Your Group",
+                description: "Connect with like-minded investors"
+              },
+              {
+                number: "3",
+                title: "Start Investing",
+                description: "Pool resources and invest in premium properties"
+              }
+            ].map((step, index) => (
+              <motion.div
+                key={index}
+                variants={fadeInUp}
+                whileHover={{ scale: 1.05 }}
+                className="text-center"
+              >
+                <motion.div 
+                  whileHover={{ rotate: 360 }}
+                  transition={{ duration: 0.5 }}
+                  className="w-16 h-16 mx-auto rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center text-white text-2xl font-bold mb-4"
+                >
+                  {step.number}
+                </motion.div>
+                <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
+                <p className="text-gray-600">{step.description}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
-      </div>
-
-      {/* Testimonials Section */}
-      <div className="bg-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-              Success Stories
-            </h2>
-          </div>
-          <div className="mt-10">
-            <div className="grid grid-cols-1 gap-10 sm:grid-cols-2">
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
-                      <span className="text-indigo-600 font-bold">JD</span>
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <h4 className="text-lg font-medium text-gray-900">John Doe</h4>
-                    <p className="text-sm text-gray-500">Real Estate Investor</p>
-                  </div>
-                </div>
-                <p className="mt-4 text-base text-gray-500">
-                  "Through Subx, I found a group of investors who shared my vision. Together, we pooled our resources and successfully invested in a commercial property that would have been out of reach individually."
-                </p>
-              </div>
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
-                      <span className="text-indigo-600 font-bold">AS</span>
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <h4 className="text-lg font-medium text-gray-900">Alice Smith</h4>
-                    <p className="text-sm text-gray-500">Real Estate Developer</p>
-                  </div>
-                </div>
-                <p className="mt-4 text-base text-gray-500">
-                  "Subx helped me connect with a group of investors who believed in my project. Their pooled investment made it possible to develop a property that's now generating returns for everyone involved."
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </motion.div>
 
       {/* CTA Section */}
-      <div className="bg-indigo-50">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8 lg:flex lg:items-center lg:justify-between">
-          <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-            <span className="block">Ready to get started?</span>
-            <span className="block text-indigo-600">Join Subx today.</span>
-          </h2>
-          <div className="mt-8 flex lg:mt-0 lg:flex-shrink-0">
-            <div className="inline-flex rounded-md shadow">
-              <button
-                onClick={() => navigate('/signup/investor')}
-                className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-              >
-                Get started as Investor
-              </button>
-            </div>
-            <div className="ml-3 inline-flex rounded-md shadow">
-              <button
-                onClick={() => navigate('/signup/developer')}
-                className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 bg-white hover:bg-indigo-50"
-              >
-                Get started as Developer
-              </button>
-            </div>
-          </div>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8 }}
+        className="py-20 bg-white"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.h2 
+            initial={{ y: 20, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="text-4xl font-bold mb-8"
+          >
+            Ready to Start Your Investment Journey?
+          </motion.h2>
+          <motion.p 
+            initial={{ y: 20, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4 }}
+            className="text-xl text-gray-600 mb-8"
+          >
+            Join thousands of investors who are already growing their portfolios with Subx
+          </motion.p>
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.6 }}
+            className="flex justify-center gap-4"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/signup/investor')}
+              className="px-8 py-3 text-base font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:opacity-90 transition-opacity"
+            >
+              Get Started Now
+            </motion.button>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
+
+      {/* Footer */}
+      <motion.footer 
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8 }}
+        className="bg-gray-50 py-12"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-8"
+          >
+            {[
+              {
+                title: "Product",
+                links: ["Features", "Pricing", "Security"]
+              },
+              {
+                title: "Company",
+                links: ["About", "Blog", "Careers"]
+              },
+              {
+                title: "Resources",
+                links: ["Documentation", "Help Center", "Contact"]
+              },
+              {
+                title: "Legal",
+                links: ["Privacy", "Terms", "Security"]
+              }
+            ].map((section, index) => (
+              <motion.div
+                key={index}
+                variants={fadeInUp}
+              >
+                <h3 className="text-sm font-semibold text-gray-900 mb-4">{section.title}</h3>
+                <ul className="space-y-2">
+                  {section.links.map((link, linkIndex) => (
+                    <motion.li
+                      key={linkIndex}
+                      whileHover={{ x: 5 }}
+                    >
+                      <a href="#" className="text-gray-600 hover:text-indigo-600">{link}</a>
+                    </motion.li>
+                  ))}
+                </ul>
+              </motion.div>
+            ))}
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4 }}
+            className="mt-12 pt-8 border-t border-gray-200"
+          >
+            <p className="text-center text-gray-500">© 2024 Subx. All rights reserved.</p>
+          </motion.div>
+        </div>
+      </motion.footer>
     </div>
   )
 } 

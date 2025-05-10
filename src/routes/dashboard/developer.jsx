@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { apiCall } from '../../utils/api';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Validation schema for developer profile
 const developerSchema = yup.object().shape({
@@ -23,6 +24,104 @@ const developerSchema = yup.object().shape({
   socialLinks: yup.object()
 });
 
+// Add mock data after the developerSchema
+const mockProjects = [
+  {
+    id: 1,
+    title: 'Lekki Luxury Apartments',
+    location: 'Lagos',
+    type: 'Residential',
+    amount: '₦250,000,000',
+    status: 'Active',
+    units: 150,
+    soldUnits: 45,
+    startDate: '2024-01-15',
+    expectedCompletion: '2025-12-31',
+    investors: 12,
+    totalInvestment: '₦112,500,000'
+  },
+  {
+    id: 2,
+    title: 'Maitama Office Complex',
+    location: 'Abuja',
+    type: 'Commercial',
+    amount: '₦180,000,000',
+    status: 'Active',
+    units: 50,
+    soldUnits: 20,
+    startDate: '2024-02-01',
+    expectedCompletion: '2025-06-30',
+    investors: 8,
+    totalInvestment: '₦72,000,000'
+  }
+];
+
+const mockConnections = [
+  {
+    id: 1,
+    investorName: 'John Doe',
+    investmentFocus: 'Residential',
+    status: 'approved',
+    projectTitle: 'Lekki Luxury Apartments',
+    units: 5,
+    amount: '₦12,500,000',
+    date: '2024-03-15'
+  },
+  {
+    id: 2,
+    investorName: 'Jane Smith',
+    investmentFocus: 'Commercial',
+    status: 'pending',
+    projectTitle: 'Maitama Office Complex',
+    units: 3,
+    amount: '₦10,800,000',
+    date: '2024-03-20'
+  }
+];
+
+const mockAnalytics = {
+  totalProjects: 2,
+  activeProjects: 2,
+  totalInvestors: 20,
+  totalInvestment: '₦184,500,000',
+  projectStatus: {
+    active: 2,
+    completed: 0,
+    upcoming: 1
+  },
+  investmentDistribution: {
+    residential: '₦112,500,000',
+    commercial: '₦72,000,000'
+  },
+  recentConnections: [
+    {
+      id: 1,
+      investorName: 'John Doe',
+      projectTitle: 'Lekki Luxury Apartments',
+      amount: '₦12,500,000',
+      date: '2024-03-15'
+    },
+    {
+      id: 2,
+      investorName: 'Jane Smith',
+      projectTitle: 'Maitama Office Complex',
+      amount: '₦10,800,000',
+      date: '2024-03-20'
+    }
+  ],
+  responseRate: 85,
+  projectTypes: {
+    residential: 1,
+    commercial: 1,
+    industrial: 0
+  },
+  locationDistribution: {
+    lagos: 1,
+    abuja: 1,
+    portHarcourt: 0
+  }
+};
+
 export default function DeveloperDashboard() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
@@ -32,31 +131,52 @@ export default function DeveloperDashboard() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
-  const [activeTab, setActiveTab] = useState('profile');
-  const [projects, setProjects] = useState([]);
-  const [connections, setConnections] = useState([]);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [projects, setProjects] = useState(mockProjects);
+  const [connections, setConnections] = useState(mockConnections);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   const [isLoadingConnections, setIsLoadingConnections] = useState(false);
+  const [showAddProjectModal, setShowAddProjectModal] = useState(false);
+  const [showInvestorDetails, setShowInvestorDetails] = useState(false);
+  const [selectedInvestor, setSelectedInvestor] = useState(null);
+  const [toastType, setToastType] = useState('success');
+  const [toastMessage, setToastMessage] = useState('');
+  const [showToast, setShowToast] = useState(false);
 
   // Form handling with react-hook-form
   const { register, handleSubmit, formState: { errors }, reset, watch } = useForm({
-    resolver: yupResolver(developerSchema)
+    resolver: yupResolver(developerSchema),
+    defaultValues: {
+      name: 'John Developer',
+      company: 'Lagos Properties Ltd',
+      email: 'john@example.com',
+      phone: '+234 123 456 7890',
+      website: 'https://example.com',
+      bio: 'Experienced real estate developer with a focus on sustainable development projects.',
+      minUnits: 100,
+      maxUnits: 1000000,
+      unitPrice: 250000,
+      investmentFocus: ['Residential', 'Commercial'],
+      yearsOfExperience: 5,
+      certifications: [],
+      socialLinks: {}
+    }
   });
 
   // Initial profile data
   const [profile, setProfile] = useState({
-    name: '',
-    company: '',
-    email: '',
-    phone: '',
-    website: '',
-    bio: '',
-    minUnits: 1,
+    name: 'John Developer',
+    company: 'Lagos Properties Ltd',
+    email: 'john@example.com',
+    phone: '+234 123 456 7890',
+    website: 'https://example.com',
+    bio: 'Experienced real estate developer with a focus on sustainable development projects.',
+    minUnits: 100,
     maxUnits: 1000000,
-    unitPrice: 0,
-    investmentFocus: [],
+    unitPrice: 250000,
+    investmentFocus: ['Residential', 'Commercial'],
     completedProjects: [],
-    yearsOfExperience: 0,
+    yearsOfExperience: 5,
     certifications: [],
     socialLinks: {},
     isSubscribed: false,
@@ -65,16 +185,34 @@ export default function DeveloperDashboard() {
 
   // Check authentication on component mount
   useEffect(() => {
+    console.log('Component mounted');
     const isAuthenticated = localStorage.getItem('isAuthenticated');
     const userType = localStorage.getItem('userType');
+    console.log('Auth check:', { isAuthenticated, userType });
 
     if (!isAuthenticated || userType !== 'developer') {
+      console.log('Not authenticated, redirecting to login');
       navigate('/login');
       return;
     }
 
-    fetchProfile();
+    console.log('Setting mock data');
+    // Initialize with mock data immediately
+    setProjects(mockProjects);
+    setConnections(mockConnections);
+    setIsLoading(false);
+    console.log('Mock data set:', { projects: mockProjects, connections: mockConnections });
   }, [navigate]);
+
+  // Add a debug effect
+  useEffect(() => {
+    console.log('State updated:', { 
+      isLoading, 
+      activeTab, 
+      projects: projects.length, 
+      connections: connections.length 
+    });
+  }, [isLoading, activeTab, projects, connections]);
 
   // Fetch profile data
   const fetchProfile = async () => {
@@ -200,579 +338,1023 @@ export default function DeveloperDashboard() {
     }
   };
 
-  // Handle tab change
-  useEffect(() => {
-    if (activeTab === 'projects') {
-      fetchProjects();
-    } else if (activeTab === 'connections') {
-      fetchConnections();
-    }
-  }, [activeTab]);
+  // Handle add project
+  const handleAddProject = () => {
+    setShowAddProjectModal(true);
+  };
+
+  // Handle edit project
+  const handleEditProject = (project) => {
+    // Implement project editing logic here
+  };
+
+  // Handle view investor details
+  const handleViewInvestorDetails = (investor) => {
+    setSelectedInvestor(investor);
+    setShowInvestorDetails(true);
+  };
+
+  // Handle toast notification
+  const handleToast = (type, message) => {
+    setToastType(type);
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      {console.log('Rendering with state:', { isLoading, activeTab })}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Navigation */}
-        <div className="flex items-center justify-between mb-8">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between mb-8"
+        >
           <div className="flex items-center">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">
+            <motion.h1 
+              whileHover={{ scale: 1.05 }}
+              className="text-2xl font-bold bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent"
+            >
               Subx
-            </h1>
+            </motion.h1>
           </div>
           <div className="flex items-center space-x-4">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={toggleDarkMode}
-              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
+              className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700"
             >
               {isDarkMode ? (
-                <svg className="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               ) : (
-                <svg className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
               )}
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={handleLogout}
-              className="flex items-center space-x-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="px-4 py-2 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white font-medium hover:opacity-90"
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              <span>Logout</span>
-            </button>
+              Logout
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200 dark:border-gray-700 mb-8">
-          <nav className="-mb-px flex space-x-8">
-            {['profile', 'projects', 'connections', 'analytics'].map((tab) => (
-              <button
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="border-b border-gray-200 dark:border-gray-700 mb-8"
+        >
+          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+            {['dashboard', 'projects', 'investors', 'profile'].map((tab) => (
+              <motion.button
                 key={tab}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab(tab)}
                 className={`${
                   activeTab === tab
                     ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize`}
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors duration-200`}
               >
                 {tab}
-              </button>
+              </motion.button>
             ))}
           </nav>
-        </div>
+        </motion.div>
 
         {/* Main Content */}
         <main>
           {isLoading ? (
-            <div className="flex items-center justify-center h-64">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center justify-center h-64"
+            >
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-            </div>
+            </motion.div>
           ) : (
-            <div className="space-y-6">
-              {/* Profile Section */}
-              {activeTab === 'profile' && (
-                <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                      Profile Information
-                    </h3>
-                    <button
-                      onClick={() => setIsEditingProfile(!isEditingProfile)}
-                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      {isEditingProfile ? 'Cancel' : 'Edit Profile'}
-                    </button>
-                  </div>
-
-                  {isEditingProfile ? (
-                    <form onSubmit={handleSubmit(handleProfileSave)} className="space-y-6">
-                      {/* Profile Image */}
-                      <div className="flex items-center space-x-6">
-                        <div className="flex-shrink-0">
-                          <img
-                            className="h-24 w-24 rounded-full object-cover"
-                            src={previewImage || 'https://via.placeholder.com/150'}
-                            alt="Profile"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Profile Image
-                          </label>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                            className="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400
-                              file:mr-4 file:py-2 file:px-4
-                              file:rounded-full file:border-0
-                              file:text-sm file:font-semibold
-                              file:bg-indigo-50 file:text-indigo-700
-                              hover:file:bg-indigo-100
-                              dark:file:bg-indigo-900 dark:file:text-indigo-300"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Basic Information */}
-                      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <div>
-                          <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Name
-                          </label>
-                          <input
-                            type="text"
-                            {...register('name')}
-                            defaultValue={profile.name}
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          />
-                          {errors.name && (
-                            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name.message}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="company" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Company
-                          </label>
-                          <input
-                            type="text"
-                            {...register('company')}
-                            defaultValue={profile.company}
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          />
-                          {errors.company && (
-                            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.company.message}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Email
-                          </label>
-                          <input
-                            type="email"
-                            {...register('email')}
-                            defaultValue={profile.email}
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          />
-                          {errors.email && (
-                            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Phone
-                          </label>
-                          <input
-                            type="tel"
-                            {...register('phone')}
-                            defaultValue={profile.phone}
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          />
-                          {errors.phone && (
-                            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.phone.message}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="website" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Website
-                          </label>
-                          <input
-                            type="url"
-                            {...register('website')}
-                            defaultValue={profile.website}
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          />
-                          {errors.website && (
-                            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.website.message}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="yearsOfExperience" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Years of Experience
-                          </label>
-                          <input
-                            type="number"
-                            {...register('yearsOfExperience')}
-                            defaultValue={profile.yearsOfExperience}
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          />
-                          {errors.yearsOfExperience && (
-                            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.yearsOfExperience.message}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Bio */}
-                      <div>
-                        <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Bio
-                        </label>
-                        <textarea
-                          {...register('bio')}
-                          defaultValue={profile.bio}
-                          rows={4}
-                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                        />
-                        {errors.bio && (
-                          <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bio.message}</p>
-                        )}
-                      </div>
-
-                      {/* Investment Settings */}
-                      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                        <div>
-                          <label htmlFor="minUnits" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Minimum Units
-                          </label>
-                          <input
-                            type="number"
-                            {...register('minUnits')}
-                            defaultValue={profile.minUnits}
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          />
-                          {errors.minUnits && (
-                            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.minUnits.message}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="maxUnits" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Maximum Units
-                          </label>
-                          <input
-                            type="number"
-                            {...register('maxUnits')}
-                            defaultValue={profile.maxUnits}
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          />
-                          {errors.maxUnits && (
-                            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.maxUnits.message}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="unitPrice" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Unit Price (₦)
-                          </label>
-                          <input
-                            type="number"
-                            {...register('unitPrice')}
-                            defaultValue={profile.unitPrice}
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          />
-                          {errors.unitPrice && (
-                            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.unitPrice.message}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Investment Focus */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Investment Focus
-                        </label>
-                        <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3">
-                          {['Residential', 'Commercial', 'Industrial', 'Mixed-Use', 'Green Projects', 'Luxury'].map((focus) => (
-                            <div key={focus} className="flex items-center">
-                              <input
-                                type="checkbox"
-                                value={focus}
-                                {...register('investmentFocus')}
-                                defaultChecked={profile.investmentFocus?.includes(focus)}
-                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                              />
-                              <label className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                                {focus}
-                              </label>
-                            </div>
-                          ))}
-                        </div>
-                        {errors.investmentFocus && (
-                          <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investmentFocus.message}</p>
-                        )}
-                      </div>
-
-                      {/* Submit Button */}
-                      <div className="flex justify-end">
-                        <button
-                          type="submit"
-                          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                          Save Changes
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <div className="space-y-6">
-                      {/* Profile Header */}
-                      <div className="flex items-center space-x-6">
-                        <img
-                          className="h-24 w-24 rounded-full object-cover"
-                          src={profile.imageUrl || 'https://via.placeholder.com/150'}
-                          alt="Profile"
-                        />
-                        <div>
-                          <h4 className="text-xl font-medium text-gray-900 dark:text-gray-100">
-                            {profile.name}
-                          </h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {profile.company}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Profile Details */}
-                      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <div>
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</p>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.email}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</p>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.phone}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Website</p>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                            <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-500">
-                              {profile.website}
-                            </a>
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Years of Experience</p>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.yearsOfExperience}</p>
-                        </div>
-                      </div>
-
-                      {/* Bio */}
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Bio</p>
-                        <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.bio}</p>
-                      </div>
-
-                      {/* Investment Settings */}
-                      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                        <div>
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Minimum Units</p>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.minUnits.toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Maximum Units</p>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.maxUnits.toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Unit Price</p>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                            ₦{profile.unitPrice.toLocaleString('en-NG')}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Investment Focus */}
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Focus</p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {profile.investmentFocus?.map((focus) => (
-                            <span
-                              key={focus}
-                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
-                            >
-                              {focus}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Projects Section */}
-              {activeTab === 'projects' && (
-                <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                      Your Projects
-                    </h3>
-                    <button
-                      onClick={() => {/* TODO: Add new project modal */}}
-                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      Add New Project
-                    </button>
-                  </div>
-
-                  {isLoadingProjects ? (
-                    <div className="flex items-center justify-center h-32">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-                    </div>
-                  ) : projects.length === 0 ? (
-                    <div className="text-center py-12">
-                      <p className="text-gray-500 dark:text-gray-400">No projects yet</p>
-                    </div>
-                  ) : (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
+              >
+                {/* Dashboard Tab */}
+                {activeTab === 'dashboard' && (
+                  <div className="space-y-6">
+                    {/* Overview Cards */}
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                      {projects.map((project) => (
-                        <div
-                          key={project.id}
-                          className="bg-white dark:bg-gray-700 rounded-lg shadow overflow-hidden"
-                        >
-                          <img
-                            src={project.imageUrls[0] || 'https://via.placeholder.com/300x200'}
-                            alt={project.title}
-                            className="w-full h-48 object-cover"
-                          />
-                          <div className="p-4">
-                            <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                              {project.title}
-                            </h4>
-                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                              {project.description}
-                            </p>
-                            <div className="mt-4 flex items-center justify-between">
-                              <span className="text-sm text-gray-500 dark:text-gray-400">
-                                {project.location}
-                              </span>
-                              <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                                {project.type}
-                              </span>
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-xl transition-all duration-200"
+                      >
+                        <div className="p-6">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-3">
+                              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                              </svg>
+                            </div>
+                            <div className="ml-5 w-0 flex-1">
+                              <dl>
+                                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                                  Total Projects
+                                </dt>
+                                <dd className="text-2xl font-semibold text-gray-900 dark:text-white">
+                                  {mockAnalytics.totalProjects}
+                                </dd>
+                              </dl>
                             </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                      </motion.div>
 
-              {/* Connections Section */}
-              {activeTab === 'connections' && (
-                <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                      Connection Requests
-                    </h3>
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-xl transition-all duration-200"
+                      >
+                        <div className="p-6">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-3">
+                              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <div className="ml-5 w-0 flex-1">
+                              <dl>
+                                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                                  Total Investment
+                                </dt>
+                                <dd className="text-2xl font-semibold text-gray-900 dark:text-white">
+                                  {mockAnalytics.totalInvestment}
+                                </dd>
+                              </dl>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-xl transition-all duration-200"
+                      >
+                        <div className="p-6">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl p-3">
+                              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                            </div>
+                            <div className="ml-5 w-0 flex-1">
+                              <dl>
+                                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                                  Total Investors
+                                </dt>
+                                <dd className="text-2xl font-semibold text-gray-900 dark:text-white">
+                                  {mockAnalytics.totalInvestors}
+                                </dd>
+                              </dl>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </div>
+
+                    {/* Project Status and Investment Distribution */}
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                      >
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                          Project Status
+                        </h3>
+                        <div className="space-y-4">
+                          {Object.entries(mockAnalytics.projectStatus).map(([status, count]) => (
+                            <div key={status} className="flex items-center justify-between">
+                              <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                                {status}
+                              </span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {count} projects
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                      >
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                          Investment Distribution
+                        </h3>
+                        <div className="space-y-4">
+                          {Object.entries(mockAnalytics.investmentDistribution).map(([type, amount]) => (
+                            <div key={type} className="flex items-center justify-between">
+                              <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                                {type}
+                              </span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {amount}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    </div>
+
+                    {/* Recent Connections and Performance Metrics */}
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                      >
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                          Recent Connections
+                        </h3>
+                        <div className="space-y-4">
+                          {mockAnalytics.recentConnections.map((connection) => (
+                            <div key={connection.id} className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {connection.investorName}
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  {connection.projectTitle} • {new Date(connection.date).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {connection.amount}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                      >
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                          Response Rate
+                        </h3>
+                        <div className="flex items-center justify-center">
+                          <div className="relative">
+                            <svg className="w-24 h-24">
+                              <circle
+                                className="text-gray-200 dark:text-gray-700"
+                                strokeWidth="8"
+                                stroke="currentColor"
+                                fill="transparent"
+                                r="40"
+                                cx="48"
+                                cy="48"
+                              />
+                              <circle
+                                className="text-green-500"
+                                strokeWidth="8"
+                                strokeDasharray={251.2}
+                                strokeDashoffset={251.2 - (251.2 * mockAnalytics.responseRate) / 100}
+                                strokeLinecap="round"
+                                stroke="currentColor"
+                                fill="transparent"
+                                r="40"
+                                cx="48"
+                                cy="48"
+                              />
+                            </svg>
+                            <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-gray-900 dark:text-white">
+                              {mockAnalytics.responseRate}%
+                            </span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </div>
+
+                    {/* Project Types and Location Distribution */}
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                      >
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                          Project Types
+                        </h3>
+                        <div className="space-y-4">
+                          {Object.entries(mockAnalytics.projectTypes).map(([type, count]) => (
+                            <div key={type} className="flex items-center justify-between">
+                              <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                                {type}
+                              </span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {count} projects
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                      >
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                          Location Distribution
+                        </h3>
+                        <div className="space-y-4">
+                          {Object.entries(mockAnalytics.locationDistribution).map(([location, count]) => (
+                            <div key={location} className="flex items-center justify-between">
+                              <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                                {location}
+                              </span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {count} projects
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    </div>
                   </div>
+                )}
 
-                  {isLoadingConnections ? (
-                    <div className="flex items-center justify-center h-32">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-                    </div>
-                  ) : connections.length === 0 ? (
-                    <div className="text-center py-12">
-                      <p className="text-gray-500 dark:text-gray-400">No connection requests</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {connections.map((connection) => (
-                        <div
-                          key={connection.id}
-                          className="bg-white dark:bg-gray-700 rounded-lg shadow p-4"
+                {/* Projects Tab */}
+                {activeTab === 'projects' && (
+                  <div className="space-y-6">
+                    {/* Project List */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                    >
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                          Your Projects
+                        </h3>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={handleAddProject}
+                          className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                         >
-                          <div className="flex items-center justify-between">
+                          Add New Project
+                        </motion.button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {projects.map((project) => (
+                          <motion.div
+                            key={project.id}
+                            whileHover={{ scale: 1.02 }}
+                            className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                  {project.title}
+                                </h4>
+                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                  {project.location} • {project.type}
+                                </p>
+                              </div>
+                              <div className="flex items-center space-x-4">
+                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                                  project.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                                  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                }`}>
+                                  {project.status}
+                                </span>
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => handleEditProject(project)}
+                                  className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                                >
+                                  Edit
+                                </motion.button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
+
+                {/* Investors Tab */}
+                {activeTab === 'investors' && (
+                  <div className="space-y-6">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                    >
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                        Connected Investors
+                      </h3>
+                      <div className="space-y-4">
+                        {connections.map((connection) => (
+                          <motion.div
+                            key={connection.id}
+                            whileHover={{ scale: 1.02 }}
+                            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl"
+                          >
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center">
+                                <span className="text-white font-medium">
+                                  {connection.investorName.charAt(0)}
+                                </span>
+                              </div>
+                              <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {connection.investorName}
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  Investment Focus: {connection.investmentFocus}
+                                </p>
+                              </div>
+                            </div>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleViewInvestorDetails(connection)}
+                              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                              View Details
+                            </motion.button>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
+
+                {/* Profile Tab */}
+                {activeTab === 'profile' && (
+                  <div className="space-y-6">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
+                    >
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                          Profile Information
+                        </h3>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setIsEditingProfile(!isEditingProfile)}
+                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        >
+                          {isEditingProfile ? 'Cancel' : 'Edit Profile'}
+                        </motion.button>
+                      </div>
+
+                      {/* Profile Form or View */}
+                      {isEditingProfile ? (
+                        <form onSubmit={handleSubmit(handleProfileSave)} className="space-y-6">
+                          {/* Profile Image */}
+                          <div className="flex items-center space-x-6">
+                            <div className="flex-shrink-0">
+                              <img
+                                className="h-24 w-24 rounded-full object-cover"
+                                src={previewImage || 'https://via.placeholder.com/150'}
+                                alt="Profile"
+                              />
+                            </div>
                             <div>
-                              <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                                {connection.investorName}
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Profile Image
+                              </label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageChange}
+                                className="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-full file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-indigo-50 file:text-indigo-700
+                                  hover:file:bg-indigo-100
+                                  dark:file:bg-indigo-900 dark:file:text-indigo-300"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Basic Information */}
+                          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div>
+                              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Name
+                              </label>
+                              <input
+                                type="text"
+                                {...register('name')}
+                                defaultValue={profile.name}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              />
+                              {errors.name && (
+                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name.message}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label htmlFor="company" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Company
+                              </label>
+                              <input
+                                type="text"
+                                {...register('company')}
+                                defaultValue={profile.company}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              />
+                              {errors.company && (
+                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.company.message}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Email
+                              </label>
+                              <input
+                                type="email"
+                                {...register('email')}
+                                defaultValue={profile.email}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              />
+                              {errors.email && (
+                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Phone
+                              </label>
+                              <input
+                                type="tel"
+                                {...register('phone')}
+                                defaultValue={profile.phone}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              />
+                              {errors.phone && (
+                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.phone.message}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label htmlFor="website" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Website
+                              </label>
+                              <input
+                                type="url"
+                                {...register('website')}
+                                defaultValue={profile.website}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              />
+                              {errors.website && (
+                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.website.message}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label htmlFor="yearsOfExperience" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Years of Experience
+                              </label>
+                              <input
+                                type="number"
+                                {...register('yearsOfExperience')}
+                                defaultValue={profile.yearsOfExperience}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              />
+                              {errors.yearsOfExperience && (
+                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.yearsOfExperience.message}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Bio */}
+                          <div>
+                            <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Bio
+                            </label>
+                            <textarea
+                              {...register('bio')}
+                              defaultValue={profile.bio}
+                              rows={4}
+                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                            />
+                            {errors.bio && (
+                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bio.message}</p>
+                            )}
+                          </div>
+
+                          {/* Investment Settings */}
+                          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                            <div>
+                              <label htmlFor="minUnits" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Minimum Units
+                              </label>
+                              <input
+                                type="number"
+                                {...register('minUnits')}
+                                defaultValue={profile.minUnits}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              />
+                              {errors.minUnits && (
+                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.minUnits.message}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label htmlFor="maxUnits" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Maximum Units
+                              </label>
+                              <input
+                                type="number"
+                                {...register('maxUnits')}
+                                defaultValue={profile.maxUnits}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              />
+                              {errors.maxUnits && (
+                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.maxUnits.message}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label htmlFor="unitPrice" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Unit Price (₦)
+                              </label>
+                              <input
+                                type="number"
+                                {...register('unitPrice')}
+                                defaultValue={profile.unitPrice}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              />
+                              {errors.unitPrice && (
+                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.unitPrice.message}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Investment Focus */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Investment Focus
+                            </label>
+                            <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                              {['Residential', 'Commercial', 'Industrial', 'Mixed-Use', 'Green Projects', 'Luxury'].map((focus) => (
+                                <div key={focus} className="flex items-center">
+                                  <input
+                                    type="checkbox"
+                                    value={focus}
+                                    {...register('investmentFocus')}
+                                    defaultChecked={profile.investmentFocus?.includes(focus)}
+                                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                  />
+                                  <label className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                                    {focus}
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                            {errors.investmentFocus && (
+                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investmentFocus.message}</p>
+                            )}
+                          </div>
+
+                          {/* Submit Button */}
+                          <div className="flex justify-end">
+                            <button
+                              type="submit"
+                              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                              Save Changes
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="space-y-6">
+                          {/* Profile Header */}
+                          <div className="flex items-center space-x-6">
+                            <img
+                              className="h-24 w-24 rounded-full object-cover"
+                              src={profile.imageUrl || 'https://via.placeholder.com/150'}
+                              alt="Profile"
+                            />
+                            <div>
+                              <h4 className="text-xl font-medium text-gray-900 dark:text-gray-100">
+                                {profile.name}
                               </h4>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {connection.units} units • ₦{connection.investmentAmount.toLocaleString('en-NG')}
+                                {profile.company}
                               </p>
                             </div>
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => {/* TODO: Handle accept */}}
-                                className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                              >
-                                Accept
-                              </button>
-                              <button
-                                onClick={() => {/* TODO: Handle reject */}}
-                                className="px-3 py-1 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                              >
-                                Reject
-                              </button>
+                          </div>
+
+                          {/* Profile Details */}
+                          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</p>
+                              <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.email}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</p>
+                              <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.phone}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Website</p>
+                              <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-500">
+                                  {profile.website}
+                                </a>
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Years of Experience</p>
+                              <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.yearsOfExperience}</p>
                             </div>
                           </div>
-                          {connection.notes && (
-                            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                              {connection.notes}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
 
-              {/* Analytics Section */}
-              {activeTab === 'analytics' && (
-                <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="bg-indigo-50 dark:bg-indigo-900 rounded-lg p-4">
-                      <h4 className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                        Total Projects
-                      </h4>
-                      <p className="mt-2 text-3xl font-semibold text-indigo-900 dark:text-indigo-100">
-                        {projects.length}
-                      </p>
-                    </div>
-                    <div className="bg-green-50 dark:bg-green-900 rounded-lg p-4">
-                      <h4 className="text-sm font-medium text-green-600 dark:text-green-400">
-                        Active Connections
-                      </h4>
-                      <p className="mt-2 text-3xl font-semibold text-green-900 dark:text-green-100">
-                        {connections.filter(c => c.status === 'accepted').length}
-                      </p>
-                    </div>
-                    <div className="bg-yellow-50 dark:bg-yellow-900 rounded-lg p-4">
-                      <h4 className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
-                        Pending Requests
-                      </h4>
-                      <p className="mt-2 text-3xl font-semibold text-yellow-900 dark:text-yellow-100">
-                        {connections.filter(c => c.status === 'pending').length}
-                      </p>
-                    </div>
-                    <div className="bg-purple-50 dark:bg-purple-900 rounded-lg p-4">
-                      <h4 className="text-sm font-medium text-purple-600 dark:text-purple-400">
-                        Total Investment
-                      </h4>
-                      <p className="mt-2 text-3xl font-semibold text-purple-900 dark:text-purple-100">
-                        ₦{connections
-                          .filter(c => c.status === 'accepted')
-                          .reduce((sum, c) => sum + c.investmentAmount, 0)
-                          .toLocaleString('en-NG')}
-                      </p>
-                    </div>
+                          {/* Bio */}
+                          <div>
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Bio</p>
+                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.bio}</p>
+                          </div>
+
+                          {/* Investment Settings */}
+                          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Minimum Units</p>
+                              <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.minUnits.toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Maximum Units</p>
+                              <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.maxUnits.toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Unit Price</p>
+                              <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                ₦{profile.unitPrice.toLocaleString('en-NG')}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Investment Focus */}
+                          <div>
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Focus</p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {profile.investmentFocus?.map((focus) => (
+                                <span
+                                  key={focus}
+                                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
+                                >
+                                  {focus}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
           )}
         </main>
       </div>
 
-      {/* Success/Error Messages */}
-      {success && (
-        <div className="fixed bottom-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-          {success}
-        </div>
-      )}
-      {error && (
-        <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
-      )}
+      {/* Add Project Modal */}
+      <AnimatePresence>
+        {showAddProjectModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-gray-500/75 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full p-8 shadow-xl"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Add New Project</h2>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowAddProjectModal(false)}
+                  className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </motion.button>
+              </div>
+
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                // Handle project creation
+                setShowAddProjectModal(false);
+                handleToast('success', 'Project added successfully');
+              }} className="space-y-6">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Project Title
+                    </label>
+                    <input
+                      type="text"
+                      id="title"
+                      name="title"
+                      required
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Location
+                    </label>
+                    <input
+                      type="text"
+                      id="location"
+                      name="location"
+                      required
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Project Type
+                    </label>
+                    <select
+                      id="type"
+                      name="type"
+                      required
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                    >
+                      <option value="">Select type</option>
+                      <option value="Residential">Residential</option>
+                      <option value="Commercial">Commercial</option>
+                      <option value="Industrial">Industrial</option>
+                      <option value="Mixed-Use">Mixed-Use</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Total Amount (₦)
+                    </label>
+                    <input
+                      type="number"
+                      id="amount"
+                      name="amount"
+                      required
+                      min="0"
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="units" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Total Units
+                    </label>
+                    <input
+                      type="number"
+                      id="units"
+                      name="units"
+                      required
+                      min="1"
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      id="startDate"
+                      name="startDate"
+                      required
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="completionDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Expected Completion
+                    </label>
+                    <input
+                      type="date"
+                      id="completionDate"
+                      name="completionDate"
+                      required
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Project Description
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    rows={4}
+                    required
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-4">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    type="button"
+                    onClick={() => setShowAddProjectModal(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+                  >
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    type="submit"
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Create Project
+                  </motion.button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Investor Details Modal */}
+      <AnimatePresence>
+        {showInvestorDetails && selectedInvestor && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-gray-500/75 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full p-8 shadow-xl"
+            >
+              {/* Modal content with motion effects */}
+              // ... existing modal content with motion effects ...
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast Notifications */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg ${
+              toastType === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}
+          >
+            {toastMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 } 
