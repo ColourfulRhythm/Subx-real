@@ -1,46 +1,75 @@
 import mongoose from 'mongoose';
 
-const DeveloperSchema = new mongoose.Schema({
+const developerSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
+    required: [true, 'Name is required'],
+    trim: true
   },
   company: {
     type: String,
-    required: true,
+    trim: true
   },
   email: {
     type: String,
-    required: true,
+    required: [true, 'Email is required'],
     unique: true,
+    trim: true,
+    lowercase: true
   },
   phone: {
     type: String,
-    required: true,
+    trim: true
   },
   website: {
     type: String,
-    required: true,
+    trim: true
   },
   bio: {
     type: String,
-    required: true,
+    trim: true
   },
-  logo: {
-    type: String,
+  imageUrl: {
+    type: String
   },
   isSubscribed: {
     type: Boolean,
-    default: false,
+    default: false
   },
-  isApproved: {
-    type: Boolean,
-    default: false,
+  minUnits: {
+    type: Number,
+    default: 1
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
+  maxUnits: {
+    type: Number,
+    default: 1000000
   },
+  unitPrice: {
+    type: Number,
+    default: 0
+  },
+  investmentFocus: [{
+    type: String
+  }],
+  completedProjects: [{
+    type: String
+  }],
+  yearsOfExperience: {
+    type: Number,
+    default: 0
+  },
+  certifications: [{
+    type: String
+  }],
+  socialLinks: {
+    type: Map,
+    of: String,
+    default: {}
+  }
+}, {
+  timestamps: true
 });
 
-export default mongoose.models.Developer || mongoose.model('Developer', DeveloperSchema); 
+const Developer = mongoose.model('Developer', developerSchema);
+
+export default Developer; 

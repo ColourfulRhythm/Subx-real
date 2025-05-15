@@ -4,12 +4,21 @@ import bodyParser from 'body-parser';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import connectDB from './config/db.js';
+import Developer from './models/Developer.js';
+import Project from './models/Project.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+// Connect to MongoDB
+connectDB();
 
 // Middleware
 app.use(cors());
@@ -29,19 +38,37 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// In-memory storage (replace with database later)
-let developers = [];
-let investors = [];
-let projects = [];
-let connections = [];
+// Authentication middleware
+const auth = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      throw new Error();
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const developer = await Developer.findOne({ _id: decoded.id });
+    
+    if (!developer) {
+      throw new Error();
+    }
+
+    req.developer = developer;
+    req.token = token;
+    next();
+  } catch (error) {
+    res.status(401).json({ error: 'Please authenticate' });
+  }
+};
 
 // Developer routes
-app.post('/api/developers', upload.single('logo'), (req, res) => {
+app.post('/api/developers/register', upload.single('logo'), async (req, res) => {
   try {
     const { 
       name, 
       company, 
       email, 
+      password,
       phone, 
       website, 
       bio, 
@@ -56,18 +83,27 @@ app.post('/api/developers', upload.single('logo'), (req, res) => {
       socialLinks
     } = req.body;
 
-  const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    // Check if developer already exists
+    const existingDeveloper = await Developer.findOne({ email });
+    if (existingDeveloper) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
 
-  const developer = {
-    id: Date.now().toString(),
-    name,
-    company,
-    email,
-    phone,
-    website,
-    bio,
-    imageUrl,
-    isSubscribed: isSubscribed === 'true',
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
+    const developer = new Developer({
+      name,
+      company,
+      email,
+      password: hashedPassword,
+      phone,
+      website,
+      bio,
+      imageUrl,
+      isSubscribed: isSubscribed === 'true',
       minUnits: parseInt(minUnits) || 1,
       maxUnits: parseInt(maxUnits) || 1000000,
       unitPrice: parseInt(unitPrice) || 0,
@@ -75,175 +111,146 @@ app.post('/api/developers', upload.single('logo'), (req, res) => {
       completedProjects: completedProjects ? JSON.parse(completedProjects) : [],
       yearsOfExperience: parseInt(yearsOfExperience) || 0,
       certifications: certifications ? JSON.parse(certifications) : [],
-      socialLinks: socialLinks ? JSON.parse(socialLinks) : {},
-    createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-  };
+      socialLinks: socialLinks ? JSON.parse(socialLinks) : {}
+    });
 
-  developers.push(developer);
-    res.json({ message: 'Developer created successfully', developer });
+    await developer.save();
+
+    // Generate token
+    const token = jwt.sign({ id: developer._id }, JWT_SECRET);
+
+    res.status(201).json({ 
+      message: 'Developer registered successfully',
+      developer,
+      token
+    });
   } catch (error) {
-    console.error('Error creating developer:', error);
-    res.status(500).json({ error: 'Failed to create developer' });
+    console.error('Error registering developer:', error);
+    res.status(500).json({ 
+      error: 'Failed to register developer',
+      details: error.message 
+    });
   }
 });
 
-app.get('/api/developers', (req, res) => {
+app.post('/api/developers/login', async (req, res) => {
   try {
-  res.json(developers);
+    const { email, password } = req.body;
+    const developer = await Developer.findOne({ email });
+
+    if (!developer) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const isMatch = await bcrypt.compare(password, developer.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign({ id: developer._id }, JWT_SECRET);
+    res.json({ developer, token });
   } catch (error) {
-    console.error('Error fetching developers:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+app.get('/api/developers', async (req, res) => {
+  try {
+    const developers = await Developer.find().select('-password');
+    res.json(developers);
+  } catch (error) {
     res.status(500).json({ error: 'Failed to fetch developers' });
   }
 });
 
-app.get('/api/developers/:id', (req, res) => {
+app.get('/api/developers/:id', async (req, res) => {
   try {
-    const developer = developers.find(d => d.id === req.params.id);
+    const developer = await Developer.findById(req.params.id).select('-password');
     if (!developer) {
       return res.status(404).json({ error: 'Developer not found' });
     }
     res.json(developer);
   } catch (error) {
-    console.error('Error fetching developer:', error);
     res.status(500).json({ error: 'Failed to fetch developer' });
   }
 });
 
-app.put('/api/developers/:id', upload.single('logo'), (req, res) => {
+app.put('/api/developers/:id', auth, upload.single('logo'), async (req, res) => {
   try {
-    console.log('Received update request for developer:', req.params.id);
-    console.log('Request body:', req.body);
-    console.log('Request file:', req.file);
+    const updates = req.body;
+    if (req.file) {
+      updates.imageUrl = `/uploads/${req.file.filename}`;
+    }
 
-    const developerIndex = developers.findIndex(d => d.id === req.params.id);
-    if (developerIndex === -1) {
+    const developer = await Developer.findByIdAndUpdate(
+      req.params.id,
+      updates,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!developer) {
       return res.status(404).json({ error: 'Developer not found' });
     }
 
-    const { 
-      name, 
-      company, 
-      email, 
-      phone, 
-      website, 
-      bio, 
-      isSubscribed,
-      minUnits,
-      maxUnits,
-      unitPrice,
-      investmentFocus,
-      yearsOfExperience
-    } = req.body;
-
-    // Parse JSON fields
-    let parsedInvestmentFocus;
-    try {
-      parsedInvestmentFocus = investmentFocus ? JSON.parse(investmentFocus) : developers[developerIndex].investmentFocus;
-    } catch (error) {
-      console.error('Error parsing investment focus:', error);
-      parsedInvestmentFocus = developers[developerIndex].investmentFocus;
-    }
-
-    // Parse numeric fields
-    const parsedMinUnits = minUnits ? parseInt(minUnits) : developers[developerIndex].minUnits;
-    const parsedMaxUnits = maxUnits ? parseInt(maxUnits) : developers[developerIndex].maxUnits;
-    const parsedUnitPrice = unitPrice ? parseInt(unitPrice) : developers[developerIndex].unitPrice;
-    const parsedYearsOfExperience = yearsOfExperience ? parseInt(yearsOfExperience) : developers[developerIndex].yearsOfExperience;
-
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : developers[developerIndex].imageUrl;
-
-    const updatedDeveloper = {
-      ...developers[developerIndex],
-      name: name || developers[developerIndex].name,
-      company: company || developers[developerIndex].company,
-      email: email || developers[developerIndex].email,
-      phone: phone || developers[developerIndex].phone,
-      website: website || developers[developerIndex].website,
-      bio: bio || developers[developerIndex].bio,
-      imageUrl,
-      isSubscribed: isSubscribed ? isSubscribed === 'true' : developers[developerIndex].isSubscribed,
-      minUnits: parsedMinUnits,
-      maxUnits: parsedMaxUnits,
-      unitPrice: parsedUnitPrice,
-      investmentFocus: parsedInvestmentFocus,
-      yearsOfExperience: parsedYearsOfExperience,
-      updatedAt: new Date().toISOString()
-    };
-
-    developers[developerIndex] = updatedDeveloper;
-    console.log('Updated developer:', updatedDeveloper);
-    
     res.json({ 
-      message: 'Developer updated successfully', 
-      developer: updatedDeveloper 
+      message: 'Developer updated successfully',
+      developer
     });
   } catch (error) {
-    console.error('Error updating developer:', error);
-    res.status(500).json({ 
-      error: 'Failed to update developer: ' + error.message,
-      details: error.stack
-    });
+    res.status(500).json({ error: 'Failed to update developer' });
   }
 });
 
-app.delete('/api/developers/:id', (req, res) => {
+app.delete('/api/developers/:id', auth, async (req, res) => {
   try {
-    const developerIndex = developers.findIndex(d => d.id === req.params.id);
-    if (developerIndex === -1) {
+    const developer = await Developer.findByIdAndDelete(req.params.id);
+    if (!developer) {
       return res.status(404).json({ error: 'Developer not found' });
     }
-
-    developers.splice(developerIndex, 1);
     res.json({ message: 'Developer deleted successfully' });
   } catch (error) {
-    console.error('Error deleting developer:', error);
     res.status(500).json({ error: 'Failed to delete developer' });
   }
 });
 
 // Project routes
-app.post('/api/projects', upload.array('images', 5), (req, res) => {
+app.post('/api/projects', auth, upload.array('images', 5), async (req, res) => {
   try {
-  const { title, description, location, type, developerId } = req.body;
-  const imageUrls = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
+    const { title, description, location, type, units } = req.body;
+    const imageUrls = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
 
-  const project = {
-    id: Date.now().toString(),
-    title,
-    description,
-    location,
-    type,
-    imageUrls,
-    developerId,
-    createdAt: new Date().toISOString(),
-  };
+    const project = new Project({
+      title,
+      description,
+      location,
+      type,
+      imageUrls,
+      developerId: req.developer._id,
+      units: JSON.parse(units)
+    });
 
-  projects.push(project);
-    res.json({ message: 'Project created successfully', project });
+    await project.save();
+    res.status(201).json({ message: 'Project created successfully', project });
   } catch (error) {
-    console.error('Error creating project:', error);
     res.status(500).json({ error: 'Failed to create project' });
   }
 });
 
-app.get('/api/projects', (req, res) => {
+app.get('/api/projects', async (req, res) => {
   try {
-  res.json(projects);
+    const projects = await Project.find().populate('developerId', 'name company');
+    res.json(projects);
   } catch (error) {
-    console.error('Error fetching projects:', error);
     res.status(500).json({ error: 'Failed to fetch projects' });
   }
 });
 
-app.get('/api/projects/:developerId', (req, res) => {
+app.get('/api/projects/:developerId', async (req, res) => {
   try {
-  const developerProjects = projects.filter(
-    (project) => project.developerId === req.params.developerId
-  );
-  res.json(developerProjects);
+    const projects = await Project.find({ developerId: req.params.developerId })
+      .populate('developerId', 'name company');
+    res.json(projects);
   } catch (error) {
-    console.error('Error fetching developer projects:', error);
     res.status(500).json({ error: 'Failed to fetch developer projects' });
   }
 });
