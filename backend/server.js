@@ -21,7 +21,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 connectDB();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -64,6 +68,8 @@ const auth = async (req, res, next) => {
 // Developer routes
 app.post('/api/developers/register', upload.single('logo'), async (req, res) => {
   try {
+    console.log('Received registration request:', req.body);
+    
     const { 
       name, 
       company, 
@@ -83,6 +89,14 @@ app.post('/api/developers/register', upload.single('logo'), async (req, res) => 
       socialLinks
     } = req.body;
 
+    // Validate required fields
+    if (!name || !email || !password) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['name', 'email', 'password']
+      });
+    }
+
     // Check if developer already exists
     const existingDeveloper = await Developer.findOne({ email });
     if (existingDeveloper) {
@@ -93,6 +107,51 @@ app.post('/api/developers/register', upload.single('logo'), async (req, res) => 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
+    // Safely parse JSON fields
+    const parseJsonField = (field, defaultValue = []) => {
+      if (!field) return defaultValue;
+      
+      // If it's already an array, return it
+      if (Array.isArray(field)) return field;
+      
+      // If it's already an object, return it
+      if (typeof field === 'object') return field;
+      
+      // If it's a string, try to parse it
+      if (typeof field === 'string') {
+        try {
+          // First try to parse as JSON
+          return JSON.parse(field);
+        } catch (error) {
+          // If it's a comma-separated string, split it
+          if (field.includes(',')) {
+            return field.split(',').map(item => item.trim());
+          }
+          // Otherwise return as single item array
+          return [field];
+        }
+      }
+      
+      return defaultValue;
+    };
+
+    // Parse fields with logging
+    console.log('Parsing investment focus:', investmentFocus);
+    const parsedInvestmentFocus = parseJsonField(investmentFocus);
+    console.log('Parsed investment focus:', parsedInvestmentFocus);
+
+    console.log('Parsing completed projects:', completedProjects);
+    const parsedCompletedProjects = parseJsonField(completedProjects);
+    console.log('Parsed completed projects:', parsedCompletedProjects);
+
+    console.log('Parsing certifications:', certifications);
+    const parsedCertifications = parseJsonField(certifications);
+    console.log('Parsed certifications:', parsedCertifications);
+
+    console.log('Parsing social links:', socialLinks);
+    const parsedSocialLinks = parseJsonField(socialLinks, {});
+    console.log('Parsed social links:', parsedSocialLinks);
 
     const developer = new Developer({
       name,
@@ -107,12 +166,14 @@ app.post('/api/developers/register', upload.single('logo'), async (req, res) => 
       minUnits: parseInt(minUnits) || 1,
       maxUnits: parseInt(maxUnits) || 1000000,
       unitPrice: parseInt(unitPrice) || 0,
-      investmentFocus: investmentFocus ? JSON.parse(investmentFocus) : [],
-      completedProjects: completedProjects ? JSON.parse(completedProjects) : [],
+      investmentFocus: parsedInvestmentFocus,
+      completedProjects: parsedCompletedProjects,
       yearsOfExperience: parseInt(yearsOfExperience) || 0,
-      certifications: certifications ? JSON.parse(certifications) : [],
-      socialLinks: socialLinks ? JSON.parse(socialLinks) : {}
+      certifications: parsedCertifications,
+      socialLinks: parsedSocialLinks
     });
+
+    console.log('Creating developer:', developer);
 
     await developer.save();
 
@@ -335,6 +396,27 @@ app.get('/api/connections/:investorId', (req, res) => {
     console.error('Error fetching connections:', error);
     res.status(500).json({ error: 'Failed to fetch connections' });
   }
+});
+
+// Root path handler
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Welcome to Subx API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/api/health',
+      developers: {
+        register: '/api/developers/register',
+        login: '/api/developers/login',
+        list: '/api/developers',
+        getById: '/api/developers/:id'
+      },
+      projects: {
+        list: '/api/projects',
+        getByDeveloper: '/api/projects/:developerId'
+      }
+    }
+  });
 });
 
 // Health check endpoint

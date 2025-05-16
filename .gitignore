@@ -10,7 +10,7 @@ node_modules/
 /build
 /dist
 
-# Environment files
+# Environment variables
 .env
 .env.local
 .env.development.local
@@ -23,15 +23,11 @@ yarn-debug.log*
 yarn-error.log*
 
 # Editor directories and files
-.vscode/
 .idea/
+.vscode/
 *.swp
 *.swo
 .DS_Store
 
-# Vite
-.vite/
-*.local
-
-# TypeScript
-*.tsbuildinfo
+# MongoDB
+data/db/
