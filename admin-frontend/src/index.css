@@ -1,0 +1,50 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f5f5f5;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Add some spacing for the main content when the sidebar is open */
+.MuiDrawer-paper {
+  margin-top: 64px !important;
+}
+
+/* Add some padding to the main content */
+.MuiContainer-root {
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+/* Style the table rows */
+.MuiTableRow-root:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* Style the dialog forms */
+.MuiDialog-paper {
+  padding: 16px;
+}
+
+/* Style the buttons */
+.MuiButton-root {
+  text-transform: none !important;
+}
+
+/* Style the form fields */
+.MuiTextField-root {
+  margin-bottom: 16px !important;
+}
+
+/* Style the alerts */
+.MuiAlert-root {
+  margin-bottom: 16px !important;
+}
