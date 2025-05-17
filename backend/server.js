@@ -197,21 +197,35 @@ app.post('/api/developers/register', upload.single('logo'), async (req, res) => 
 app.post('/api/developers/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    
+    // Find developer by email
     const developer = await Developer.findOne({ email });
-
     if (!developer) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
+    // Compare password
     const isMatch = await bcrypt.compare(password, developer.password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
+    // Generate token
     const token = jwt.sign({ id: developer._id }, JWT_SECRET);
-    res.json({ developer, token });
+
+    // Send response in the format expected by the frontend
+    res.json({
+      token,
+      developer: {
+        id: developer._id,
+        name: developer.name,
+        email: developer.email,
+        company: developer.company
+      }
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Login failed' });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error during login' });
   }
 });
 

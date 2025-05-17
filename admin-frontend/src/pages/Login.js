@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import { login } from '../services/api';
 
-function Login() {
+function Login({ onLogin }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -32,7 +32,7 @@ function Login() {
 
     try {
       const response = await login(formData.email, formData.password);
-      localStorage.setItem('token', response.token);
+      onLogin(response.token);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');

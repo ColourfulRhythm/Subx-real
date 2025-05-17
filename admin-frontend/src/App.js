@@ -43,40 +43,35 @@ function App() {
     }
   }, []);
 
-  if (!isAuthenticated) {
-    return (
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Login onLogin={handleLogin} />
-      </ThemeProvider>
-    );
-  }
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <Box sx={{ display: 'flex' }}>
-          <Navbar onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
-          <Sidebar open={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onLogout={handleLogout} />
-          <Box
-            component="main"
-            sx={{
-              flexGrow: 1,
-              p: 3,
-              mt: 8,
-              backgroundColor: (theme) => theme.palette.background.default,
-              minHeight: '100vh',
-            }}
-          >
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/developers" element={<Developers />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+        {!isAuthenticated ? (
+          <Login onLogin={handleLogin} />
+        ) : (
+          <Box sx={{ display: 'flex' }}>
+            <Navbar onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
+            <Sidebar open={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onLogout={handleLogout} />
+            <Box
+              component="main"
+              sx={{
+                flexGrow: 1,
+                p: 3,
+                mt: 8,
+                backgroundColor: (theme) => theme.palette.background.default,
+                minHeight: '100vh',
+              }}
+            >
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/developers" element={<Developers />} />
+                <Route path="/projects" element={<Projects />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Box>
           </Box>
-        </Box>
+        )}
       </Router>
     </ThemeProvider>
   );

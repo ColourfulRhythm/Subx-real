@@ -37,26 +37,31 @@ export const getBackendUrl = async () => {
   return cachedBackendUrl;
 };
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
 // Utility function to make API calls
 export const apiCall = async (endpoint, options = {}) => {
   try {
-    const baseUrl = await getBackendUrl();
-    console.log('Making API call to:', `${baseUrl}${endpoint}`);
-    
-    const response = await fetch(`${baseUrl}${endpoint}`, {
+    const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
+    const defaultHeaders = {
+      'Content-Type': 'application/json',
+    };
+
+    const response = await fetch(url, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        ...defaultHeaders,
         ...options.headers,
       },
     });
-    
+
+    const data = await response.json();
+
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(error.message || `API call failed: ${response.statusText}`);
+      throw new Error(data.message || 'Something went wrong');
     }
-    
-    return response.json();
+
+    return data;
   } catch (error) {
     console.error('API call error:', error);
     throw error;

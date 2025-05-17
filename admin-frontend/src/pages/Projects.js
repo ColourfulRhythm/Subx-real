@@ -23,10 +23,16 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Chip,
+  Grid,
+  InputAdornment,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { getProjects, getDevelopers, createProject, updateProject, deleteProject } from '../services/api';
+import { useTheme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
+import AddIcon from '@mui/icons-material/Add';
 
 function Projects() {
   const [projects, setProjects] = useState([]);
@@ -44,6 +50,7 @@ function Projects() {
     endDate: '',
     budget: '',
   });
+  const theme = useTheme();
 
   useEffect(() => {
     fetchData();
@@ -51,15 +58,24 @@ function Projects() {
 
   const fetchData = async () => {
     try {
-      const [projectsData, developersData] = await Promise.all([
+      setLoading(true);
+      setError('');
+      const [projectsRes, developersRes] = await Promise.all([
         getProjects(),
         getDevelopers(),
       ]);
+      
+      // Ensure we have arrays even if the API returns an error
+      const projectsData = Array.isArray(projectsRes.data) ? projectsRes.data : [];
+      const developersData = Array.isArray(developersRes.data) ? developersRes.data : [];
+      
       setProjects(projectsData);
       setDevelopers(developersData);
     } catch (err) {
-      setError('Failed to fetch data');
-      console.error(err);
+      setError(err.response?.data?.message || 'Failed to fetch data');
+      console.error('Error fetching data:', err);
+      setProjects([]);
+      setDevelopers([]);
     } finally {
       setLoading(false);
     }
@@ -150,8 +166,25 @@ function Projects() {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Projects</Typography>
-        <Button variant="contained" color="primary" onClick={() => handleOpenDialog()}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
+          Projects Management
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => handleOpenDialog()}
+          startIcon={<AddIcon />}
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            px: 3,
+            py: 1,
+            boxShadow: 2,
+            '&:hover': {
+              boxShadow: 4,
+            },
+          }}
+        >
           Add Project
         </Button>
       </Box>
@@ -162,7 +195,23 @@ function Projects() {
         </Alert>
       )}
 
-      <TableContainer component={Paper}>
+      <TableContainer 
+        component={Paper}
+        sx={{
+          borderRadius: 2,
+          boxShadow: 3,
+          '& .MuiTableHead-root': {
+            backgroundColor: theme.palette.primary.main,
+            '& .MuiTableCell-root': {
+              color: 'white',
+              fontWeight: 'bold',
+            },
+          },
+          '& .MuiTableRow-root:hover': {
+            backgroundColor: alpha(theme.palette.primary.main, 0.04),
+          },
+        }}
+      >
         <Table>
           <TableHead>
             <TableRow>
@@ -172,29 +221,65 @@ function Projects() {
               <TableCell>Start Date</TableCell>
               <TableCell>End Date</TableCell>
               <TableCell>Budget</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell align="center">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {projects.map((project) => (
               <TableRow key={project._id}>
-                <TableCell>{project.title}</TableCell>
+                <TableCell>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {project.title}
+                  </Typography>
+                </TableCell>
                 <TableCell>
                   {developers.find(d => d._id === project.developer)?.name || 'N/A'}
                 </TableCell>
-                <TableCell>{project.status}</TableCell>
+                <TableCell>
+                  <Chip
+                    label={project.status}
+                    color={
+                      project.status === 'completed' ? 'success' :
+                      project.status === 'in-progress' ? 'primary' :
+                      project.status === 'cancelled' ? 'error' : 'warning'
+                    }
+                    size="small"
+                    sx={{ borderRadius: 1 }}
+                  />
+                </TableCell>
                 <TableCell>
                   {project.startDate ? new Date(project.startDate).toLocaleDateString() : 'N/A'}
                 </TableCell>
                 <TableCell>
                   {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'N/A'}
                 </TableCell>
-                <TableCell>{project.budget || 'N/A'}</TableCell>
                 <TableCell>
-                  <IconButton onClick={() => handleOpenDialog(project)}>
+                  {project.budget ? (
+                    <Typography sx={{ fontWeight: 500, color: theme.palette.success.main }}>
+                      {new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD'
+                      }).format(project.budget)}
+                    </Typography>
+                  ) : 'N/A'}
+                </TableCell>
+                <TableCell align="center">
+                  <IconButton
+                    onClick={() => handleOpenDialog(project)}
+                    sx={{
+                      color: theme.palette.primary.main,
+                      '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.1) },
+                    }}
+                  >
                     <EditIcon />
                   </IconButton>
-                  <IconButton onClick={() => handleDelete(project._id)}>
+                  <IconButton
+                    onClick={() => handleDelete(project._id)}
+                    sx={{
+                      color: theme.palette.error.main,
+                      '&:hover': { backgroundColor: alpha(theme.palette.error.main, 0.1) },
+                    }}
+                  >
                     <DeleteIcon />
                   </IconButton>
                 </TableCell>
@@ -204,12 +289,27 @@ function Projects() {
         </Table>
       </TableContainer>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: 4,
+          },
+        }}
+      >
+        <DialogTitle sx={{ 
+          bgcolor: theme.palette.primary.main,
+          color: 'white',
+          fontWeight: 'bold',
+        }}>
           {selectedProject ? 'Edit Project' : 'Add Project'}
         </DialogTitle>
-        <DialogContent>
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+        <DialogContent sx={{ mt: 2 }}>
+          <Box component="form" onSubmit={handleSubmit}>
             <TextField
               fullWidth
               label="Title"
@@ -218,6 +318,7 @@ function Projects() {
               onChange={handleChange}
               margin="normal"
               required
+              sx={{ mb: 2 }}
             />
             <TextField
               fullWidth
@@ -228,8 +329,9 @@ function Projects() {
               margin="normal"
               multiline
               rows={4}
+              sx={{ mb: 2 }}
             />
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="normal" sx={{ mb: 2 }}>
               <InputLabel>Developer</InputLabel>
               <Select
                 name="developer"
@@ -244,7 +346,7 @@ function Projects() {
                 ))}
               </Select>
             </FormControl>
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="normal" sx={{ mb: 2 }}>
               <InputLabel>Status</InputLabel>
               <Select
                 name="status"
@@ -258,26 +360,32 @@ function Projects() {
                 <MenuItem value="cancelled">Cancelled</MenuItem>
               </Select>
             </FormControl>
-            <TextField
-              fullWidth
-              label="Start Date"
-              name="startDate"
-              type="date"
-              value={formData.startDate}
-              onChange={handleChange}
-              margin="normal"
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              fullWidth
-              label="End Date"
-              name="endDate"
-              type="date"
-              value={formData.endDate}
-              onChange={handleChange}
-              margin="normal"
-              InputLabelProps={{ shrink: true }}
-            />
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Start Date"
+                  name="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={handleChange}
+                  margin="normal"
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="End Date"
+                  name="endDate"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={handleChange}
+                  margin="normal"
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+            </Grid>
             <TextField
               fullWidth
               label="Budget"
@@ -286,12 +394,32 @@ function Projects() {
               value={formData.budget}
               onChange={handleChange}
               margin="normal"
+              InputProps={{
+                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+              }}
             />
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained" color="primary">
+        <DialogActions sx={{ p: 2, bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
+          <Button 
+            onClick={handleCloseDialog}
+            sx={{ 
+              color: theme.palette.text.secondary,
+              '&:hover': { backgroundColor: alpha(theme.palette.text.secondary, 0.04) },
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained" 
+            color="primary"
+            sx={{
+              borderRadius: 1,
+              textTransform: 'none',
+              px: 3,
+            }}
+          >
             {selectedProject ? 'Update' : 'Add'}
           </Button>
         </DialogActions>

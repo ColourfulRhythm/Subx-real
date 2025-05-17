@@ -23,6 +23,10 @@ import {
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { getDevelopers, createDeveloper, updateDeveloper, deleteDeveloper } from '../services/api';
+import { Link } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
+import AddIcon from '@mui/icons-material/Add';
 
 function Developers() {
   const [developers, setDevelopers] = useState([]);
@@ -38,6 +42,7 @@ function Developers() {
     website: '',
     bio: '',
   });
+  const theme = useTheme();
 
   useEffect(() => {
     fetchDevelopers();
@@ -45,11 +50,15 @@ function Developers() {
 
   const fetchDevelopers = async () => {
     try {
-      const data = await getDevelopers();
-      setDevelopers(data);
+      setLoading(true);
+      setError('');
+      const response = await getDevelopers();
+      const developersData = Array.isArray(response.data) ? response.data : [];
+      setDevelopers(developersData);
     } catch (err) {
-      setError('Failed to fetch developers');
-      console.error(err);
+      setError(err.response?.data?.message || 'Failed to fetch developers');
+      console.error('Error fetching developers:', err);
+      setDevelopers([]);
     } finally {
       setLoading(false);
     }
@@ -103,6 +112,7 @@ function Developers() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setError('');
       if (selectedDeveloper) {
         await updateDeveloper(selectedDeveloper._id, formData);
       } else {
@@ -112,16 +122,19 @@ function Developers() {
       fetchDevelopers();
     } catch (err) {
       setError(err.response?.data?.message || 'Operation failed');
+      console.error('Error saving developer:', err);
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this developer?')) {
+    if (window.confirm('Are you sure you want to delete this developer? This action cannot be undone.')) {
       try {
+        setError('');
         await deleteDeveloper(id);
         fetchDevelopers();
       } catch (err) {
-        setError('Failed to delete developer');
+        setError(err.response?.data?.message || 'Failed to delete developer');
+        console.error('Error deleting developer:', err);
       }
     }
   };
@@ -137,8 +150,25 @@ function Developers() {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Developers</Typography>
-        <Button variant="contained" color="primary" onClick={() => handleOpenDialog()}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
+          Developers Management
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => handleOpenDialog()}
+          startIcon={<AddIcon />}
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            px: 3,
+            py: 1,
+            boxShadow: 2,
+            '&:hover': {
+              boxShadow: 4,
+            },
+          }}
+        >
           Add Developer
         </Button>
       </Box>
@@ -149,7 +179,23 @@ function Developers() {
         </Alert>
       )}
 
-      <TableContainer component={Paper}>
+      <TableContainer 
+        component={Paper}
+        sx={{
+          borderRadius: 2,
+          boxShadow: 3,
+          '& .MuiTableHead-root': {
+            backgroundColor: theme.palette.primary.main,
+            '& .MuiTableCell-root': {
+              color: 'white',
+              fontWeight: 'bold',
+            },
+          },
+          '& .MuiTableRow-root:hover': {
+            backgroundColor: alpha(theme.palette.primary.main, 0.04),
+          },
+        }}
+      >
         <Table>
           <TableHead>
             <TableRow>
@@ -158,22 +204,53 @@ function Developers() {
               <TableCell>Company</TableCell>
               <TableCell>Phone</TableCell>
               <TableCell>Website</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell align="center">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {developers.map((developer) => (
               <TableRow key={developer._id}>
-                <TableCell>{developer.name}</TableCell>
-                <TableCell>{developer.email}</TableCell>
-                <TableCell>{developer.company}</TableCell>
-                <TableCell>{developer.phone}</TableCell>
-                <TableCell>{developer.website}</TableCell>
                 <TableCell>
-                  <IconButton onClick={() => handleOpenDialog(developer)}>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {developer.name}
+                  </Typography>
+                </TableCell>
+                <TableCell>{developer.email}</TableCell>
+                <TableCell>{developer.company || 'N/A'}</TableCell>
+                <TableCell>{developer.phone || 'N/A'}</TableCell>
+                <TableCell>
+                  {developer.website ? (
+                    <Link
+                      href={developer.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{
+                        color: theme.palette.primary.main,
+                        textDecoration: 'none',
+                        '&:hover': { textDecoration: 'underline' },
+                      }}
+                    >
+                      {developer.website}
+                    </Link>
+                  ) : 'N/A'}
+                </TableCell>
+                <TableCell align="center">
+                  <IconButton
+                    onClick={() => handleOpenDialog(developer)}
+                    sx={{
+                      color: theme.palette.primary.main,
+                      '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.1) },
+                    }}
+                  >
                     <EditIcon />
                   </IconButton>
-                  <IconButton onClick={() => handleDelete(developer._id)}>
+                  <IconButton
+                    onClick={() => handleDelete(developer._id)}
+                    sx={{
+                      color: theme.palette.error.main,
+                      '&:hover': { backgroundColor: alpha(theme.palette.error.main, 0.1) },
+                    }}
+                  >
                     <DeleteIcon />
                   </IconButton>
                 </TableCell>
@@ -183,12 +260,27 @@ function Developers() {
         </Table>
       </TableContainer>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: 4,
+          },
+        }}
+      >
+        <DialogTitle sx={{ 
+          bgcolor: theme.palette.primary.main,
+          color: 'white',
+          fontWeight: 'bold',
+        }}>
           {selectedDeveloper ? 'Edit Developer' : 'Add Developer'}
         </DialogTitle>
-        <DialogContent>
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+        <DialogContent sx={{ mt: 2 }}>
+          <Box component="form" onSubmit={handleSubmit}>
             <TextField
               fullWidth
               label="Name"
@@ -197,6 +289,7 @@ function Developers() {
               onChange={handleChange}
               margin="normal"
               required
+              sx={{ mb: 2 }}
             />
             <TextField
               fullWidth
@@ -207,6 +300,7 @@ function Developers() {
               onChange={handleChange}
               margin="normal"
               required
+              sx={{ mb: 2 }}
             />
             <TextField
               fullWidth
@@ -215,6 +309,7 @@ function Developers() {
               value={formData.company}
               onChange={handleChange}
               margin="normal"
+              sx={{ mb: 2 }}
             />
             <TextField
               fullWidth
@@ -223,6 +318,7 @@ function Developers() {
               value={formData.phone}
               onChange={handleChange}
               margin="normal"
+              sx={{ mb: 2 }}
             />
             <TextField
               fullWidth
@@ -231,6 +327,7 @@ function Developers() {
               value={formData.website}
               onChange={handleChange}
               margin="normal"
+              sx={{ mb: 2 }}
             />
             <TextField
               fullWidth
@@ -244,9 +341,26 @@ function Developers() {
             />
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained" color="primary">
+        <DialogActions sx={{ p: 2, bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
+          <Button 
+            onClick={handleCloseDialog}
+            sx={{ 
+              color: theme.palette.text.secondary,
+              '&:hover': { backgroundColor: alpha(theme.palette.text.secondary, 0.04) },
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained" 
+            color="primary"
+            sx={{
+              borderRadius: 1,
+              textTransform: 'none',
+              px: 3,
+            }}
+          >
             {selectedDeveloper ? 'Update' : 'Add'}
           </Button>
         </DialogActions>

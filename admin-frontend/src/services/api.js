@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://subx-backend-g07b3lqvq-colourfulrhythms-projects.vercel.app/api';
+const API_URL = 'http://localhost:3000/api';
 
 const api = axios.create({
   baseURL: API_URL,

@@ -391,7 +391,18 @@ export default function DeveloperDashboard() {
 
   // Handle edit project
   const handleEditProject = (project) => {
-    // Implement project editing logic here
+    setNewProject({
+      id: project.id,
+      title: project.title,
+      location: project.location,
+      type: project.type,
+      amount: project.amount.replace(/[^0-9]/g, ''), // Remove currency symbol and commas
+      units: project.units,
+      startDate: project.startDate,
+      expectedCompletion: project.expectedCompletion,
+      description: project.description || ''
+    });
+    setShowAddProjectModal(true);
   };
 
   // Handle view investor details
@@ -425,62 +436,62 @@ export default function DeveloperDashboard() {
   };
 
   // Handle project submission
-  const handleProjectSubmit = (e) => {
+  const handleProjectSubmit = async (e) => {
     e.preventDefault();
-    
-    // Create new project object
-    const project = {
-      id: projects.length + 1, // Temporary ID generation
-      title: newProject.title,
-      location: newProject.location,
-      type: newProject.type,
-      amount: `₦${Number(newProject.amount).toLocaleString()}`,
-      status: 'Active',
-      units: parseInt(newProject.units),
-      soldUnits: 0,
-      startDate: newProject.startDate,
-      expectedCompletion: newProject.expectedCompletion,
-      investors: 0,
-      totalInvestment: '₦0'
-    };
+    try {
+      const developerId = localStorage.getItem('userId');
+      const projectData = {
+        ...newProject,
+        developerId,
+        status: 'pending',
+        amount: `₦${Number(newProject.amount).toLocaleString()}` // Format amount with currency
+      };
 
-    // Update projects list
-    setProjects(prev => [...prev, project]);
-
-    // Update analytics
-    setAnalytics(prev => ({
-      ...prev,
-      totalProjects: prev.totalProjects + 1,
-      activeProjects: prev.activeProjects + 1,
-      projectStatus: {
-        ...prev.projectStatus,
-        active: prev.projectStatus.active + 1
-      },
-      projectTypes: {
-        ...prev.projectTypes,
-        [newProject.type.toLowerCase()]: (prev.projectTypes[newProject.type.toLowerCase()] || 0) + 1
-      },
-      locationDistribution: {
-        ...prev.locationDistribution,
-        [newProject.location.toLowerCase()]: (prev.locationDistribution[newProject.location.toLowerCase()] || 0) + 1
+      if (newProject.id) {
+        // Update existing project
+        const response = await apiCall(`/api/projects/${newProject.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(projectData)
+        });
+        
+        if (response.error) {
+          throw new Error(response.error);
+        }
+        
+        setSuccess('Project updated successfully');
+        handleToast('success', 'Project updated successfully');
+      } else {
+        // Create new project
+        const response = await apiCall('/api/projects', {
+          method: 'POST',
+          body: JSON.stringify(projectData)
+        });
+        
+        if (response.error) {
+          throw new Error(response.error);
+        }
+        
+        setSuccess('Project created successfully');
+        handleToast('success', 'Project created successfully');
       }
-    }));
 
-    // Close modal and show success message
-    setShowAddProjectModal(false);
-    handleToast('success', 'Project added successfully');
-
-    // Reset form
-    setNewProject({
-      title: '',
-      location: '',
-      type: '',
-      amount: '',
-      units: '',
-      startDate: '',
-      expectedCompletion: '',
-      description: ''
-    });
+      setShowAddProjectModal(false);
+      setNewProject({
+        title: '',
+        location: '',
+        type: '',
+        amount: '',
+        units: '',
+        startDate: '',
+        expectedCompletion: '',
+        description: ''
+      });
+      fetchProjects();
+    } catch (error) {
+      console.error('Error saving project:', error);
+      setError(error.message || 'Failed to save project');
+      handleToast('error', error.message || 'Failed to save project');
+    }
   };
 
   // Default profile image
@@ -1264,7 +1275,9 @@ export default function DeveloperDashboard() {
               className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full p-8 shadow-xl"
             >
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Add New Project</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {newProject.id ? 'Edit Project' : 'Add New Project'}
+                </h2>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -1423,7 +1436,7 @@ export default function DeveloperDashboard() {
                     type="submit"
                     className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
-                    Create Project
+                    {newProject.id ? 'Update Project' : 'Create Project'}
                   </motion.button>
                 </div>
               </form>
