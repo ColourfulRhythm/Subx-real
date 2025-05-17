@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';
 import Developer from './models/Developer.js';
 import Project from './models/Project.js';
+import Admin from './models/Admin.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -197,35 +198,42 @@ app.post('/api/developers/register', upload.single('logo'), async (req, res) => 
 app.post('/api/developers/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    
-    // Find developer by email
-    const developer = await Developer.findOne({ email });
-    if (!developer) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Compare password
+    // Find developer
+    const developer = await Developer.findOne({ email });
+    if (!developer) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Check password
     const isMatch = await bcrypt.compare(password, developer.password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     // Generate token
     const token = jwt.sign({ id: developer._id }, JWT_SECRET);
 
-    // Send response in the format expected by the frontend
+    // Return success response
     res.json({
-      token,
+      message: 'Login successful',
       developer: {
         id: developer._id,
         name: developer.name,
         email: developer.email,
-        company: developer.company
-      }
+        company: developer.company,
+        isSubscribed: developer.isSubscribed
+      },
+      token
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error during login' });
+    res.status(500).json({ error: 'Server error during login' });
   }
 });
 
@@ -409,6 +417,46 @@ app.get('/api/connections/:investorId', (req, res) => {
   } catch (error) {
     console.error('Error fetching connections:', error);
     res.status(500).json({ error: 'Failed to fetch connections' });
+  }
+});
+
+// Admin routes
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // Find admin
+    const admin = await Admin.findOne({ email });
+    if (!admin) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, admin.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Generate token
+    const token = jwt.sign({ id: admin._id, role: 'admin' }, JWT_SECRET);
+
+    // Return success response
+    res.json({
+      message: 'Login successful',
+      admin: {
+        id: admin._id,
+        email: admin.email
+      },
+      token
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ error: 'Server error during login' });
   }
 });
 

@@ -1,17 +1,17 @@
 // Utility function to find available backend port
 export const findBackendPort = async () => {
-  // Try port 3001 first since we know it's being used
+  // Try port 3000 first since that's our main backend
   try {
-    const response = await fetch('http://localhost:3001/api/health');
+    const response = await fetch('http://localhost:3000/api/health');
     if (response.ok) {
-      return 3001;
+      return 3000;
     }
   } catch (error) {
-    console.log('Port 3001 not available, trying other ports...');
+    console.log('Port 3000 not available, trying other ports...');
   }
 
   // Fallback to trying other ports
-  for (let port = 3000; port <= 3005; port++) {
+  for (let port = 3001; port <= 3005; port++) {
     try {
       const response = await fetch(`http://localhost:${port}/api/health`);
       if (response.ok) {
@@ -46,6 +46,12 @@ export const apiCall = async (endpoint, options = {}) => {
     const defaultHeaders = {
       'Content-Type': 'application/json',
     };
+
+    // Add auth token if available
+    const token = localStorage.getItem('token');
+    if (token) {
+      defaultHeaders.Authorization = `Bearer ${token}`;
+    }
 
     const response = await fetch(url, {
       ...options,

@@ -18,8 +18,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Add response interceptor for error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('API Error:', error.response?.data || error.message);
+    return Promise.reject(error.response?.data || error);
+  }
+);
+
+// Admin endpoints
+export const login = (email, password) => api.post('/admin/login', { email, password });
+
 // Developer endpoints
-export const login = (email, password) => api.post('/developers/login', { email, password });
 export const getDevelopers = () => api.get('/developers');
 export const createDeveloper = (developerData) => api.post('/developers/register', developerData);
 export const updateDeveloper = (id, developerData) => api.put(`/developers/${id}`, developerData);
