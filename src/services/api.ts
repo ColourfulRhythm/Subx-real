@@ -1,45 +1,49 @@
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 
-export const createInvestor = async (investorData: {
+export const createBuyer = async (buyerData: {
   name: string;
   email: string;
   phone: string;
   bio: string;
-  investmentInterests: string;
+  preferredLocations: string[];
+  propertyTypes: string[];
+  budget: number;
+  experience: string;
 }) => {
-  const response = await fetch(`${API_BASE_URL}/investors`, {
+  const response = await fetch(`${API_BASE_URL}/buyers`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(investorData),
+    body: JSON.stringify(buyerData),
   });
 
   if (!response.ok) {
-    throw new Error('Failed to create investor profile');
+    throw new Error('Failed to create buyer profile');
   }
 
   return response.json();
 };
 
-export const createDeveloper = async (developerData: {
-  name: string;
-  company: string;
-  email: string;
-  phone: string;
-  website: string;
-  bio: string;
-}) => {
-  const response = await fetch(`${API_BASE_URL}/developers`, {
+export const getProperties = async () => {
+  const response = await fetch(`${API_BASE_URL}/properties`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch properties');
+  }
+  return response.json();
+};
+
+export const expressInterest = async (propertyId: string, buyerId: string) => {
+  const response = await fetch(`${API_BASE_URL}/properties/${propertyId}/interest`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(developerData),
+    body: JSON.stringify({ buyerId }),
   });
 
   if (!response.ok) {
-    throw new Error('Failed to create developer profile');
+    throw new Error('Failed to express interest');
   }
 
   return response.json();

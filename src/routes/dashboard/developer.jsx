@@ -170,16 +170,16 @@ export default function DeveloperDashboard() {
   const [profileImage, setProfileImage] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [projects, setProjects] = useState(mockProjects);
+  const [projects, setProjects] = useState([]);
   const [connections, setConnections] = useState(mockConnections);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   const [isLoadingConnections, setIsLoadingConnections] = useState(false);
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
   const [showInvestorDetails, setShowInvestorDetails] = useState(false);
   const [selectedInvestor, setSelectedInvestor] = useState(null);
-  const [toastType, setToastType] = useState('success');
-  const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('success');
   const [analytics, setAnalytics] = useState(mockAnalytics);
 
   // Add new state for form data
@@ -187,11 +187,21 @@ export default function DeveloperDashboard() {
     title: '',
     location: '',
     type: '',
-    amount: '',
-    units: '',
+    price: '',
+    status: 'Active',
+    description: '',
+    features: [],
+    images: [],
     startDate: '',
     expectedCompletion: '',
-    description: ''
+    interestedBuyers: 0,
+    propertyDetails: {
+      bedrooms: '',
+      bathrooms: '',
+      squareFootage: '',
+      parking: '',
+      amenities: []
+    }
   });
 
   // Form handling with react-hook-form
@@ -428,59 +438,25 @@ export default function DeveloperDashboard() {
   const handleProjectSubmit = (e) => {
     e.preventDefault();
     
-    // Create new project object
     const project = {
-      id: projects.length + 1, // Temporary ID generation
+      id: projects.length + 1,
       title: newProject.title,
       location: newProject.location,
       type: newProject.type,
-      amount: `₦${Number(newProject.amount).toLocaleString()}`,
+      price: `₦${Number(newProject.price).toLocaleString()}`,
       status: 'Active',
-      units: parseInt(newProject.units),
-      soldUnits: 0,
+      description: newProject.description,
+      features: newProject.features.split(',').map(f => f.trim()),
+      images: [],
       startDate: newProject.startDate,
       expectedCompletion: newProject.expectedCompletion,
-      investors: 0,
-      totalInvestment: '₦0'
+      interestedBuyers: 0,
+      propertyDetails: newProject.propertyDetails
     };
 
-    // Update projects list
     setProjects(prev => [...prev, project]);
-
-    // Update analytics
-    setAnalytics(prev => ({
-      ...prev,
-      totalProjects: prev.totalProjects + 1,
-      activeProjects: prev.activeProjects + 1,
-      projectStatus: {
-        ...prev.projectStatus,
-        active: prev.projectStatus.active + 1
-      },
-      projectTypes: {
-        ...prev.projectTypes,
-        [newProject.type.toLowerCase()]: (prev.projectTypes[newProject.type.toLowerCase()] || 0) + 1
-      },
-      locationDistribution: {
-        ...prev.locationDistribution,
-        [newProject.location.toLowerCase()]: (prev.locationDistribution[newProject.location.toLowerCase()] || 0) + 1
-      }
-    }));
-
-    // Close modal and show success message
     setShowAddProjectModal(false);
-    handleToast('success', 'Project added successfully');
-
-    // Reset form
-    setNewProject({
-      title: '',
-      location: '',
-      type: '',
-      amount: '',
-      units: '',
-      startDate: '',
-      expectedCompletion: '',
-      description: ''
-    });
+    handleToast('success', 'Property listed successfully!');
   };
 
   // Default profile image
@@ -844,6 +820,19 @@ export default function DeveloperDashboard() {
                               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                 {project.location} • {project.type}
                               </p>
+                              {project.propertyDetails && (
+                                <div className="mt-2 flex space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                                  {project.propertyDetails.bedrooms && (
+                                    <span>{project.propertyDetails.bedrooms} beds</span>
+                                  )}
+                                  {project.propertyDetails.bathrooms && (
+                                    <span>{project.propertyDetails.bathrooms} baths</span>
+                                  )}
+                                  {project.propertyDetails.squareFootage && (
+                                    <span>{project.propertyDetails.squareFootage} sq ft</span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                             <div className="flex items-center space-x-4">
                               <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
@@ -861,6 +850,14 @@ export default function DeveloperDashboard() {
                                 Edit
                               </motion.button>
                             </div>
+                          </div>
+                          <div className="flex justify-between items-center mt-4">
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              {project.interestedBuyers} interested buyers
+                            </span>
+                            <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                              {project.price}
+                            </span>
                           </div>
                         </motion.div>
                       ))}
@@ -1330,33 +1327,17 @@ export default function DeveloperDashboard() {
                   </div>
 
                   <div>
-                    <label htmlFor="amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label htmlFor="price" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Total Amount (₦)
                     </label>
                     <input
                       type="number"
-                      id="amount"
-                      name="amount"
-                      value={newProject.amount}
+                      id="price"
+                      name="price"
+                      value={newProject.price}
                       onChange={handleInputChange}
                       required
                       min="0"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="units" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Total Units
-                    </label>
-                    <input
-                      type="number"
-                      id="units"
-                      name="units"
-                      value={newProject.units}
-                      onChange={handleInputChange}
-                      required
-                      min="1"
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                     />
                   </div>

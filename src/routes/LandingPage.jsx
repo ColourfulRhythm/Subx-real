@@ -76,7 +76,7 @@ export default function LandingPage() {
               transition={{ delay: 0.4 }}
               className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6"
             >
-              <span className="block">Real Estate Investment</span>
+              <span className="block">Real Estate Ownership</span>
               <span className="block bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Made Simple</span>
             </motion.h1>
             <motion.p 
@@ -85,7 +85,7 @@ export default function LandingPage() {
               transition={{ delay: 0.6 }}
               className="mt-4 text-xl text-gray-600 max-w-3xl mx-auto"
             >
-              Join Subx to discover investment opportunities, connect with developers, and grow your real estate portfolio with like-minded investors.
+              Join Subx to discover your dream property, connect with trusted developers, and make your real estate ownership journey seamless and rewarding.
             </motion.p>
             <motion.div 
               initial={{ opacity: 0, y: 20 }}

@@ -4,6 +4,7 @@ import bodyParser from 'body-parser';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { User, Subscription } from './models';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +35,19 @@ let developers = [];
 let investors = [];
 let projects = [];
 let connections = [];
+
+// Admin middleware
+const isAdmin = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin only.' });
+    }
+    next();
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
 // Developer routes
 app.post('/api/developers', upload.single('logo'), (req, res) => {
@@ -327,6 +341,79 @@ app.get('/api/connections/:investorId', (req, res) => {
   } catch (error) {
     console.error('Error fetching connections:', error);
     res.status(500).json({ error: 'Failed to fetch connections' });
+  }
+});
+
+// Admin routes
+app.get('/api/admin/stats', auth, isAdmin, async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const totalDevelopers = await User.countDocuments({ role: 'developer' });
+    const pendingApprovals = await User.countDocuments({ role: 'developer', approved: false });
+    const activeSubscriptions = await Subscription.countDocuments({ active: true });
+
+    res.json({
+      totalUsers,
+      totalDevelopers,
+      pendingApprovals,
+      activeSubscriptions
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.get('/api/admin/pending-developers', auth, isAdmin, async (req, res) => {
+  try {
+    const developers = await User.find({ role: 'developer', approved: false });
+    res.json(developers);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.get('/api/admin/users', auth, isAdmin, async (req, res) => {
+  try {
+    const users = await User.find().select('-password');
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/admin/approve-developer/:id', auth, isAdmin, async (req, res) => {
+  try {
+    const { approved } = req.body;
+    const developer = await User.findById(req.params.id);
+    
+    if (!developer) {
+      return res.status(404).json({ message: 'Developer not found' });
+    }
+
+    developer.approved = approved;
+    await developer.save();
+
+    res.json({ message: `Developer ${approved ? 'approved' : 'rejected'} successfully` });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.put('/api/admin/users/:id', auth, isAdmin, async (req, res) => {
+  try {
+    const { active } = req.body;
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.active = active;
+    await user.save();
+
+    res.json({ message: `User ${active ? 'activated' : 'deactivated'} successfully` });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

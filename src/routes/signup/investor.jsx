@@ -13,12 +13,19 @@ const schema = yup.object().shape({
   confirmPassword: yup.string()
     .oneOf([yup.ref('password'), null], 'Passwords must match')
     .required('Confirm password is required'),
-  investmentFocus: yup.string().required('Investment focus is required'),
-  investmentAmount: yup.number().min(10000, 'Minimum investment amount is $10,000').required('Investment amount is required'),
+  preferredLocations: yup.array().min(1, 'Select at least one preferred location'),
+  propertyTypes: yup.array().min(1, 'Select at least one property type'),
+  budget: yup.number().min(1000000, 'Minimum budget is ₦1,000,000').required('Budget is required'),
   experience: yup.string().required('Experience level is required'),
+  preferences: yup.object().shape({
+    bedrooms: yup.number().min(1, 'Minimum 1 bedroom'),
+    bathrooms: yup.number().min(1, 'Minimum 1 bathroom'),
+    minSquareFootage: yup.number().min(100, 'Minimum 100 sq ft'),
+    mustHaveFeatures: yup.array().of(yup.string())
+  })
 })
 
-export default function InvestorSignup() {
+export default function BuyerSignup() {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
   const { register, handleSubmit, formState: { errors } } = useForm({
@@ -28,10 +35,10 @@ export default function InvestorSignup() {
   const onSubmit = async (data) => {
     setIsLoading(true)
     try {
-      // TODO: Implement API call to create investor profile
+      // TODO: Implement API call to create buyer profile
       console.log(data)
       // Redirect to dashboard after successful signup
-      navigate('/dashboard/investor')
+      navigate('/dashboard/buyer')
     } catch (error) {
       console.error('Signup failed:', error)
     } finally {
@@ -54,7 +61,7 @@ export default function InvestorSignup() {
             transition={{ delay: 0.2 }}
             className="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
           >
-            Create Investor Profile
+            Create Buyer Profile
           </motion.h2>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -73,229 +80,267 @@ export default function InvestorSignup() {
           className="bg-white dark:bg-gray-800 py-8 px-6 shadow-xl rounded-2xl sm:px-10"
         >
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                First Name
-              </label>
-              <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
-                <input
-                  {...register('firstName')}
-                  type="text"
-                  className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                />
+            {/* Basic Information */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Basic Information</h3>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  First Name
+                </label>
+                <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
+                  <input
+                    {...register('firstName')}
+                    type="text"
+                    className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                  />
+                </motion.div>
+                {errors.firstName && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-1 text-sm text-red-600 dark:text-red-400"
+                  >
+                    {errors.firstName.message}
+                  </motion.p>
+                )}
               </motion.div>
-              {errors.firstName && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600 dark:text-red-400"
-                >
-                  {errors.firstName.message}
-                </motion.p>
-              )}
-            </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Last Name
-              </label>
-              <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
-                <input
-                  {...register('lastName')}
-                  type="text"
-                  className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Last Name
+                </label>
+                <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
+                  <input
+                    {...register('lastName')}
+                    type="text"
+                    className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                  />
+                </motion.div>
+                {errors.lastName && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-1 text-sm text-red-600 dark:text-red-400"
+                  >
+                    {errors.lastName.message}
+                  </motion.p>
+                )}
               </motion.div>
-              {errors.lastName && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600 dark:text-red-400"
-                >
-                  {errors.lastName.message}
-                </motion.p>
-              )}
-            </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-            >
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Email
-              </label>
-              <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
-                <input
-                  {...register('email')}
-                  type="email"
-                  className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Email
+                </label>
+                <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
+                  <input
+                    {...register('email')}
+                    type="email"
+                    className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                  />
+                </motion.div>
+                {errors.email && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-1 text-sm text-red-600 dark:text-red-400"
+                  >
+                    {errors.email.message}
+                  </motion.p>
+                )}
               </motion.div>
-              {errors.email && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600 dark:text-red-400"
-                >
-                  {errors.email.message}
-                </motion.p>
-              )}
-            </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-            >
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Password
-              </label>
-              <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
-                <input
-                  {...register('password')}
-                  type="password"
-                  className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+              >
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Password
+                </label>
+                <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
+                  <input
+                    {...register('password')}
+                    type="password"
+                    className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                  />
+                </motion.div>
+                {errors.password && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-1 text-sm text-red-600 dark:text-red-400"
+                  >
+                    {errors.password.message}
+                  </motion.p>
+                )}
               </motion.div>
-              {errors.password && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600 dark:text-red-400"
-                >
-                  {errors.password.message}
-                </motion.p>
-              )}
-            </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-            >
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Confirm Password
-              </label>
-              <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
-                <input
-                  {...register('confirmPassword')}
-                  type="password"
-                  className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Confirm Password
+                </label>
+                <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
+                  <input
+                    {...register('confirmPassword')}
+                    type="password"
+                    className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                  />
+                </motion.div>
+                {errors.confirmPassword && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-1 text-sm text-red-600 dark:text-red-400"
+                  >
+                    {errors.confirmPassword.message}
+                  </motion.p>
+                )}
               </motion.div>
-              {errors.confirmPassword && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600 dark:text-red-400"
-                >
-                  {errors.confirmPassword.message}
-                </motion.p>
-              )}
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.9 }}
-            >
-              <label htmlFor="investmentFocus" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Investment Focus
-              </label>
-              <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
+            {/* Property Preferences */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Property Preferences</h3>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 }}
+              >
+                <label htmlFor="preferredLocations" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Preferred Locations
+                </label>
                 <select
-                  {...register('investmentFocus')}
-                  className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                  multiple
+                  {...register('preferredLocations')}
+                  className="mt-1 block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
                 >
-                  <option value="">Select your focus</option>
-                  <option value="residential">Residential</option>
-                  <option value="commercial">Commercial</option>
-                  <option value="mixed-use">Mixed-Use</option>
-                  <option value="industrial">Industrial</option>
+                  <option value="Lagos">Lagos</option>
+                  <option value="Abuja">Abuja</option>
+                  <option value="Port Harcourt">Port Harcourt</option>
+                  <option value="Kano">Kano</option>
+                  <option value="Calabar">Calabar</option>
                 </select>
+                {errors.preferredLocations && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.preferredLocations.message}</p>
+                )}
               </motion.div>
-              {errors.investmentFocus && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600 dark:text-red-400"
-                >
-                  {errors.investmentFocus.message}
-                </motion.p>
-              )}
-            </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.0 }}
-            >
-              <label htmlFor="investmentAmount" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Investment Amount ($)
-              </label>
-              <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.0 }}
+              >
+                <label htmlFor="propertyTypes" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Property Types
+                </label>
+                <select
+                  multiple
+                  {...register('propertyTypes')}
+                  className="mt-1 block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                >
+                  <option value="Residential">Residential</option>
+                  <option value="Commercial">Commercial</option>
+                  <option value="Industrial">Industrial</option>
+                  <option value="Mixed-Use">Mixed-Use</option>
+                </select>
+                {errors.propertyTypes && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.propertyTypes.message}</p>
+                )}
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.1 }}
+              >
+                <label htmlFor="budget" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Budget (₦)
+                </label>
                 <input
-                  {...register('investmentAmount')}
+                  {...register('budget')}
                   type="number"
-                  min="10000"
+                  min="1000000"
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
                 />
+                {errors.budget && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.budget.message}</p>
+                )}
               </motion.div>
-              {errors.investmentAmount && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
+
+              {/* Property Requirements */}
+              <div className="grid grid-cols-2 gap-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600 dark:text-red-400"
+                  transition={{ delay: 1.2 }}
                 >
-                  {errors.investmentAmount.message}
-                </motion.p>
-              )}
-            </motion.div>
+                  <label htmlFor="preferences.bedrooms" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Bedrooms
+                  </label>
+                  <input
+                    {...register('preferences.bedrooms')}
+                    type="number"
+                    min="1"
+                    className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                  />
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.3 }}
+                >
+                  <label htmlFor="preferences.bathrooms" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Bathrooms
+                  </label>
+                  <input
+                    {...register('preferences.bathrooms')}
+                    type="number"
+                    min="1"
+                    className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                  />
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.4 }}
+                >
+                  <label htmlFor="preferences.minSquareFootage" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Minimum Square Footage
+                  </label>
+                  <input
+                    {...register('preferences.minSquareFootage')}
+                    type="number"
+                    min="100"
+                    className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                  />
+                </motion.div>
+              </div>
+            </div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.1 }}
-            >
-              <label htmlFor="experience" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Experience Level
-              </label>
-              <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
-                <select
-                  {...register('experience')}
-                  className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                >
-                  <option value="">Select your experience level</option>
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="experienced">Experienced</option>
-                  <option value="expert">Expert</option>
-                </select>
-              </motion.div>
-              {errors.experience && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600 dark:text-red-400"
-                >
-                  {errors.experience.message}
-                </motion.p>
-              )}
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.2 }}
+              transition={{ delay: 1.5 }}
             >
               <motion.button
                 whileHover={{ scale: 1.02 }}
