@@ -435,28 +435,38 @@ export default function DeveloperDashboard() {
   };
 
   // Handle project submission
-  const handleProjectSubmit = (e) => {
+  const handleProjectSubmit = async (e) => {
     e.preventDefault();
-    
-    const project = {
-      id: projects.length + 1,
-      title: newProject.title,
-      location: newProject.location,
-      type: newProject.type,
-      price: `₦${Number(newProject.price).toLocaleString()}`,
-      status: 'Active',
-      description: newProject.description,
-      features: newProject.features.split(',').map(f => f.trim()),
-      images: [],
-      startDate: newProject.startDate,
-      expectedCompletion: newProject.expectedCompletion,
-      interestedBuyers: 0,
-      propertyDetails: newProject.propertyDetails
-    };
+    try {
+      const developerId = localStorage.getItem('userId');
+      const projectData = {
+        title: newProject.title,
+        location: newProject.location,
+        type: newProject.type,
+        price: `₦${Number(newProject.price).toLocaleString()}`,
+        status: 'Active',
+        description: newProject.description,
+        features: newProject.features.split(',').map(f => f.trim()),
+        images: [],
+        startDate: newProject.startDate,
+        expectedCompletion: newProject.expectedCompletion,
+        interestedBuyers: 0,
+        propertyDetails: {
+          bedrooms: newProject.propertyDetails.bedrooms,
+          bathrooms: newProject.propertyDetails.bathrooms,
+          squareFootage: newProject.propertyDetails.squareFootage,
+          parking: newProject.propertyDetails.parking,
+          amenities: newProject.propertyDetails.amenities.split(',').map(a => a.trim())
+        }
+      };
 
-    setProjects(prev => [...prev, project]);
-    setShowAddProjectModal(false);
-    handleToast('success', 'Property listed successfully!');
+      setProjects(prev => [...prev, projectData]);
+      setShowAddProjectModal(false);
+      handleToast('success', 'Property listed successfully!');
+    } catch (error) {
+      console.error('Error listing property:', error);
+      handleToast('error', 'Failed to list property. Please try again.');
+    }
   };
 
   // Default profile image
