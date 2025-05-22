@@ -169,16 +169,183 @@ const mockDevelopers = {
 const locationOptions = ['All', 'Lagos', 'Abuja', 'Port Harcourt', 'Kano', 'Calabar']
 const typeOptions = ['All', 'Residential', 'Commercial', 'Industrial', 'Mixed-Use']
 
+// Add mock connections data
+const mockConnections = [
+  {
+    id: 1,
+    developerId: 'dev1',
+    developer: 'Lagos Properties Ltd',
+    projectId: 1,
+    projectTitle: 'Lekki Luxury Apartments',
+    units: 2,
+    amount: '₦500,000',
+    status: 'approved',
+    createdAt: '2024-03-15T10:30:00Z',
+    notes: 'Interested in long-term investment',
+    updatedAt: '2024-03-16T14:20:00Z',
+    documents: [
+      {
+        id: 'doc1',
+        name: 'Investment Agreement',
+        type: 'pdf',
+        size: '2.4 MB',
+        url: '#',
+        uploadedAt: '2024-03-16T14:20:00Z'
+      },
+      {
+        id: 'doc2',
+        name: 'Property Deed',
+        type: 'pdf',
+        size: '1.8 MB',
+        url: '#',
+        uploadedAt: '2024-03-16T14:20:00Z'
+      },
+      {
+        id: 'doc3',
+        name: 'Financial Projections',
+        type: 'xlsx',
+        size: '1.2 MB',
+        url: '#',
+        uploadedAt: '2024-03-16T14:20:00Z'
+      }
+    ]
+  },
+  {
+    id: 2,
+    developerId: 'dev2',
+    developer: 'Abuja Developers',
+    projectId: 2,
+    projectTitle: 'Maitama Office Complex',
+    units: 1,
+    amount: '₦180,000',
+    status: 'pending',
+    createdAt: '2024-03-20T09:15:00Z',
+    notes: 'Looking for commercial space investment',
+    documents: [
+      {
+        id: 'doc4',
+        name: 'Proposal Document',
+        type: 'pdf',
+        size: '3.1 MB',
+        url: '#',
+        uploadedAt: '2024-03-20T09:15:00Z'
+      }
+    ]
+  },
+  {
+    id: 3,
+    developerId: 'dev3',
+    developer: 'Port Harcourt Estates',
+    projectId: 4,
+    projectTitle: 'Port Harcourt Industrial Park',
+    units: 3,
+    amount: '₦1,050,000',
+    status: 'rejected',
+    createdAt: '2024-03-10T16:45:00Z',
+    notes: 'Investment proposal under review',
+    updatedAt: '2024-03-12T11:30:00Z',
+    documents: [
+      {
+        id: 'doc5',
+        name: 'Rejection Letter',
+        type: 'pdf',
+        size: '0.8 MB',
+        url: '#',
+        uploadedAt: '2024-03-12T11:30:00Z'
+      }
+    ]
+  }
+]
+
+// Add mock forum data
+const mockForums = {
+  general: {
+    id: 'general',
+    title: 'General Discussion',
+    description: 'Discuss general topics about real estate investment',
+    topics: [
+      {
+        id: 1,
+        title: 'Welcome to Subx Forum!',
+        author: 'Admin',
+        content: 'Welcome to our community forum. Feel free to start discussions about real estate investment.',
+        replies: [],
+        views: 120,
+        lastActivity: new Date().toISOString(),
+        tags: ['welcome', 'introduction']
+      }
+    ]
+  },
+  projectForums: {}
+}
+
+// Add mock messages data
+const mockMessages = {
+  'topic-1': [
+    {
+      id: 1,
+      type: 'investor',
+      author: 'John Doe',
+      avatar: 'https://ui-avatars.com/api/?name=John+Doe&background=random',
+      content: "What are the current market trends in Lagos? I'm particularly interested in the Lekki area.",
+      timestamp: '2024-03-20T10:30:00Z',
+      likes: 5
+    },
+    {
+      id: 2,
+      type: 'developer',
+      author: 'Lagos Properties Ltd',
+      avatar: 'https://ui-avatars.com/api/?name=Lagos+Properties&background=random',
+      content: "The Lekki area is experiencing significant growth, with property values increasing by 15% year-over-year. We're seeing strong demand for both residential and commercial properties.",
+      timestamp: '2024-03-20T10:35:00Z',
+      likes: 8
+    },
+    {
+      id: 3,
+      type: 'update',
+      author: 'Lagos Properties Ltd',
+      avatar: 'https://ui-avatars.com/api/?name=Lagos+Properties&background=random',
+      content: "📢 Construction Update: Phase 1 of the Lekki Luxury Apartments is now 75% complete. We're on track for the Q3 2024 completion date.",
+      timestamp: '2024-03-20T11:00:00Z',
+      isUpdate: true
+    },
+    {
+      id: 4,
+      type: 'investor',
+      author: 'Jane Smith',
+      avatar: 'https://ui-avatars.com/api/?name=Jane+Smith&background=random',
+      content: "That's great news! What about the amenities? Will there be a swimming pool and gym?",
+      timestamp: '2024-03-20T11:05:00Z',
+      likes: 3
+    }
+  ]
+}
+
 export default function InvestorDashboard() {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useState('analytics')
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [expandedCard, setExpandedCard] = useState(null)
-  const [connections, setConnections] = useState([])
+  const [connections, setConnections] = useState(mockConnections) // Initialize with mock data
+  const [analytics, setAnalytics] = useState({
+    totalInvestments: 0,
+    activeInvestments: 0,
+    totalReturns: 0,
+    portfolioValue: 0,
+    growthRate: 0, // Year-over-Year growth rate
+    investmentDistribution: {},
+    expectedReturns: {},
+    recentTransactions: [],
+    performanceMetrics: {
+      monthlyReturn: 0,
+      yearlyReturn: 0,
+      riskScore: 0
+    }
+  })
   
   // Initial profile data
   const [profile, setProfile] = useState({
@@ -203,13 +370,48 @@ export default function InvestorDashboard() {
 
   // Calculate profile completion percentage
   const calculateProfileCompletion = (data) => {
-    const totalFields = 10
-    const completedFields = Object.entries(data).filter(([key, value]) => {
-      if (Array.isArray(value)) return value.length > 0
-      return value !== '' && value !== null && value !== undefined
-    }).length
-    return Math.round((completedFields / totalFields) * 100)
-  }
+    const requiredFields = [
+      'name',
+      'email',
+      'phone',
+      'bio',
+      'investmentExperience',
+      'preferredInvestmentAmount',
+      'riskTolerance'
+    ];
+    
+    const optionalFields = [
+      'investmentInterests',
+      'preferredLocations',
+      'investmentGoals'
+    ];
+
+    let completedRequired = 0;
+    let completedOptional = 0;
+
+    // Check required fields
+    requiredFields.forEach(field => {
+      if (data[field] && data[field].toString().trim() !== '') {
+        completedRequired++;
+      }
+    });
+
+    // Check optional fields
+    optionalFields.forEach(field => {
+      if (data[field] && Array.isArray(data[field]) && data[field].length > 0) {
+        completedOptional++;
+      }
+    });
+
+    // Calculate completion percentage
+    const requiredWeight = 0.7; // 70% weight for required fields
+    const optionalWeight = 0.3; // 30% weight for optional fields
+
+    const requiredCompletion = (completedRequired / requiredFields.length) * requiredWeight;
+    const optionalCompletion = (completedOptional / optionalFields.length) * optionalWeight;
+
+    return Math.round((requiredCompletion + optionalCompletion) * 100);
+  };
 
   // Check authentication on component mount
   useEffect(() => {
@@ -227,16 +429,42 @@ export default function InvestorDashboard() {
     }, 1000)
   }, [navigate])
 
-  // Fetch profile data on component mount
+  // Fetch profile and analytics data on component mount
   useEffect(() => {
-    fetchProfile()
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        await Promise.all([fetchProfile(), fetchAnalytics()])
+      } catch (error) {
+        console.error('Error fetching data:', error)
+        setError('Failed to load data')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchData()
   }, [])
 
   // API integration functions
   const fetchProfile = async () => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
+      setError(null);
+
       // TODO: Replace with actual API call
+      const response = await fetch('/api/investor/profile');
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile');
+      }
+      const data = await response.json();
+      
+      setProfile(data);
+      reset(data);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      setError('Failed to load profile. Please try again later.');
+      
+      // Fallback to mock data for development
       const mockProfile = {
         name: 'John Doe',
         email: 'john.doe@example.com',
@@ -248,39 +476,66 @@ export default function InvestorDashboard() {
         preferredLocations: ['New York', 'Los Angeles', 'Miami'],
         riskTolerance: 'Moderate',
         investmentGoals: ['Capital Appreciation', 'Passive Income']
-      }
-      setProfile(mockProfile)
-      reset(mockProfile)
-    } catch (error) {
-      setError('Failed to load profile')
+      };
+      setProfile(mockProfile);
+      reset(mockProfile);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleProfileSave = async (data) => {
     try {
-      setIsLoading(true)
-      setError(null)
+      setIsLoading(true);
+      setError(null);
+
+      // Validate required fields
+      const requiredFields = ['name', 'email', 'phone', 'bio', 'investmentExperience'];
+      const missingFields = requiredFields.filter(field => !data[field] || data[field].toString().trim() === '');
+      
+      if (missingFields.length > 0) {
+        throw new Error(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      }
+
+      // Validate phone number format
+      const phoneRegex = /^\+?[\d\s-()]{10,}$/;
+      if (!phoneRegex.test(data.phone)) {
+        throw new Error('Please enter a valid phone number');
+      }
+
+      // Validate investment amount
+      if (data.preferredInvestmentAmount && isNaN(data.preferredInvestmentAmount)) {
+        throw new Error('Please enter a valid investment amount');
+      }
+
       // TODO: Replace with actual API call
-      console.log('Saving profile:', data)
-      
+      const response = await fetch('/api/investor/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save profile');
+      }
+
       // Update profile completion
-      const completion = calculateProfileCompletion(data)
-      const updatedProfile = { ...data, profileCompletion: completion }
+      const completion = calculateProfileCompletion(data);
+      const updatedProfile = { ...data, profileCompletion: completion };
       
-      setProfile(updatedProfile)
-      setIsEditingProfile(false)
-      setSuccess('Profile updated successfully')
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000)
+      setProfile(updatedProfile);
+      setIsEditingProfile(false);
+      handleToast('Profile updated successfully', 'success');
     } catch (error) {
-      setError('Failed to save profile')
+      console.error('Error saving profile:', error);
+      setError(error.message || 'Failed to save profile. Please try again later.');
+      handleToast(error.message || 'Failed to save profile', 'error');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('userType')
@@ -288,68 +543,7 @@ export default function InvestorDashboard() {
     navigate('/')
   }
 
-  // Mock data for analytics with Nigerian context
-  const analytics = {
-    projectsViewed: {
-      total: 48,
-      breakdown: {
-        residential: 30,
-        commercial: 18
-      },
-      locations: {
-        lagos: 25,
-        abuja: 15,
-        portHarcourt: 8
-      }
-    },
-    connectionRequests: {
-      total: 12,
-      approved: 5,
-      pending: 6,
-      rejected: 1,
-      developers: [
-        { name: 'Lagos Properties Ltd', status: 'approved' },
-        { name: 'Abuja Developers', status: 'pending' },
-        { name: 'Port Harcourt Estates', status: 'approved' }
-      ]
-    },
-    savedProjects: {
-      total: 7,
-      recent: [
-        { 
-          id: 1, 
-          title: 'Lekki Luxury Apartments', 
-          location: 'Lagos',
-          amount: '₦250,000,000',
-          date: '2024-05-01' 
-        },
-        { 
-          id: 2, 
-          title: 'Maitama Office Complex', 
-          location: 'Abuja',
-          amount: '₦180,000,000',
-          date: '2024-04-28' 
-        },
-        { 
-          id: 3, 
-          title: 'Victoria Island Mall', 
-          location: 'Lagos',
-          amount: '₦500,000,000',
-          date: '2024-04-25' 
-        }
-      ]
-    },
-    responseRate: 83,
-    totalInvestment: {
-      amount: '₦1,250,000,000',
-      breakdown: {
-        lagos: '₦850,000,000',
-        abuja: '₦300,000,000',
-        others: '₦100,000,000'
-      }
-    }
-  }
-
+  // Remove the duplicate analytics object
   const [projects, setProjects] = useState(mockProjects)
   const [filters, setFilters] = useState({
     location: 'All',
@@ -357,7 +551,7 @@ export default function InvestorDashboard() {
     search: ''
   })
   const [selectedProject, setSelectedProject] = useState(null)
-  const [showProjectDetail, setShowProjectDetail] = useState(false)
+  const [showProjectModal, setShowProjectModal] = useState(false)
   const [selectedImage, setSelectedImage] = useState(0)
   const [showConnectionModal, setShowConnectionModal] = useState(false)
   const [selectedUnits, setSelectedUnits] = useState(1)
@@ -374,12 +568,40 @@ export default function InvestorDashboard() {
   const [showConnectionDetails, setShowConnectionDetails] = useState(false)
   const [selectedConnection, setSelectedConnection] = useState(null)
   const [isSendingRequest, setIsSendingRequest] = useState(false)
+  const [activeForum, setActiveForum] = useState('general')
+  const [selectedTopic, setSelectedTopic] = useState(null)
+  const [newMessage, setNewMessage] = useState('')
+  const [isSendingMessage, setIsSendingMessage] = useState(false)
+  const [forumSearchQuery, setForumSearchQuery] = useState('')
+  const [showNewTopicModal, setShowNewTopicModal] = useState(false)
+  const [forumTopics, setForumTopics] = useState([])
+
+  // Initialize mock forum data
+  const [mockForums] = useState({
+    general: {
+      id: 'general',
+      title: 'General Discussion',
+      topics: [
+        {
+          id: 1,
+          title: 'Welcome to Subx Forum!',
+          author: 'Admin',
+          content: 'Welcome to our community forum. Feel free to start discussions about real estate investment.',
+          replies: [],
+          views: 120,
+          lastActivity: new Date().toISOString(),
+          tags: ['welcome', 'introduction']
+        }
+      ]
+    },
+    projectForums: {}
+  });
 
   // Handle tab change
   const handleTabChange = (tab) => {
     setActiveTab(tab)
     setSelectedProject(null)
-    setShowProjectDetail(false)
+    setShowProjectModal(false)
     setShowConnectionModal(false)
   }
 
@@ -402,12 +624,15 @@ export default function InvestorDashboard() {
 
   // Handle connection request
   const handleConnectionRequest = async (project) => {
+    try {
     setSelectedProject(project)
-    
+      // Debug: Log developerId and mockDevelopers
+      console.log('handleConnectionRequest: developerId', project.developerId)
+      console.log('Available developers:', Object.keys(mockDevelopers))
     // Get developer profile
     const developer = mockDevelopers[project.developerId]
     if (!developer) {
-      handleToast('Developer profile not found', 'error')
+        handleToast('Developer profile not found for ID: ' + project.developerId, 'error')
       return
     }
     
@@ -429,6 +654,10 @@ export default function InvestorDashboard() {
     }))
     
     setShowConnectionModal(true)
+    } catch (error) {
+      console.error('Error handling connection request:', error)
+      handleToast('Failed to process connection request', 'error')
+    }
   }
 
   const validateInvestment = (units) => {
@@ -493,12 +722,40 @@ export default function InvestorDashboard() {
 
       setIsSendingRequest(true);
       
-      // Since we don't have a backend server yet, simulate a successful request
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-      
-      // Add the connection to the local state
+      // Get auth token from localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        handleToast('Please log in to submit investment requests', 'error');
+        return;
+      }
+
+      try {
+        // Prepare request data
+        const requestData = {
+          projectId: selectedProject.id,
+          units: parseInt(selectedUnits),
+          notes: investmentNotes
+        };
+
+        // Send request to backend
+        const response = await fetch('http://localhost:3000/api/investments/request', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(requestData)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to submit investment request');
+        }
+
+        // Create new connection object
       const newConnection = {
-        id: Date.now(),
+          id: data.investment._id,
         developerId: selectedProject.developerId,
         developer: selectedProject.developer,
         projectId: selectedProject.id,
@@ -507,13 +764,52 @@ export default function InvestorDashboard() {
         amount: investmentAmount,
         status: 'pending',
         createdAt: new Date().toISOString(),
-        notes: investmentNotes
+          notes: investmentNotes,
+          documents: []
       };
 
       // Update connections list
-      setConnections(prev => [...prev, newConnection]);
+        setConnections(prev => [newConnection, ...prev]);
+        
+        // Show success message
+        handleToast(
+          `Investment request sent successfully! We've notified ${selectedProject.developer} about your interest in ${selectedUnits} unit(s) (${investmentAmount}).`
+        );
+
+        // Switch to connections tab
+        setActiveTab('connections');
+      } catch (error) {
+        // If backend request fails, create a temporary connection
+        console.warn('Backend request failed, creating temporary connection:', error);
+        
+        const tempConnection = {
+          id: Date.now().toString(),
+          developerId: selectedProject.developerId,
+          developer: selectedProject.developer,
+          projectId: selectedProject.id,
+          projectTitle: selectedProject.title,
+          units: selectedUnits,
+          amount: investmentAmount,
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+          notes: investmentNotes,
+          documents: []
+        };
+
+        // Update connections list with temporary connection
+        setConnections(prev => [tempConnection, ...prev]);
+        
+        // Show success message
+        handleToast(
+          `Investment request created! Note: Backend connection failed, this is a temporary record.`,
+          'warning'
+        );
+
+        // Switch to connections tab
+        setActiveTab('connections');
+      }
       
-      // Reset all states
+      // Reset states
       setSelectedProject(null);
       setSelectedUnits(1);
       setInvestmentAmount('');
@@ -527,18 +823,10 @@ export default function InvestorDashboard() {
       setShowConnectionModal(false);
       setShowConfirmation(false);
       
-      // Show success message
-      handleToast(
-        `Request Sent! We've notified ${selectedProject.developer} about your interest in ${selectedUnits} unit(s) (${investmentAmount}).`
-      );
-
-      // Switch to discover tab
-      setActiveTab('discover');
-      
     } catch (error) {
-      console.error('Error sending connection request:', error);
+      console.error('Error in submitConnectionRequest:', error);
       handleToast(
-        'Failed to send connection request. Please try again later.',
+        error.message || 'Failed to send investment request. Please try again later.',
         'error'
       );
     } finally {
@@ -564,105 +852,1507 @@ export default function InvestorDashboard() {
   // Add this function to handle project selection
   const handleProjectSelect = (project) => {
     setSelectedProject(project)
-    setExpandedCard(project.id)
+    setShowProjectModal(true)
+    setSelectedImage(0)
+  }
+
+  const handleInvestNow = (project) => {
+    setSelectedProject(project)
+    setShowProjectModal(false)
+    handleConnectionRequest(project)
   }
 
   // Find the section where project cards are rendered and modify it to include AI Analysis
   const renderProjectCards = () => {
-    return mockProjects.map((project) => (
-      <motion.div
-        key={project.id}
-        className="bg-white rounded-lg shadow-md overflow-hidden"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="relative">
-          <img
-            src={project.images[0]}
-            alt={project.title}
-            className="w-full h-48 object-cover"
-          />
-          <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
-            {project.status}
-          </div>
-        </div>
-        
-        <div className="p-6">
-          <h3 className="text-xl font-semibold mb-2">{project.title}</h3>
-          <p className="text-gray-600 mb-4">{project.description}</p>
-          
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <p className="text-sm text-gray-500">Location</p>
-              <p className="font-medium">{project.location}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Type</p>
-              <p className="font-medium">{project.type}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Amount</p>
-              <p className="font-medium">{project.amount}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">ROI</p>
-              <p className="font-medium">{project.roi}</p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => toggleCardExpansion(project.id)}
-            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors"
+  return (
+      <div className="grid grid-cols-1 gap-6 p-4">
+        {mockProjects.map((project) => (
+        <motion.div 
+            key={project.id}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
+            initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+            whileHover={{ scale: 1.01 }}
+            transition={{ duration: 0.3 }}
           >
-            {expandedCard === project.id ? 'Show Less' : 'View Details'}
-          </button>
+            <div className="flex flex-col md:flex-row">
+              <div className="relative w-full md:w-1/2 aspect-video md:aspect-square">
+                <img
+                  src={project.images[0]}
+                  alt={project.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
+                  {project.status}
+          </div>
+          </div>
+              
+              <div className="p-6 flex-1">
+                <h3 className="text-2xl font-semibold mb-3 text-gray-900 dark:text-white">{project.title}</h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">{project.description}</p>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Location</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{project.location}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Type</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{project.type}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Amount</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{project.amount}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">ROI</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{project.roi}</p>
+                  </div>
+                </div>
 
-          {expandedCard === project.id && (
-            <div className="mt-4 space-y-4">
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h4 className="text-lg font-semibold mb-4">Project Details</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <p className="text-gray-600 mb-4">{project.detailedDescription}</p>
-                    <div className="mb-4">
-                      <h5 className="font-medium mb-2">Amenities</h5>
-                      <ul className="list-disc list-inside text-gray-600">
-                        {project.amenities.map((amenity, index) => (
-                          <li key={index}>{amenity}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <h5 className="font-medium mb-2">Documents</h5>
-                      <ul className="space-y-2">
-                        {project.documents.map((doc, index) => (
-                          <li key={index}>
-                            <a href={doc.url} className="text-blue-600 hover:underline">
-                              {doc.name}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                  <div>
-                    <AIAnalysis developmentId={project.id} />
-                  </div>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => handleProjectSelect(project)}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:opacity-90 transition-opacity"
+                  >
+                    View Details
+                  </button>
                 </div>
               </div>
             </div>
+            </motion.div>
+        ))}
+      </div>
+    );
+  };
+
+  // Add this function to fetch analytics data
+  const fetchAnalytics = async () => {
+    try {
+      // TODO: Replace with actual API call
+      const mockAnalytics = {
+        totalInvestments: 5,
+        activeInvestments: 3,
+        totalReturns: 15000000,
+        portfolioValue: 75000000,
+        growthRate: 12.5, // Year-over-Year growth rate
+        investmentDistribution: {
+          residential: 45,
+          commercial: 30,
+          industrial: 15,
+          land: 10
+        },
+        expectedReturns: {
+          threeMonths: 2500000,
+          sixMonths: 5500000,
+          oneYear: 12000000
+        },
+        recentTransactions: [
+          { id: 1, type: 'Investment', amount: 10000000, date: '2024-03-15', status: 'Completed' },
+          { id: 2, type: 'Return', amount: 2500000, date: '2024-03-10', status: 'Completed' },
+          { id: 3, type: 'Investment', amount: 15000000, date: '2024-03-01', status: 'Completed' }
+        ],
+        performanceMetrics: {
+          monthlyReturn: 2.5,
+          yearlyReturn: 18.5,
+          riskScore: 65
+        }
+      }
+      setAnalytics(mockAnalytics)
+    } catch (error) {
+      console.error('Error fetching analytics:', error)
+      setError('Failed to load analytics data')
+    }
+  }
+
+  // Add this function to render analytics section
+  const renderAnalytics = () => {
+    return (
+                  <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Total Investments</h3>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">₦{analytics.totalInvestments.toLocaleString()}</p>
+                            </div>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Active Investments</h3>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">₦{analytics.activeInvestments.toLocaleString()}</p>
+                            </div>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Total Returns</h3>
+            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">₦{analytics.totalReturns.toLocaleString()}</p>
+                          </div>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Portfolio Value</h3>
+            <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">₦{analytics.portfolioValue.toLocaleString()}</p>
+                        </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Performance Metrics</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-600 dark:text-gray-400">Monthly Return</label>
+                          <div className="flex items-center">
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${analytics.performanceMetrics.monthlyReturn * 4}%` }}></div>
+                            </div>
+                  <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">{analytics.performanceMetrics.monthlyReturn}%</span>
+                            </div>
+                          </div>
+              <div>
+                <label className="text-sm text-gray-600 dark:text-gray-400">Yearly Return</label>
+                <div className="flex items-center">
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${analytics.performanceMetrics.yearlyReturn / 2}%` }}></div>
+                        </div>
+                  <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">{analytics.performanceMetrics.yearlyReturn}%</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-gray-600 dark:text-gray-400">Risk Score</label>
+                          <div className="flex items-center">
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div className="bg-yellow-600 h-2.5 rounded-full" style={{ width: `${analytics.performanceMetrics.riskScore}%` }}></div>
+                            </div>
+                  <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">{analytics.performanceMetrics.riskScore}/100</span>
+                            </div>
+                          </div>
+                        </div>
+                    </div>
+
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Investment Distribution</h3>
+                        <div className="space-y-4">
+              {Object.entries(analytics.investmentDistribution).map(([type, percentage]) => (
+                <div key={type}>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-sm text-gray-600 dark:text-gray-400 capitalize">{type}</label>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{percentage}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div 
+                      className="h-2.5 rounded-full" 
+                      style={{ 
+                        width: `${percentage}%`,
+                        backgroundColor: type === 'residential' ? '#3B82F6' :
+                                       type === 'commercial' ? '#10B981' :
+                                       type === 'industrial' ? '#F59E0B' :
+                                       '#8B5CF6'
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Expected Returns</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-sm text-gray-600 dark:text-gray-400">3 Months</span>
+                <span className="font-medium text-green-600 dark:text-green-400">₦{analytics.expectedReturns.threeMonths.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-sm text-gray-600 dark:text-gray-400">6 Months</span>
+                <span className="font-medium text-green-600 dark:text-green-400">₦{analytics.expectedReturns.sixMonths.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-sm text-gray-600 dark:text-gray-400">1 Year</span>
+                <span className="font-medium text-green-600 dark:text-green-400">₦{analytics.expectedReturns.oneYear.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Growth Rate</h3>
+            <span className="text-2xl font-bold text-green-600 dark:text-green-400">+{analytics.growthRate}%</span>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Year-over-Year portfolio growth</p>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Recent Transactions</h3>
+          <div className="space-y-4">
+            {analytics.recentTransactions.map((transaction) => (
+              <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-700 dark:text-gray-300">{transaction.type}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{transaction.date}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium text-gray-700 dark:text-gray-300">₦{transaction.amount.toLocaleString()}</p>
+                  <p className="text-sm text-green-500">{transaction.status}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Update the renderConnections function to show more details
+  const renderConnections = () => {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Your Connections</h3>
+            <div className="flex space-x-2">
+              <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full text-sm">
+                {connections.filter(c => c.status === 'approved').length} Approved
+                              </span>
+              <span className="px-3 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded-full text-sm">
+                {connections.filter(c => c.status === 'pending').length} Pending
+              </span>
+              <span className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-full text-sm">
+                {connections.filter(c => c.status === 'rejected').length} Rejected
+                              </span>
+                            </div>
+                        </div>
+          
+          {connections.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500 dark:text-gray-400">No connections yet. Start by exploring investment opportunities.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {connections.map((connection) => (
+                      <motion.div
+                  key={connection.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex justify-between items-start">
+                              <div>
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-white">
+                        {connection.projectTitle}
+                      </h4>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Developer: {connection.developer}
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        Requested: {new Date(connection.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      connection.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                      connection.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                    }`}>
+                      {connection.status.charAt(0).toUpperCase() + connection.status.slice(1)}
+                              </span>
+                            </div>
+                  
+                  <div className="mt-4 grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Units</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{connection.units}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Amount</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{connection.amount}</p>
+                    </div>
+                    {connection.notes && (
+                      <div className="col-span-2">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Notes</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{connection.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mt-4 flex justify-end space-x-3">
+                    <button
+                      onClick={() => handleViewConnectionDetails(connection)}
+                      className="px-4 py-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300"
+                    >
+                      View Details
+                    </button>
+                    {connection.status === 'pending' && (
+                      <button
+                        onClick={() => {
+                          // TODO: Implement cancel request functionality
+                          handleToast('Connection request cancelled', 'success')
+                        }}
+                        className="px-4 py-2 text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300"
+                      >
+                        Cancel Request
+                      </button>
+                    )}
+                        </div>
+                      </motion.div>
+              ))}
+                    </div>
           )}
         </div>
-      </motion.div>
-    ));
+      </div>
+    )
+  }
+
+  // Add this function to filter topics based on search query
+  const filterTopics = (topics) => {
+    if (!forumSearchQuery.trim()) return topics;
+    
+    const query = forumSearchQuery.toLowerCase();
+    return topics.filter(topic => 
+      topic.title.toLowerCase().includes(query) ||
+      topic.tags.some(tag => tag.toLowerCase().includes(query)) ||
+      topic.author.toLowerCase().includes(query)
+    );
+  };
+
+  // Add this function to render the forum section
+  const renderForum = () => {
+    const currentForum = activeForum === 'general' 
+      ? mockForums.general 
+      : mockForums.projectForums[activeForum];
+
+    const filteredTopics = filterTopics(currentForum?.topics || []);
+
+    return (
+      <div className="space-y-6">
+        {/* Forum Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {activeForum === 'general' ? 'General Discussion' : currentForum?.projectTitle}
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400">
+              {filteredTopics.length} topics
+            </p>
+          </div>
+          <button
+            onClick={() => setShowNewTopicModal(true)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            New Topic
+          </button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <input
+            type="text"
+            value={forumSearchQuery}
+            onChange={(e) => setForumSearchQuery(e.target.value)}
+            placeholder="Search topics..."
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
+          <svg
+            className="absolute right-3 top-2.5 h-5 w-5 text-gray-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+        </div>
+
+        {/* Topics List */}
+        <div className="space-y-4">
+          {filteredTopics.map((topic) => (
+            <motion.div
+              key={topic.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.02 }}
+              className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer"
+              onClick={() => setSelectedTopic(topic)}
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {topic.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Posted by {topic.author} • {new Date(topic.lastActivity).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {topic.replies?.length || 0} replies
+                  </span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {topic.views} views
+                  </span>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {topic.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Topic Detail Modal (Group Chat) */}
+        {selectedTopic && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl shadow-xl flex flex-col"
+              style={{ maxHeight: '80vh' }}
+            >
+              {/* Header */}
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-700/50">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
+                    <span className="text-indigo-600 dark:text-indigo-300 font-semibold">
+                      {selectedTopic.title.charAt(0)}
+                    </span>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {selectedTopic.title}
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {selectedTopic.replies?.length || 0} messages
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedTopic(null)}
+                  className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Messages Container */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ maxHeight: 'calc(80vh - 140px)' }}>
+                {/* Original Post */}
+                <div className="flex flex-col space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                      <span className="text-blue-600 dark:text-blue-300 text-sm font-medium">
+                        {selectedTopic.author.charAt(0)}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{selectedTopic.author}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(selectedTopic.lastActivity).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="ml-10 bg-blue-50 dark:bg-blue-900/30 rounded-2xl rounded-tl-none p-3 max-w-[80%]">
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{selectedTopic.content}</p>
+                  </div>
+                </div>
+
+                {/* Replies */}
+                {selectedTopic.replies?.map((reply) => (
+                  <div key={reply.id} className="flex flex-col space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
+                        <span className="text-indigo-600 dark:text-indigo-300 text-sm font-medium">
+                          {reply.author.charAt(0)}
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{reply.author}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(reply.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="ml-10 bg-gray-50 dark:bg-gray-700 rounded-2xl rounded-tl-none p-3 max-w-[80%]">
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{reply.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Message Input */}
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                <div className="flex space-x-2">
+                  <textarea
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Write your message..."
+                    rows={2}
+                    className="flex-1 text-sm border border-gray-300 rounded-2xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-none"
+                  />
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={isSendingMessage || !newMessage.trim()}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center"
+                  >
+                    {isSendingMessage ? (
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    ) : (
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </div>
+    );
+  };
+
+  // Modify the renderContent function to include analytics, connections, and forum
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'analytics':
+        return renderAnalytics();
+      case 'discover':
+        return renderProjectCards();
+      case 'connections':
+        return renderConnections();
+      case 'profile':
+        return renderProfile();
+      case 'forum':
+        return renderForum();
+      default:
+        return renderAnalytics();
+    }
+  };
+
+  // Add this before the final return statement
+  const renderProjectModal = () => {
+    if (!selectedProject) return null
+
+    const handleSwipe = (event, info) => {
+      const swipeThreshold = 50
+      if (Math.abs(info.offset.x) > swipeThreshold) {
+        if (info.offset.x > 0 && selectedImage > 0) {
+          setSelectedImage(selectedImage - 1)
+        } else if (info.offset.x < 0 && selectedImage < selectedProject.images.length - 1) {
+          setSelectedImage(selectedImage + 1)
+        }
+      }
+    }
+
+    return (
+      <AnimatePresence>
+        {showProjectModal && (
+                    <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                        >
+                          <div className="relative">
+                <motion.div 
+                  className="aspect-video relative cursor-grab active:cursor-grabbing"
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  onDragEnd={handleSwipe}
+                  whileTap={{ cursor: "grabbing" }}
+                >
+                  <motion.img
+                    key={selectedImage}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    src={selectedProject.images[selectedImage]}
+                    alt={selectedProject.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-between px-4">
+                    {selectedImage > 0 && (
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setSelectedImage(selectedImage - 1)}
+                        className="bg-black/50 text-white rounded-full p-2 hover:bg-black/75"
+                      >
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </motion.button>
+                    )}
+                    {selectedImage < selectedProject.images.length - 1 && (
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setSelectedImage(selectedImage + 1)}
+                        className="bg-black/50 text-white rounded-full p-2 hover:bg-black/75"
+                      >
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </motion.button>
+                    )}
+                            </div>
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                    {selectedProject.images.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedImage(index)}
+                        className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                          selectedImage === index ? 'bg-white scale-125' : 'bg-white/50'
+                        }`}
+                      />
+                    ))}
+                          </div>
+                </motion.div>
+                <button
+                  onClick={() => setShowProjectModal(false)}
+                  className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/75"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+                          <div className="p-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                  {selectedProject.title}
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  {selectedProject.detailedDescription}
+                </p>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Location</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{selectedProject.location}</p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Type</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{selectedProject.type}</p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Amount</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{selectedProject.amount}</p>
+                              </div>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">ROI</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{selectedProject.roi}</p>
+                              </div>
+                            </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Amenities</h3>
+                    <ul className="grid grid-cols-2 gap-2">
+                      {selectedProject.amenities.map((amenity, index) => (
+                        <li key={index} className="flex items-center text-gray-600 dark:text-gray-300">
+                          <svg className="w-5 h-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          {amenity}
+                        </li>
+                      ))}
+                    </ul>
+                          </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Documents</h3>
+                    <ul className="space-y-2">
+                      {selectedProject.documents.map((doc, index) => (
+                        <li key={index}>
+                          <a
+                            href={doc.url}
+                            className="flex items-center text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            {doc.name}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                        </div>
+                  </div>
+
+                <div className="mt-8">
+                  {renderAIAnalysis()}
+                </div>
+
+                <div className="mt-6 flex justify-end space-x-4">
+                  <button
+                    onClick={() => setShowProjectModal(false)}
+                    className="px-6 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={() => handleInvestNow(selectedProject)}
+                    className="px-6 py-3 text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl hover:opacity-90"
+                  >
+                    Invest Now
+                  </button>
+                </div>
+                      </div>
+                    </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    )
+  }
+
+  // Update the AI Analysis component title
+  const renderAIAnalysis = () => {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Analyze Development with AI</h3>
+        <AIAnalysis developmentId={selectedProject?.id} />
+      </div>
+    )
+  }
+
+  // Add document handling functions
+  const handleDownloadDocument = (document) => {
+    try {
+      // Create a temporary link element
+      const link = document.createElement('a');
+      link.href = document.url;
+      link.download = document.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      handleToast(`Downloading ${document.name}...`, 'success');
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      handleToast('Failed to download document', 'error');
+    }
+  };
+
+  const handleViewDocument = (document) => {
+    try {
+      // Open document in a new tab
+      window.open(document.url, '_blank');
+      handleToast(`Opening ${document.name}...`, 'success');
+    } catch (error) {
+      console.error('Error viewing document:', error);
+      handleToast('Failed to open document', 'error');
+    }
+  };
+
+  // Update the connection details modal to include documents section
+  const renderConnectionDetails = () => {
+    if (!selectedConnection) return null
+
+    return (
+      <AnimatePresence>
+        {showConnectionDetails && (
+                        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-gray-500/75 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          >
+                          <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full p-8 shadow-xl"
+            >
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Connection Details
+                  </h3>
+                  <p className="mt-2 text-gray-600 dark:text-gray-400">
+                    {selectedConnection.projectTitle}
+                  </p>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setShowConnectionDetails(false)}
+                  className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </motion.button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Project Information */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6">
+                  <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    Project Information
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Developer</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {selectedConnection.developer}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        selectedConnection.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                        selectedConnection.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                        'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                              }`}>
+                        {selectedConnection.status.charAt(0).toUpperCase() + selectedConnection.status.slice(1)}
+                              </span>
+                            </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Units</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {selectedConnection.units}
+                      </p>
+                    </div>
+                              <div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Amount</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {selectedConnection.amount}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Documents Section */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6">
+                  <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    Documents
+                  </h4>
+                  <div className="space-y-4">
+                    {selectedConnection.documents && selectedConnection.documents.length > 0 ? (
+                      selectedConnection.documents.map((doc) => (
+                        <motion.div
+                          key={doc.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm"
+                        >
+                          <div className="flex items-center space-x-4">
+                            <div className={`p-2 rounded-lg ${
+                              doc.type === 'pdf' ? 'bg-red-100 dark:bg-red-900' :
+                              doc.type === 'xlsx' ? 'bg-green-100 dark:bg-green-900' :
+                              'bg-blue-100 dark:bg-blue-900'
+                            }`}>
+                              <svg className="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                              </div>
+                              <div>
+                              <p className="font-medium text-gray-900 dark:text-white">{doc.name}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                {doc.size} • {new Date(doc.uploadedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                          <div className="flex space-x-2">
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleViewDocument(doc)}
+                              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                            >
+                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleDownloadDocument(doc)}
+                              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                            >
+                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            </motion.button>
+                          </div>
+                        </motion.div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 dark:text-gray-400 text-center py-4">
+                        No documents available
+                      </p>
+                    )}
+                    </div>
+                </div>
+
+                {/* Notes Section */}
+                {selectedConnection.notes && (
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6">
+                    <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                      Notes
+                    </h4>
+                    <p className="text-gray-600 dark:text-gray-300">
+                      {selectedConnection.notes}
+                    </p>
+                  </div>
+                )}
+
+                {/* Timeline Section */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6">
+                  <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    Timeline
+                  </h4>
+                      <div className="space-y-4">
+                            <div className="flex items-center">
+                      <div className="flex-shrink-0 h-2 w-2 rounded-full bg-green-400"></div>
+                      <p className="ml-3 text-sm text-gray-500 dark:text-gray-400">
+                        Connection requested on {new Date(selectedConnection.createdAt).toLocaleDateString()}
+                      </p>
+                              </div>
+                    {selectedConnection.updatedAt && (
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-2 w-2 rounded-full bg-blue-400"></div>
+                        <p className="ml-3 text-sm text-gray-500 dark:text-gray-400">
+                          Status updated on {new Date(selectedConnection.updatedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                    )}
+                            </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-4 pt-4">
+                  {selectedConnection.status === 'pending' && (
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setShowConnectionDetails(false)
+                        handleToast('Connection request cancelled', 'success')
+                      }}
+                      className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300"
+                    >
+                      Cancel Request
+                            </motion.button>
+                  )}
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowConnectionDetails(false)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg"
+                  >
+                    Close
+                  </motion.button>
+                      </div>
+                  </div>
+            </motion.div>
+          </motion.div>
+                )}
+      </AnimatePresence>
+    )
+  }
+
+  // Add renderProfile function
+  const renderProfile = () => {
+    return (
+                  <div className="space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Profile Information</h3>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center">
+                <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {profile.profileCompletion}% Complete
+                </span>
+              </div>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setIsEditingProfile(!isEditingProfile)}
+                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:opacity-90"
+                        >
+                          {isEditingProfile ? 'Cancel' : 'Edit Profile'}
+                        </motion.button>
+            </div>
+                      </div>
+
+                      {isEditingProfile ? (
+                        <form onSubmit={handleSubmit(handleProfileSave)} className="space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Full Name
+                              </label>
+                              <input
+                                type="text"
+                    id="name"
+                                {...register('name')}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              />
+                              {errors.name && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name.message}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Email
+                              </label>
+                              <input
+                                type="email"
+                    id="email"
+                                {...register('email')}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              />
+                              {errors.email && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Phone Number
+                              </label>
+                              <input
+                                type="tel"
+                    id="phone"
+                                {...register('phone')}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              />
+                              {errors.phone && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.phone.message}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label htmlFor="investmentExperience" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Investment Experience
+                              </label>
+                              <select
+                    id="investmentExperience"
+                                {...register('investmentExperience')}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                              >
+                                <option value="">Select experience</option>
+                    <option value="0-2 years">0-2 years</option>
+                    <option value="3-5 years">3-5 years</option>
+                    <option value="5-10 years">5-10 years</option>
+                    <option value="10+ years">10+ years</option>
+                              </select>
+                              {errors.investmentExperience && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investmentExperience.message}</p>
+                              )}
+                            </div>
+                          </div>
+
+              {/* Bio */}
+                          <div>
+                            <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Bio
+                            </label>
+                            <textarea
+                  id="bio"
+                              {...register('bio')}
+                  rows={4}
+                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                            />
+                            {errors.bio && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bio.message}</p>
+                            )}
+                          </div>
+
+              {/* Investment Preferences */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="preferredInvestmentAmount" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Preferred Investment Amount (₦)
+                  </label>
+                  <input
+                    type="number"
+                    id="preferredInvestmentAmount"
+                    {...register('preferredInvestmentAmount')}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                  />
+                  {errors.preferredInvestmentAmount && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.preferredInvestmentAmount.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="riskTolerance" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Risk Tolerance
+                  </label>
+                  <select
+                    id="riskTolerance"
+                    {...register('riskTolerance')}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                  >
+                    <option value="">Select risk tolerance</option>
+                    <option value="Conservative">Conservative</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Aggressive">Aggressive</option>
+                  </select>
+                  {errors.riskTolerance && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.riskTolerance.message}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Investment Interests */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Investment Interests
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {['Residential', 'Commercial', 'Industrial', 'Mixed-Use', 'Green Projects', 'Luxury'].map((interest) => (
+                    <label key={interest} className="inline-flex items-center">
+                      <input
+                        type="checkbox"
+                        value={interest}
+                        {...register('investmentInterests')}
+                        className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:border-gray-600"
+                      />
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">{interest}</span>
+                    </label>
+                  ))}
+                </div>
+                {errors.investmentInterests && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investmentInterests.message}</p>
+                )}
+              </div>
+
+              {/* Preferred Locations */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Preferred Locations
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {['Lagos', 'Abuja', 'Port Harcourt', 'Kano', 'Calabar', 'Ibadan'].map((location) => (
+                    <label key={location} className="inline-flex items-center">
+                      <input
+                        type="checkbox"
+                        value={location}
+                        {...register('preferredLocations')}
+                        className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:border-gray-600"
+                      />
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">{location}</span>
+                    </label>
+                  ))}
+                </div>
+                {errors.preferredLocations && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.preferredLocations.message}</p>
+                )}
+              </div>
+
+              {/* Investment Goals */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Investment Goals
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {['Capital Appreciation', 'Passive Income', 'Portfolio Diversification', 'Tax Benefits', 'Long-term Growth'].map((goal) => (
+                    <label key={goal} className="inline-flex items-center">
+                      <input
+                        type="checkbox"
+                        value={goal}
+                        {...register('investmentGoals')}
+                        className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:border-gray-600"
+                      />
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">{goal}</span>
+                    </label>
+                  ))}
+                </div>
+                {errors.investmentGoals && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investmentGoals.message}</p>
+                )}
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex justify-end space-x-4">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  type="button"
+                  onClick={() => setIsEditingProfile(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300"
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                              type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:opacity-90"
+                            >
+                              Save Changes
+                </motion.button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Full Name</p>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-white">{profile.name}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</p>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-white">{profile.email}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</p>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-white">{profile.phone}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Experience</p>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-white">{profile.investmentExperience}</p>
+                            </div>
+                          </div>
+
+              {/* Bio */}
+                          <div>
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Bio</p>
+                <p className="mt-1 text-sm text-gray-900 dark:text-white">{profile.bio}</p>
+                          </div>
+
+              {/* Investment Preferences */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Preferred Investment Amount</p>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-white">
+                    ₦{profile.preferredInvestmentAmount?.toLocaleString('en-NG')}
+                  </p>
+                        </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Risk Tolerance</p>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-white">{profile.riskTolerance}</p>
+                  </div>
+      </div>
+
+              {/* Investment Interests */}
+              <div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Interests</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {profile.investmentInterests?.map((interest) => (
+                    <span
+                      key={interest}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
+                    >
+                      {interest}
+                    </span>
+                  ))}
+                  </div>
+              </div>
+
+              {/* Preferred Locations */}
+                  <div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Preferred Locations</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {profile.preferredLocations?.map((location) => (
+                    <span
+                      key={location}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                    >
+                      {location}
+                      </span>
+                  ))}
+                  </div>
+                </div>
+
+              {/* Investment Goals */}
+                    <div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Goals</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {profile.investmentGoals?.map((goal) => (
+                    <span
+                      key={goal}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                    >
+                      {goal}
+                    </span>
+                  ))}
+                    </div>
+                    </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+    );
+  };
+
+  // Add this function before the main return if not present
+  const renderConnectionModal = () => {
+    if (!showConnectionModal || !selectedProject) return null;
+    return (
+      <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full p-8 shadow-xl"
+          >
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Investment Request</h2>
+            <p className="mb-2 text-gray-700 dark:text-gray-300">Project: <span className="font-semibold">{selectedProject.title}</span></p>
+            <p className="mb-4 text-gray-700 dark:text-gray-300">Developer: <span className="font-semibold">{selectedProject.developer}</span></p>
+            
+            {/* Unit Selection */}
+            <div className="mb-4">
+              <label htmlFor="units" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Number of Units
+                    </label>
+              <div className="flex items-center space-x-4">
+                      <input
+                        type="number"
+                        id="units"
+                        min={minUnits}
+                        max={maxUnits}
+                  value={selectedUnits}
+                  onChange={handleUnitChange}
+                  className="block w-32 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                />
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Min: {minUnits} | Max: {maxUnits}
+                </span>
+              </div>
+                    {investmentError && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{investmentError}</p>
+                    )}
+                  </div>
+
+            {/* Investment Amount Display */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Total Investment Amount
+                    </label>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{investmentAmount}</p>
+                  </div>
+
+            {/* Notes Field */}
+            <div className="mb-6">
+              <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Notes (Optional)
+                    </label>
+                      <textarea
+                        id="notes"
+                        value={investmentNotes}
+                        onChange={(e) => setInvestmentNotes(e.target.value)}
+                placeholder="Add any additional notes or questions..."
+                rows={3}
+                className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                      />
+                </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-4">
+              <button
+                    onClick={() => setShowConnectionModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+                  >
+                    Cancel
+              </button>
+              <button
+                    onClick={handleRequestSubmit}
+                disabled={isSendingRequest}
+                className="px-4 py-2 text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSendingRequest ? 'Sending...' : 'Submit Request'}
+              </button>
+                </div>
+              </motion.div>
+            </motion.div>
+      </AnimatePresence>
+    );
+  };
+
+  // Add this function to handle sending messages
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedTopic) return;
+
+    setIsSendingMessage(true);
+    try {
+      // Create a new reply
+      const reply = {
+        id: Date.now(),
+        author: profile?.name || 'Anonymous',
+        content: newMessage,
+        timestamp: new Date().toISOString()
+      };
+
+      // Update the topic with the new reply
+      const updatedTopic = {
+        ...selectedTopic,
+        replies: [...(selectedTopic.replies || []), reply],
+        lastActivity: new Date().toISOString()
+      };
+
+      // Update the state
+      setSelectedTopic(updatedTopic);
+      
+      // Update the forum topics
+      if (activeForum === 'general') {
+        const updatedTopics = mockForums.general.topics.map(topic => 
+          topic.id === selectedTopic.id ? updatedTopic : topic
+        );
+        mockForums.general.topics = updatedTopics;
+      } else {
+        const projectId = activeForum.split('-')[1];
+        const projectForum = mockForums.projectForums[`project-${projectId}`];
+        if (projectForum) {
+          const updatedTopics = projectForum.topics.map(topic => 
+            topic.id === selectedTopic.id ? updatedTopic : topic
+          );
+          projectForum.topics = updatedTopics;
+        }
+      }
+
+      // Clear the message input
+      setNewMessage('');
+      handleToast('Reply posted successfully!', 'success');
+    } catch (error) {
+      console.error('Error posting reply:', error);
+      handleToast('Failed to post reply', 'error');
+    } finally {
+      setIsSendingMessage(false);
+    }
   };
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Navigation */}
-        <motion.div 
+          <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-between mb-8"
@@ -674,34 +2364,34 @@ export default function InvestorDashboard() {
             >
               Subx
             </motion.h1>
-          </div>
+                </div>
           <div className="flex items-center space-x-4">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
               onClick={toggleDarkMode}
               className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700"
             >
               {isDarkMode ? (
                 <svg className="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              ) : (
+                  </svg>
+                    ) : (
                 <svg className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
-              )}
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+                    )}
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
               onClick={handleLogout}
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            >
+                  >
               Logout
-            </motion.button>
-          </div>
-        </motion.div>
+                  </motion.button>
+              </div>
+            </motion.div>
 
         {/* Tabs */}
         <motion.div 
@@ -710,11 +2400,11 @@ export default function InvestorDashboard() {
           className="border-b border-gray-200 dark:border-gray-700 mb-8"
         >
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            {['dashboard', 'discover', 'connections', 'profile'].map((tab) => (
-              <motion.button
+            {['analytics', 'discover', 'connections', 'forum', 'profile'].map((tab) => (
+                  <motion.button
                 key={tab}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab(tab)}
                 className={`${
                   activeTab === tab
@@ -723,10 +2413,10 @@ export default function InvestorDashboard() {
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors duration-200`}
               >
                 {tab}
-              </motion.button>
+                  </motion.button>
             ))}
           </nav>
-        </motion.div>
+            </motion.div>
 
         {/* Main Content */}
         <main>
@@ -737,7 +2427,7 @@ export default function InvestorDashboard() {
               className="flex items-center justify-center h-64"
             >
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-            </motion.div>
+          </motion.div>
           ) : (
             <AnimatePresence mode="wait">
               <motion.div
@@ -748,723 +2438,14 @@ export default function InvestorDashboard() {
                 transition={{ duration: 0.2 }}
                 className="space-y-6"
               >
-                {/* Dashboard Tab */}
-                {activeTab === 'dashboard' && (
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-center">
-                      <h2 className="text-2xl font-bold">Investment Opportunities</h2>
-                      <div className="flex space-x-4">
-                        <select
-                          className="border rounded-md px-3 py-2"
-                          onChange={(e) => handleFilterChange('location', e.target.value)}
-                        >
-                          {locationOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          className="border rounded-md px-3 py-2"
-                          onChange={(e) => handleFilterChange('type', e.target.value)}
-                        >
-                          {typeOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {renderProjectCards()}
-                    </div>
-                  </div>
-                )}
-
-                {/* Discover Tab */}
-                {activeTab === 'discover' && (
-                  <div className="space-y-6">
-                    {/* Search and Filters */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                    >
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        <div>
-                          <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Location
-                          </label>
-                          <motion.select
-                            whileHover={{ scale: 1.02 }}
-                            id="location"
-                            value={filters.location}
-                            onChange={(e) => handleFilterChange('location', e.target.value)}
-                            className="mt-1 block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                          >
-                            {locationOptions.map((option) => (
-                              <option key={option} value={option}>{option}</option>
-                            ))}
-                          </motion.select>
-                        </div>
-                        {/* Similar motion.select for type filter */}
-                      </div>
-                    </motion.div>
-
-                    {/* Project Grid */}
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                      {filteredProjects.map((project) => (
-                        <motion.div
-                          key={project.id}
-                          whileHover={{ scale: 1.02 }}
-                          className="bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden"
-                        >
-                          <div className="relative">
-                            <img
-                              src={project.images[0]}
-                              alt={project.title}
-                              className="w-full h-48 object-cover"
-                            />
-                            <div className="absolute top-4 right-4">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                project.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                              }`}>
-                                {project.status}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="p-6">
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                              {project.title}
-                            </h3>
-                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                              {project.developer} • {project.location}
-                            </p>
-                            <div className="mt-4 grid grid-cols-2 gap-4">
-                              <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Amount</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{project.amount}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">ROI</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{project.roi}</p>
-                              </div>
-                            </div>
-                            <motion.button
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={() => handleConnectionRequest(project)}
-                              className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                            >
-                              Request Connection
-                            </motion.button>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Connections Tab */}
-                {activeTab === 'connections' && (
-                  <div className="space-y-6">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                    >
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                        Your Connections
-                      </h3>
-                      <div className="space-y-4">
-                        {analytics.connectionRequests.developers.map((developer) => (
-                          <motion.div
-                            key={developer.name}
-                            whileHover={{ scale: 1.02 }}
-                            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl"
-                          >
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center">
-                                <span className="text-white font-medium">
-                                  {developer.name.charAt(0)}
-                                </span>
-                              </div>
-                              <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                  {developer.name}
-                                </p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                  Status: {developer.status}
-                                </p>
-                              </div>
-                            </div>
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => handleViewConnectionDetails(developer)}
-                              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                            >
-                              View Details
-                            </motion.button>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  </div>
-                )}
-
-                {/* Profile Tab */}
-                {activeTab === 'profile' && (
-                  <div className="space-y-6">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                    >
-                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                          Profile Information
-                        </h3>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setIsEditingProfile(!isEditingProfile)}
-                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                          {isEditingProfile ? 'Cancel' : 'Edit Profile'}
-                        </motion.button>
-                      </div>
-
-                      {/* Profile Form or View */}
-                      {isEditingProfile ? (
-                        <form onSubmit={handleSubmit(handleProfileSave)} className="space-y-6">
-                          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                            <div>
-                              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Name
-                              </label>
-                              <input
-                                type="text"
-                                {...register('name')}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                              />
-                              {errors.name && (
-                                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-                              )}
-                            </div>
-
-                            <div>
-                              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Email
-                              </label>
-                              <input
-                                type="email"
-                                {...register('email')}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                              />
-                              {errors.email && (
-                                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-                              )}
-                            </div>
-
-                            <div>
-                              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Phone
-                              </label>
-                              <input
-                                type="tel"
-                                {...register('phone')}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                              />
-                              {errors.phone && (
-                                <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
-                              )}
-                            </div>
-
-                            <div>
-                              <label htmlFor="investmentExperience" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Investment Experience
-                              </label>
-                              <select
-                                {...register('investmentExperience')}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                              >
-                                <option value="">Select experience</option>
-                                <option value="Beginner">Beginner (0-2 years)</option>
-                                <option value="Intermediate">Intermediate (2-5 years)</option>
-                                <option value="Advanced">Advanced (5+ years)</option>
-                              </select>
-                              {errors.investmentExperience && (
-                                <p className="mt-1 text-sm text-red-600">{errors.investmentExperience.message}</p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div>
-                            <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Bio
-                            </label>
-                            <textarea
-                              {...register('bio')}
-                              rows={3}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            />
-                            {errors.bio && (
-                              <p className="mt-1 text-sm text-red-600">{errors.bio.message}</p>
-                            )}
-                          </div>
-
-                          <div className="flex justify-end">
-                            <button
-                              type="submit"
-                              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                            >
-                              Save Changes
-                            </button>
-                          </div>
-                        </form>
-                      ) : (
-                        <div className="space-y-6">
-                          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                            <div>
-                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Name</p>
-                              <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.name}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</p>
-                              <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.email}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</p>
-                              <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.phone}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Experience</p>
-                              <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.investmentExperience}</p>
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Bio</p>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.bio}</p>
-                          </div>
-                        </div>
-                      )}
-                    </motion.div>
-                  </div>
-                )}
+                {renderContent()}
               </motion.div>
-            </AnimatePresence>
+      </AnimatePresence>
           )}
         </main>
       </div>
 
-      {/* Connection Details Modal */}
-      <AnimatePresence>
-        {showConnectionDetails && selectedConnection && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-gray-500/75 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ type: "spring", duration: 0.5 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full p-8 shadow-xl"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                  Connection Details
-                </h3>
-                <button
-                  onClick={() => setShowConnectionDetails(false)}
-                  className="text-gray-400 hover:text-gray-500"
-                >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0 h-12 w-12 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                    <span className="text-indigo-600 dark:text-indigo-300 text-lg font-medium">
-                      {selectedConnection.name.charAt(0)}
-                    </span>
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                      {selectedConnection.name}
-                    </h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Status: <span className={`font-medium ${
-                        selectedConnection.status === 'approved' ? 'text-green-600' :
-                        selectedConnection.status === 'pending' ? 'text-yellow-600' :
-                        'text-red-600'
-                      }`}>
-                        {selectedConnection.status.charAt(0).toUpperCase() + selectedConnection.status.slice(1)}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                  <h5 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                    Project Information
-                  </h5>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Project Title</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {selectedConnection.projectTitle || 'Not specified'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Units</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {selectedConnection.units || 'Not specified'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                  <h5 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                    Connection Timeline
-                  </h5>
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm">
-                      <div className="flex-shrink-0 h-2 w-2 rounded-full bg-green-400"></div>
-                      <p className="ml-2 text-gray-500 dark:text-gray-400">
-                        Connection requested on {new Date(selectedConnection.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    {selectedConnection.status === 'approved' && (
-                      <div className="flex items-center text-sm">
-                        <div className="flex-shrink-0 h-2 w-2 rounded-full bg-green-400"></div>
-                        <p className="ml-2 text-gray-500 dark:text-gray-400">
-                          Connection approved on {new Date(selectedConnection.updatedAt || Date.now()).toLocaleDateString()}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex justify-end space-x-3">
-                  {selectedConnection.status === 'pending' && (
-                    <button
-                      onClick={() => {
-                        // TODO: Implement cancel request functionality
-                        setShowConnectionDetails(false)
-                        handleToast('Connection request cancelled', 'success')
-                      }}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      Cancel Request
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setShowConnectionDetails(false)}
-                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Connection Request Modal */}
-      <AnimatePresence>
-        {showConnectionModal && selectedProject && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-gray-500/75 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ type: "spring", duration: 0.5 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full p-8 shadow-xl"
-            >
-              <div className="flex justify-between items-start mb-6">
-                <motion.div
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                    Request Connection
-                  </h3>
-                  <p className="mt-2 text-gray-600 dark:text-gray-400">
-                    Connect with {selectedProject.developer} to invest in {selectedProject.title}
-                  </p>
-                </motion.div>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setShowConnectionModal(false)}
-                  className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-                >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </motion.button>
-              </div>
-
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="space-y-6"
-              >
-                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/50 dark:to-purple-900/50 rounded-xl p-6">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Project</p>
-                      <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{selectedProject.title}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Location</p>
-                      <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{selectedProject.location}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Unit Price</p>
-                      <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                        ₦{unitPrice.toLocaleString('en-NG')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Available Units</p>
-                      <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                        {minUnits} - {maxUnits.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="units" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Number of Units
-                    </label>
-                    <motion.div 
-                      whileHover={{ scale: 1.02 }}
-                      className="mt-1"
-                    >
-                      <input
-                        type="number"
-                        id="units"
-                        value={selectedUnits}
-                        onChange={handleUnitChange}
-                        min={minUnits}
-                        max={maxUnits}
-                        className={`block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm ${
-                          investmentError ? 'border-red-300 dark:border-red-500' : ''
-                        }`}
-                      />
-                    </motion.div>
-                    {investmentError && (
-                      <motion.p 
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mt-2 text-sm text-red-600 dark:text-red-400"
-                      >
-                        {investmentError}
-                      </motion.p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label htmlFor="investmentAmount" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Total Investment Amount
-                    </label>
-                    <motion.div 
-                      whileHover={{ scale: 1.02 }}
-                      className="mt-1"
-                    >
-                      <input
-                        type="text"
-                        id="investmentAmount"
-                        value={investmentAmount}
-                        readOnly
-                        className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm bg-gray-50 dark:bg-gray-700 dark:text-white sm:text-sm"
-                      />
-                    </motion.div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Additional Notes (Optional)
-                    </label>
-                    <motion.div 
-                      whileHover={{ scale: 1.02 }}
-                      className="mt-1"
-                    >
-                      <textarea
-                        id="notes"
-                        rows={3}
-                        value={investmentNotes}
-                        onChange={(e) => setInvestmentNotes(e.target.value)}
-                        className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                        placeholder="Add any additional information or questions..."
-                      />
-                    </motion.div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-4 pt-4">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowConnectionModal(false)}
-                    className="px-6 py-3 text-base font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    Cancel
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleRequestSubmit}
-                    disabled={!!investmentError || isSendingRequest}
-                    className={`px-6 py-3 text-base font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
-                      (!!investmentError || isSendingRequest) ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    {isSendingRequest ? (
-                      <span className="flex items-center">
-                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Sending Request...
-                      </span>
-                    ) : (
-                      'Submit Request'
-                    )}
-                  </motion.button>
-                </div>
-              </motion.div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Confirmation Modal */}
-      <AnimatePresence>
-        {showConfirmation && selectedProject && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-gray-500/75 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ type: "spring", duration: 0.5 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full p-8 shadow-xl"
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Confirm Your Request
-                  </h3>
-                  <p className="mt-2 text-gray-600 dark:text-gray-400">
-                    Please review your connection request details before proceeding.
-                  </p>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setShowConfirmation(false)}
-                  className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-                >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </motion.button>
-              </div>
-
-              <div className="space-y-6">
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6">
-                  <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                    Request Summary
-                  </h4>
-                  <div className="space-y-4">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Project:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{selectedProject.title}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Developer:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{selectedProject.developer}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Units:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{selectedUnits}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Investment Amount:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{investmentAmount}</span>
-                    </div>
-                    {investmentNotes && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Notes:</span>
-                        <span className="font-medium text-gray-900 dark:text-white">{investmentNotes}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-4">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowConfirmation(false)}
-                    className="px-6 py-3 text-base font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    Cancel
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={submitConnectionRequest}
-                    disabled={isSendingRequest}
-                    className={`px-6 py-3 text-base font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
-                      isSendingRequest ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    {isSendingRequest ? (
-                      <span className="flex items-center">
-                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Sending Request...
-                      </span>
-                    ) : (
-                      'Confirm Request'
-                    )}
-                  </motion.button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {renderConnectionDetails()}
 
       {/* Toast Notifications */}
       <AnimatePresence>
@@ -1481,6 +2462,9 @@ export default function InvestorDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {renderProjectModal()}
+      {renderConnectionModal()}
     </div>
   )
 }

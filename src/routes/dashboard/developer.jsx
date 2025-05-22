@@ -160,6 +160,49 @@ const mockAnalytics = {
   }
 };
 
+// Add mock forum data
+const mockForums = [
+  {
+    id: 1,
+    title: 'Lekki Luxury Apartments Discussion',
+    description: 'Discussion about the Lekki Luxury Apartments project',
+    author: 'John Investor',
+    date: '2024-03-15',
+    content: 'I\'m interested in investing in this project. Can you provide more details about the expected ROI?',
+    messages: 12,
+    participants: 8,
+    replies: [
+      {
+        author: 'Sarah Developer',
+        date: '2024-03-15',
+        content: 'The expected ROI is around 15-20% annually. We have a detailed financial projection document that I can share with you.'
+      },
+      {
+        author: 'Mike Investor',
+        date: '2024-03-16',
+        content: 'What\'s the current occupancy rate of similar properties in the area?'
+      }
+    ]
+  },
+  {
+    id: 2,
+    title: 'Maitama Office Complex Updates',
+    description: 'Updates and discussions about the Maitama Office Complex project',
+    author: 'Emma Developer',
+    date: '2024-03-14',
+    content: 'We\'ve completed the foundation work ahead of schedule. Here are some photos of the progress.',
+    messages: 8,
+    participants: 5,
+    replies: [
+      {
+        author: 'David Investor',
+        date: '2024-03-14',
+        content: 'Great progress! When do you expect to start the next phase?'
+      }
+    ]
+  }
+];
+
 export default function DeveloperDashboard() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
@@ -182,6 +225,13 @@ export default function DeveloperDashboard() {
   const [showToast, setShowToast] = useState(false);
   const [analytics, setAnalytics] = useState(mockAnalytics);
 
+  // Add new state for forums
+  const [forums, setForums] = useState(mockForums);
+  const [selectedForum, setSelectedForum] = useState(null);
+  const [showForumModal, setShowForumModal] = useState(false);
+  const [newMessage, setNewMessage] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+
   // Add new state for form data
   const [newProject, setNewProject] = useState({
     title: '',
@@ -191,8 +241,36 @@ export default function DeveloperDashboard() {
     units: '',
     startDate: '',
     expectedCompletion: '',
-    description: ''
+    description: '',
+    // Add new fields
+    images: [],
+    documents: [],
+    amenities: [],
+    specifications: {
+      totalArea: '',
+      floors: '',
+      parkingSpaces: '',
+      bedrooms: '',
+      bathrooms: '',
+    },
+    locationDetails: {
+      address: '',
+      city: '',
+      state: '',
+      coordinates: {
+        latitude: '',
+        longitude: ''
+      }
+    },
+    paymentPlans: [],
+    expectedROI: '',
+    completionStatus: '0'
   });
+
+  // Add new state for file uploads
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const [uploadedDocuments, setUploadedDocuments] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Form handling with react-hook-form
   const { register, handleSubmit, formState: { errors }, reset, watch } = useForm({
@@ -247,6 +325,7 @@ export default function DeveloperDashboard() {
     // Initialize with mock data
     setProjects(mockProjects);
     setConnections(mockConnections);
+    setForums(mockForums); // Add this line
     setIsLoading(false);
   }, []); // Remove navigate from dependencies
 
@@ -497,6 +576,87 @@ export default function DeveloperDashboard() {
   // Default profile image
   const defaultProfileImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE1MCIgaGVpZ2h0PSIxNTAiIGZpbGw9IiNFNUU3RUIiLz48cGF0aCBkPSJNNzUgNzVDODMuMjg0MyA3NSA5MCA2OC4yODQzIDkwIDYwQzkwIDUxLjcxNTcgODMuMjg0MyA0NSA3NSA0NUM2Ni43MTU3IDQ1IDYwIDUxLjcxNTcgNjAgNjBDNjAgNjguMjg0MyA2Ni43MTU3IDc1IDc1IDc1WiIgZmlsbD0iIzk0QTNCQiIvPjxwYXRoIGQ9Ik03NSA4NUM4NS40OTM0IDg1IDk0IDc2LjQ5MzQgOTQgNjZDOTQgNTUuNTA2NiA4NS40OTM0IDQ3IDc1IDQ3QzY0LjUwNjYgNDcgNTYgNTUuNTA2NiA1NiA2NkM1NiA3Ni40OTM0IDY0LjUwNjYgODUgNzUgODVaIiBmaWxsPSIjRTlFQkU2Ii8+PHBhdGggZD0iTTc1IDk1Qzg1LjQ5MzQgOTUgOTQgODYuNDkzNCA5NCA3NkM5NCA2NS41MDY2IDg1LjQ5MzQgNTcgNzUgNTdDNjQuNTA2NiA1NyA1NiA2NS41MDY2IDU2IDc2QzU2IDg2LjQ5MzQgNjQuNTA2NiA5NSA3NSA5NVoiIGZpbGw9IiNFOUVCRTYiLz48L3N2Zz4=';
 
+  // Add file upload handlers
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    setIsUploading(true);
+    
+    // Simulate file upload
+    setTimeout(() => {
+      const newImages = files.map(file => ({
+        id: Math.random().toString(36).substr(2, 9),
+        name: file.name,
+        url: URL.createObjectURL(file),
+        size: file.size
+      }));
+      
+      setUploadedImages(prev => [...prev, ...newImages]);
+      setNewProject(prev => ({
+        ...prev,
+        images: [...prev.images, ...newImages]
+      }));
+      setIsUploading(false);
+    }, 1000);
+  };
+
+  const handleDocumentUpload = (e) => {
+    const files = Array.from(e.target.files);
+    setIsUploading(true);
+    
+    // Simulate file upload
+    setTimeout(() => {
+      const newDocuments = files.map(file => ({
+        id: Math.random().toString(36).substr(2, 9),
+        name: file.name,
+        type: file.type,
+        size: file.size
+      }));
+      
+      setUploadedDocuments(prev => [...prev, ...newDocuments]);
+      setNewProject(prev => ({
+        ...prev,
+        documents: [...prev.documents, ...newDocuments]
+      }));
+      setIsUploading(false);
+    }, 1000);
+  };
+
+  const removeImage = (imageId) => {
+    setUploadedImages(prev => prev.filter(img => img.id !== imageId));
+    setNewProject(prev => ({
+      ...prev,
+      images: prev.images.filter(img => img.id !== imageId)
+    }));
+  };
+
+  const removeDocument = (docId) => {
+    setUploadedDocuments(prev => prev.filter(doc => doc.id !== docId));
+    setNewProject(prev => ({
+      ...prev,
+      documents: prev.documents.filter(doc => doc.id !== docId)
+    }));
+  };
+
+  // Add payment plan handler
+  const addPaymentPlan = () => {
+    setNewProject(prev => ({
+      ...prev,
+      paymentPlans: [...prev.paymentPlans, {
+        id: Math.random().toString(36).substr(2, 9),
+        name: '',
+        percentage: '',
+        dueDate: ''
+      }]
+    }));
+  };
+
+  const removePaymentPlan = (planId) => {
+    setNewProject(prev => ({
+      ...prev,
+      paymentPlans: prev.paymentPlans.filter(plan => plan.id !== planId)
+    }));
+  };
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       {console.log('Rendering with state:', { isLoading, activeTab })}
@@ -550,7 +710,7 @@ export default function DeveloperDashboard() {
           className="border-b border-gray-200 dark:border-gray-700 mb-8"
         >
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            {['dashboard', 'projects', 'investors', 'profile'].map((tab) => (
+            {['dashboard', 'projects', 'investors', 'forums', 'profile'].map((tab) => (
               <motion.button
                 key={tab}
                 whileHover={{ scale: 1.05 }}
@@ -921,6 +1081,45 @@ export default function DeveloperDashboard() {
                 </div>
               )}
 
+              {/* Forums Tab */}
+              {activeTab === 'forums' && (
+                <div className="space-y-6">
+                  <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Forums</h2>
+                    
+                    {/* Forums List */}
+                    <div className="space-y-4">
+                      {forums.map((forum) => (
+                        <motion.div
+                          key={forum.id}
+                          whileHover={{ scale: 1.02 }}
+                          className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 cursor-pointer"
+                          onClick={() => {
+                            setSelectedForum(forum);
+                            setShowForumModal(true);
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{forum.title}</h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">{forum.description}</p>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                              <span className="text-sm text-gray-500 dark:text-gray-400">
+                                {forum.messages} messages
+                              </span>
+                              <span className="text-sm text-gray-500 dark:text-gray-400">
+                                {forum.participants} participants
+                              </span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Profile Tab */}
               {activeTab === 'profile' && (
                 <div className="space-y-6">
@@ -1272,7 +1471,7 @@ export default function DeveloperDashboard() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ type: "spring", duration: 0.5 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full p-8 shadow-xl"
+              className="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full p-8 shadow-xl max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -1291,6 +1490,7 @@ export default function DeveloperDashboard() {
               </div>
 
               <form onSubmit={handleProjectSubmit} className="space-y-6">
+                {/* Basic Information */}
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div>
                     <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -1420,6 +1620,267 @@ export default function DeveloperDashboard() {
                   />
                 </div>
 
+                {/* Project Images */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Project Images
+                  </label>
+                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg">
+                    <div className="space-y-1 text-center">
+                      <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div className="flex text-sm text-gray-600 dark:text-gray-400">
+                        <label className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                          <span>Upload images</span>
+                          <input type="file" className="sr-only" multiple accept="image/*" onChange={handleImageUpload} />
+                        </label>
+                        <p className="pl-1">or drag and drop</p>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF up to 10MB</p>
+                    </div>
+                  </div>
+                  
+                  {/* Image Preview Grid */}
+                  {uploadedImages.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {uploadedImages.map((image) => (
+                        <div key={image.id} className="relative group">
+                          <img src={image.url} alt={image.name} className="h-24 w-full object-cover rounded-lg" />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(image.id)}
+                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Project Documents */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Project Documents
+                  </label>
+                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg">
+                    <div className="space-y-1 text-center">
+                      <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div className="flex text-sm text-gray-600 dark:text-gray-400">
+                        <label className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                          <span>Upload documents</span>
+                          <input type="file" className="sr-only" multiple accept=".pdf,.doc,.docx" onChange={handleDocumentUpload} />
+                        </label>
+                        <p className="pl-1">or drag and drop</p>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">PDF, DOC up to 10MB</p>
+                    </div>
+                  </div>
+                  
+                  {/* Document List */}
+                  {uploadedDocuments.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      {uploadedDocuments.map((doc) => (
+                        <div key={doc.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                          <div className="flex items-center space-x-2">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            <span className="text-sm text-gray-900 dark:text-gray-100">{doc.name}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeDocument(doc.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Project Specifications */}
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="totalArea" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Total Area (sq ft)
+                    </label>
+                    <input
+                      type="number"
+                      id="totalArea"
+                      name="specifications.totalArea"
+                      value={newProject.specifications.totalArea}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="floors" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Number of Floors
+                    </label>
+                    <input
+                      type="number"
+                      id="floors"
+                      name="specifications.floors"
+                      value={newProject.specifications.floors}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="parkingSpaces" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Parking Spaces
+                    </label>
+                    <input
+                      type="number"
+                      id="parkingSpaces"
+                      name="specifications.parkingSpaces"
+                      value={newProject.specifications.parkingSpaces}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="expectedROI" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Expected ROI (%)
+                    </label>
+                    <input
+                      type="number"
+                      id="expectedROI"
+                      name="expectedROI"
+                      value={newProject.expectedROI}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                    />
+                  </div>
+                </div>
+
+                {/* Location Details */}
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Address
+                    </label>
+                    <input
+                      type="text"
+                      id="address"
+                      name="locationDetails.address"
+                      value={newProject.locationDetails.address}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      City
+                    </label>
+                    <input
+                      type="text"
+                      id="city"
+                      name="locationDetails.city"
+                      value={newProject.locationDetails.city}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="state" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      State
+                    </label>
+                    <input
+                      type="text"
+                      id="state"
+                      name="locationDetails.state"
+                      value={newProject.locationDetails.state}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                    />
+                  </div>
+                </div>
+
+                {/* Payment Plans */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Payment Plans
+                    </label>
+                    <button
+                      type="button"
+                      onClick={addPaymentPlan}
+                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Add Plan
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    {newProject.paymentPlans.map((plan) => (
+                      <div key={plan.id} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div>
+                          <input
+                            type="text"
+                            placeholder="Plan Name"
+                            value={plan.name}
+                            onChange={(e) => {
+                              const updatedPlans = newProject.paymentPlans.map(p =>
+                                p.id === plan.id ? { ...p, name: e.target.value } : p
+                              );
+                              setNewProject(prev => ({ ...prev, paymentPlans: updatedPlans }));
+                            }}
+                            className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                          />
+                        </div>
+                        <div>
+                          <input
+                            type="number"
+                            placeholder="Percentage"
+                            value={plan.percentage}
+                            onChange={(e) => {
+                              const updatedPlans = newProject.paymentPlans.map(p =>
+                                p.id === plan.id ? { ...p, percentage: e.target.value } : p
+                              );
+                              setNewProject(prev => ({ ...prev, paymentPlans: updatedPlans }));
+                            }}
+                            className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="date"
+                            value={plan.dueDate}
+                            onChange={(e) => {
+                              const updatedPlans = newProject.paymentPlans.map(p =>
+                                p.id === plan.id ? { ...p, dueDate: e.target.value } : p
+                              );
+                              setNewProject(prev => ({ ...prev, paymentPlans: updatedPlans }));
+                            }}
+                            className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removePaymentPlan(plan.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Submit Buttons */}
                 <div className="flex justify-end space-x-4">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -1434,9 +1895,20 @@ export default function DeveloperDashboard() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     type="submit"
-                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    disabled={isUploading}
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {newProject.id ? 'Update Project' : 'Create Project'}
+                    {isUploading ? (
+                      <div className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Uploading...
+                      </div>
+                    ) : (
+                      newProject.id ? 'Update Project' : 'Create Project'
+                    )}
                   </motion.button>
                 </div>
               </form>
@@ -1544,6 +2016,125 @@ export default function DeveloperDashboard() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Forum Modal */}
+      {showForumModal && selectedForum && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col"
+          >
+            {/* Forum Header */}
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-t-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
+                    <span className="text-indigo-600 dark:text-indigo-300 font-medium">
+                      {selectedForum.title.charAt(0)}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{selectedForum.title}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{selectedForum.messages} messages</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowForumModal(false)}
+                  className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Messages Container */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Original Post */}
+              <div className="flex space-x-3">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
+                    <span className="text-indigo-600 dark:text-indigo-300 text-sm font-medium">
+                      {selectedForum.author.charAt(0)}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{selectedForum.author}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{selectedForum.date}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{selectedForum.content}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Replies */}
+              {selectedForum.replies?.map((reply, index) => (
+                <div key={index} className="flex space-x-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                      <span className="text-gray-600 dark:text-gray-300 text-sm font-medium">
+                        {reply.author.charAt(0)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{reply.author}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{reply.date}</span>
+                      </div>
+                      <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{reply.content}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Message Input */}
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-b-xl">
+              <div className="flex space-x-3">
+                <textarea
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                  rows={2}
+                />
+                <button
+                  onClick={() => {
+                    if (newMessage.trim()) {
+                      setIsSendingMessage(true);
+                      // TODO: Implement message sending
+                      setTimeout(() => {
+                        setIsSendingMessage(false);
+                        setNewMessage('');
+                      }, 1000);
+                    }
+                  }}
+                  disabled={!newMessage.trim() || isSendingMessage}
+                  className="flex-shrink-0 px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSendingMessage ? (
+                    <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+          </motion.div>
         </div>
       )}
 
