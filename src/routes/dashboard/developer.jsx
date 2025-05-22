@@ -709,6 +709,89 @@ export default function DeveloperDashboard() {
   };
 
   const renderForum = () => {
+    if (showForumModal && selectedForum) {
+      return (
+        <div className="h-screen flex flex-col bg-white dark:bg-gray-800">
+          {/* Chat Header */}
+          <div className="px-4 py-3 sm:px-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => setShowForumModal(false)}
+                  className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                </button>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                  {selectedForum.title}
+                </h3>
+              </div>
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {selectedForum.messages} messages
+                </span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {selectedForum.participants} participants
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Chat Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {selectedForum.replies.map((reply, index) => (
+              <div
+                key={index}
+                className={`flex ${reply.author === 'You' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] sm:max-w-[70%] rounded-lg p-3 ${
+                    reply.author === 'You'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                  }`}
+                >
+                  <div className="text-sm font-semibold mb-1">{reply.author}</div>
+                  <p className="text-sm sm:text-base">{reply.content}</p>
+                  <div className="text-xs mt-1 opacity-75">{reply.date}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Chat Input */}
+          <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder="Type your message..."
+                  className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim()}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="max-w-4xl mx-auto p-4 sm:p-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
@@ -757,9 +840,9 @@ export default function DeveloperDashboard() {
           </div>
         </div>
 
-        {/* Chat Modal */}
+        {/* New Topic Modal */}
         <AnimatePresence>
-          {showForumModal && selectedForum && (
+          {showNewTopicModal && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -772,64 +855,69 @@ export default function DeveloperDashboard() {
                 </div>
 
                 <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-                  <div className="flex flex-col h-[80vh] sm:h-[600px]">
-                    {/* Chat Header */}
-                    <div className="px-4 py-3 sm:px-6 border-b border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                          {selectedForum.title}
-                        </h3>
-                        <button
-                          onClick={() => setShowForumModal(false)}
-                          className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-                        >
-                          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
+                  <div className="px-4 py-3 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                        Create New Topic
+                      </h3>
+                      <button
+                        onClick={() => setShowNewTopicModal(false)}
+                        className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                      >
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
+                  </div>
 
-                    {/* Chat Messages */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                      {selectedForum.replies.map((reply, index) => (
-                        <div
-                          key={index}
-                          className={`flex ${reply.author === 'You' ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div
-                            className={`max-w-[80%] sm:max-w-[70%] rounded-lg p-3 ${
-                              reply.author === 'You'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-                            }`}
-                          >
-                            <div className="text-sm font-semibold mb-1">{reply.author}</div>
-                            <p className="text-sm sm:text-base">{reply.content}</p>
-                            <div className="text-xs mt-1 opacity-75">{reply.date}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Chat Input */}
-                    <div className="border-t border-gray-200 dark:border-gray-700 p-4">
-                      <div className="flex space-x-2">
+                  <div className="px-4 py-5 sm:p-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Title
+                        </label>
                         <input
                           type="text"
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          placeholder="Type your message..."
-                          className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          id="title"
+                          value={newTopic.title}
+                          onChange={(e) => setNewTopic({ ...newTopic, title: e.target.value })}
+                          className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                          placeholder="Enter topic title"
                         />
-                        <button
-                          onClick={handleSendMessage}
-                          disabled={!newMessage.trim()}
-                          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-                        >
-                          Send
-                        </button>
                       </div>
+
+                      <div>
+                        <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Content
+                        </label>
+                        <textarea
+                          id="content"
+                          value={newTopic.content}
+                          onChange={(e) => setNewTopic({ ...newTopic, content: e.target.value })}
+                          rows={4}
+                          className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                          placeholder="Enter topic content"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="px-4 py-3 sm:px-6 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex justify-end space-x-3">
+                      <button
+                        onClick={() => setShowNewTopicModal(false)}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleCreateTopic}
+                        disabled={!newTopic.title.trim() || !newTopic.content.trim()}
+                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Create Topic
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -839,6 +927,75 @@ export default function DeveloperDashboard() {
         </AnimatePresence>
       </div>
     );
+  };
+
+  const [showNewTopicModal, setShowNewTopicModal] = useState(false);
+  const [newTopic, setNewTopic] = useState({
+    title: '',
+    content: '',
+    category: 'general'
+  });
+
+  const handleCreateTopic = () => {
+    if (!newTopic.title.trim() || !newTopic.content.trim()) return;
+
+    const topic = {
+      id: forums.length + 1,
+      title: newTopic.title.trim(),
+      content: newTopic.content.trim(),
+      author: 'You',
+      date: new Date().toLocaleString(),
+      messages: 0,
+      participants: 1,
+      replies: []
+    };
+
+    setForums([...forums, topic]);
+    setShowNewTopicModal(false);
+    setNewTopic({ title: '', content: '', category: 'general' });
+  };
+
+  // Add handleSendMessage function after handleCreateTopic
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedForum) return;
+
+    const message = {
+      author: 'You',
+      date: new Date().toLocaleString(),
+      content: newMessage.trim()
+    };
+
+    // Update the selected forum with the new message
+    const updatedForum = {
+      ...selectedForum,
+      replies: [...selectedForum.replies, message],
+      messages: selectedForum.messages + 1
+    };
+
+    // Update the forums list
+    setForums(forums.map(forum => 
+      forum.id === selectedForum.id ? updatedForum : forum
+    ));
+
+    // Update the selected forum
+    setSelectedForum(updatedForum);
+
+    // Clear the message input
+    setNewMessage('');
+
+    // Simulate API call
+    try {
+      // In a real application, you would make an API call here
+      // await apiCall(`/api/forums/${selectedForum.id}/messages`, {
+      //   method: 'POST',
+      //   body: JSON.stringify(message)
+      // });
+      
+      handleToast('success', 'Message sent successfully');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      handleToast('error', 'Failed to send message');
+    }
   };
 
   return (
@@ -1269,7 +1426,7 @@ export default function DeveloperDashboard() {
               {activeTab === 'forums' && (
                 <div className="space-y-6">
                   {renderForum()}
-                    </div>
+                </div>
               )}
 
               {/* Profile Tab */}

@@ -648,6 +648,11 @@ export default function InvestorDashboard() {
   const [isSendingRequest, setIsSendingRequest] = useState(false)
   const [activeForum, setActiveForum] = useState('general')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [newTopic, setNewTopic] = useState({
+    title: '',
+    content: '',
+    category: 'general'
+  });
 
   // Add this before the return statement
   const toggleMobileMenu = () => {
@@ -1169,8 +1174,8 @@ export default function InvestorDashboard() {
               </span>
               <span className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-full text-sm">
                 {connections.filter(c => c.status === 'rejected').length} Rejected
-                            </span>
-                          </div>
+                              </span>
+                            </div>
                         </div>
           
           {connections.length === 0 ? (
@@ -1211,7 +1216,7 @@ export default function InvestorDashboard() {
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Units</p>
                       <p className="font-medium text-gray-900 dark:text-white">{connection.units}</p>
-                    </div>
+                        </div>
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Amount</p>
                       <p className="font-medium text-gray-900 dark:text-white">{connection.amount}</p>
@@ -1222,8 +1227,8 @@ export default function InvestorDashboard() {
                         <p className="font-medium text-gray-900 dark:text-white">{connection.notes}</p>
                       </div>
                     )}
-                  </div>
-                  
+                    </div>
+
                   <div className="mt-4 flex justify-end space-x-3">
                     <button
                       onClick={() => handleViewConnectionDetails(connection)}
@@ -1285,10 +1290,7 @@ export default function InvestorDashboard() {
                 <div
                   key={topic.id}
                   className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 sm:p-6 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => {
-                    setSelectedTopic(topic);
-                    setShowChatModal(true);
-                  }}
+                  onClick={() => navigate(`/forum/${topic.id}`)}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between">
                     <div className="flex-1 min-w-0">
@@ -1311,89 +1313,8 @@ export default function InvestorDashboard() {
                             </div>
                           ))}
                         </div>
-                    </div>
-                  </div>
-
-        {/* Chat Modal */}
-        <AnimatePresence>
-          {showChatModal && selectedTopic && (
-                    <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 overflow-y-auto"
-            >
-              <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-                  <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
-                </div>
-
-                <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-                  <div className="flex flex-col h-[80vh] sm:h-[600px]">
-                    {/* Chat Header */}
-                    <div className="px-4 py-3 sm:px-6 border-b border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                          {selectedTopic.title}
-                        </h3>
-                        <button
-                          onClick={() => setShowChatModal(false)}
-                          className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-                        >
-                          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Chat Messages */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                      {selectedTopic.replies.map((reply, index) => (
-                        <div
-                          key={index}
-                          className={`flex ${reply.author === 'You' ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div
-                            className={`max-w-[80%] sm:max-w-[70%] rounded-lg p-3 ${
-                              reply.author === 'You'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-                            }`}
-                          >
-                            <div className="text-sm font-semibold mb-1">{reply.author}</div>
-                            <p className="text-sm sm:text-base">{reply.content}</p>
-                            <div className="text-xs mt-1 opacity-75">{reply.date}</div>
-                          </div>
-                        </div>
-                      ))}
-                        </div>
-
-                    {/* Chat Input */}
-                    <div className="border-t border-gray-200 dark:border-gray-700 p-4">
-                      <div className="flex space-x-2">
-                        <input
-                          type="text"
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          placeholder="Type your message..."
-                          className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <button
-                          onClick={handleSendMessage}
-                          disabled={!newMessage.trim()}
-                          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-                        >
-                          Send
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                      </div>
-                    </motion.div>
-          )}
-        </AnimatePresence>
+          </div>
+        </div>
       </div>
     );
   };
@@ -1434,7 +1355,7 @@ export default function InvestorDashboard() {
     return (
       <AnimatePresence>
         {showProjectModal && (
-                        <motion.div
+                      <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1499,9 +1420,9 @@ export default function InvestorDashboard() {
                           selectedImage === index ? 'bg-white scale-125' : 'bg-white/50'
                         }`}
                       />
-                    ))}
-                          </div>
-                </motion.div>
+                          ))}
+                        </div>
+                      </motion.div>
                 <button
                   onClick={() => setShowProjectModal(false)}
                   className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/75"
@@ -1510,7 +1431,7 @@ export default function InvestorDashboard() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-              </div>
+                    </div>
 
                           <div className="p-6">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
@@ -1571,7 +1492,7 @@ export default function InvestorDashboard() {
                         </li>
                       ))}
                     </ul>
-                    </div>
+                        </div>
                   </div>
 
                 <div className="mt-8">
@@ -1646,7 +1567,7 @@ export default function InvestorDashboard() {
     return (
       <AnimatePresence>
         {showConnectionDetails && (
-                    <motion.div
+                        <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1701,8 +1622,8 @@ export default function InvestorDashboard() {
                         'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                               }`}>
                         {selectedConnection.status.charAt(0).toUpperCase() + selectedConnection.status.slice(1)}
-                                </span>
-                              </div>
+                              </span>
+                            </div>
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Units</p>
                       <p className="font-medium text-gray-900 dark:text-white">
@@ -1771,8 +1692,8 @@ export default function InvestorDashboard() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                               </svg>
                             </motion.button>
-                      </div>
-                    </motion.div>
+                          </div>
+                        </motion.div>
                       ))
                     ) : (
                       <p className="text-gray-500 dark:text-gray-400 text-center py-4">
@@ -1861,7 +1782,7 @@ export default function InvestorDashboard() {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <motion.div
+                    <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
@@ -1877,7 +1798,7 @@ export default function InvestorDashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-          </div>
+                      </div>
 
                       {isEditingProfile ? (
                         <form onSubmit={handleSubmit(handleProfileSave)} className="space-y-6">
@@ -2027,14 +1948,14 @@ export default function InvestorDashboard() {
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</h3>
                   <p className="mt-1 text-gray-900 dark:text-white">{profile.phone || 'Not specified'}</p>
                             </div>
-      </div>
+                          </div>
 
-                  <div>
+                          <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Bio</h3>
                 <p className="mt-1 text-gray-900 dark:text-white">{profile.bio || 'No bio provided'}</p>
-                  </div>
-                      </div>
-                    )}
+                          </div>
+                        </div>
+                      )}
 
           <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                     <button
@@ -2050,9 +1971,9 @@ export default function InvestorDashboard() {
             </svg>
             Settings
                   </button>
-              </div>
-            </motion.div>
-    </div>
+                  </div>
+              </motion.div>
+      </div>
     );
   };
 
@@ -2082,7 +2003,7 @@ export default function InvestorDashboard() {
               <label htmlFor="units" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Number of Units
                     </label>
-              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-4">
                       <input
                         type="number"
                         id="units"
@@ -2094,12 +2015,12 @@ export default function InvestorDashboard() {
                 />
                 <span className="text-sm text-gray-500 dark:text-gray-400">
                   Min: {minUnits} | Max: {maxUnits}
-                </span>
-              </div>
+                    </span>
+                  </div>
                     {investmentError && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{investmentError}</p>
                     )}
-                  </div>
+                </div>
 
             {/* Investment Amount Display */}
             <div className="mb-4">
@@ -2107,7 +2028,7 @@ export default function InvestorDashboard() {
                       Total Investment Amount
                     </label>
               <p className="text-lg font-semibold text-gray-900 dark:text-white">{investmentAmount}</p>
-                  </div>
+                </div>
 
             {/* Notes Field */}
             <div className="mb-6">
@@ -2126,22 +2047,22 @@ export default function InvestorDashboard() {
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-4">
-              <button
+                    <button
                     onClick={() => setShowConnectionModal(false)}
                 className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
                   >
                     Cancel
-              </button>
-              <button
+                    </button>
+                  <button
                     onClick={handleRequestSubmit}
                 disabled={isSendingRequest}
                 className="px-4 py-2 text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+                  >
                 {isSendingRequest ? 'Sending...' : 'Submit Request'}
-              </button>
-                </div>
-              </motion.div>
+                  </button>
+              </div>
             </motion.div>
+          </motion.div>
       </AnimatePresence>
     );
   };
@@ -2181,6 +2102,29 @@ export default function InvestorDashboard() {
     setNewMessage('');
   };
 
+  const handleCreateTopic = () => {
+    if (!newTopic.title.trim() || !newTopic.content.trim()) return;
+
+    const topic = {
+      id: forums.general.topics.length + 1,
+      title: newTopic.title.trim(),
+      content: newTopic.content.trim(),
+      views: 0,
+      replies: []
+    };
+
+    setForums(prevForums => ({
+      ...prevForums,
+      general: {
+        ...prevForums.general,
+        topics: [...prevForums.general.topics, topic]
+      }
+    }));
+
+    setShowNewTopicModal(false);
+    setNewTopic({ title: '', content: '', category: 'general' });
+  };
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -2199,13 +2143,13 @@ export default function InvestorDashboard() {
             </motion.h1>
                 </div>
           <div className="flex items-center space-x-4">
-                <motion.div 
+                <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
               className="flex items-center space-x-4"
             >
-                  <motion.button
+                <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                 onClick={() => setIsEditingProfile(!isEditingProfile)}
@@ -2213,9 +2157,9 @@ export default function InvestorDashboard() {
                   >
                 <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+                  </svg>
                 Profile
-                  </motion.button>
+                </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -2245,9 +2189,9 @@ export default function InvestorDashboard() {
             </motion.div>
 
         {/* Tabs */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
           className="border-b border-gray-200 dark:border-gray-700 mb-8"
         >
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
@@ -2267,21 +2211,21 @@ export default function InvestorDashboard() {
               </motion.button>
             ))}
           </nav>
-          </motion.div>
+                    </motion.div>
 
         {/* Main Content */}
         <main>
           {isLoading ? (
-            <motion.div 
+                    <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="flex items-center justify-center h-64"
             >
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-          </motion.div>
+                    </motion.div>
           ) : (
             <AnimatePresence mode="wait">
-              <motion.div
+                    <motion.div 
                 key={activeTab}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -2290,11 +2234,11 @@ export default function InvestorDashboard() {
                 className="space-y-6"
               >
                 {renderContent()}
-              </motion.div>
+                    </motion.div>
       </AnimatePresence>
           )}
         </main>
-      </div>
+                </div>
 
       {renderConnectionDetails()}
 
@@ -2316,6 +2260,92 @@ export default function InvestorDashboard() {
 
       {renderProjectModal()}
       {renderConnectionModal()}
+
+      {/* New Topic Modal */}
+      <AnimatePresence>
+        {showNewTopicModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 overflow-y-auto"
+          >
+            <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+              <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
+                </div>
+
+              <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                <div className="px-4 py-3 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                      Create New Topic
+                    </h3>
+                    <button
+                      onClick={() => setShowNewTopicModal(false)}
+                  className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                    </button>
+                  </div>
+              </div>
+
+                <div className="px-4 py-5 sm:p-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Title
+                      </label>
+                      <input
+                        type="text"
+                        id="title"
+                        value={newTopic.title}
+                        onChange={(e) => setNewTopic({ ...newTopic, title: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Enter topic title"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Content
+                      </label>
+                      <textarea
+                        id="content"
+                        value={newTopic.content}
+                        onChange={(e) => setNewTopic({ ...newTopic, content: e.target.value })}
+                        rows={4}
+                        className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Enter topic content"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="px-4 py-3 sm:px-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      onClick={() => setShowNewTopicModal(false)}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Cancel
+                    </button>
+                    <button
+                      onClick={handleCreateTopic}
+                      disabled={!newTopic.title.trim() || !newTopic.content.trim()}
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Create Topic
+                    </button>
+                  </div>
+                </div>
+                </div>
+              </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -8,6 +8,7 @@ import InvestorDashboard from './routes/dashboard/investor'
 import DeveloperDashboard from './routes/dashboard/developer'
 import AdminDashboard from './routes/dashboard/admin'
 import Messaging from './routes/messaging/Messaging'
+import ForumTopic from './routes/ForumTopic'
 import ToastProvider from './components/ToastProvider'
 
 const ProtectedRoute = ({ children, requiredUserType }) => {
@@ -55,6 +56,14 @@ const App = () => {
           }
         />
         <Route path="/messaging" element={<Messaging />} />
+        <Route
+          path="/forum/:topicId"
+          element={
+            <ProtectedRoute>
+              <ForumTopic />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   )
