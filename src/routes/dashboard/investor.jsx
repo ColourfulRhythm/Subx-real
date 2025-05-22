@@ -598,7 +598,7 @@ export default function InvestorDashboard() {
       if (!response.ok) {
         throw new Error('Failed to save profile');
       }
-
+      
       // Update profile completion
       const completion = calculateProfileCompletion(data);
       const updatedProfile = { ...data, profileCompletion: completion };
@@ -1100,14 +1100,14 @@ export default function InvestorDashboard() {
                       }}
                     ></div>
                   </div>
-                </div>
-              ))}
-            </div>
+                            </div>
+                          ))}
+                        </div>
           </div>
 
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Expected Returns</h3>
-            <div className="space-y-4">
+                        <div className="space-y-4">
               <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <span className="text-sm text-gray-600 dark:text-gray-400">3 Months</span>
                 <span className="font-medium text-green-600 dark:text-green-400">₦{analytics.expectedReturns.threeMonths.toLocaleString()}</span>
@@ -1137,18 +1137,18 @@ export default function InvestorDashboard() {
           <div className="space-y-4">
             {analytics.recentTransactions.map((transaction) => (
               <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div>
+                              <div>
                   <p className="font-medium text-gray-700 dark:text-gray-300">{transaction.type}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">{transaction.date}</p>
-                </div>
+                              </div>
                 <div className="text-right">
                   <p className="font-medium text-gray-700 dark:text-gray-300">₦{transaction.amount.toLocaleString()}</p>
                   <p className="text-sm text-green-500">{transaction.status}</p>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
+                            </div>
+                          ))}
+                        </div>
+                    </div>
       </div>
     );
   };
@@ -1169,8 +1169,8 @@ export default function InvestorDashboard() {
               </span>
               <span className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-full text-sm">
                 {connections.filter(c => c.status === 'rejected').length} Rejected
-                              </span>
-                            </div>
+                            </span>
+                          </div>
                         </div>
           
           {connections.length === 0 ? (
@@ -1280,7 +1280,7 @@ export default function InvestorDashboard() {
               </button>
             </div>
             
-            <div className="space-y-4">
+                        <div className="space-y-4">
               {forums.general.topics.map((topic) => (
                 <div
                   key={topic.id}
@@ -1302,22 +1302,22 @@ export default function InvestorDashboard() {
                     <div className="mt-2 sm:mt-0 sm:ml-4 flex items-center space-x-4">
                       <span className="text-sm text-gray-500 dark:text-gray-400">
                         {topic.replies?.length || 0} replies
-                      </span>
+                              </span>
                       <span className="text-sm text-gray-500 dark:text-gray-400">
                         {topic.views} views
-                      </span>
+                              </span>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+                            </div>
+                          ))}
+                        </div>
+                    </div>
+                  </div>
 
         {/* Chat Modal */}
         <AnimatePresence>
           {showChatModal && selectedTopic && (
-            <motion.div
+                    <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -1367,7 +1367,7 @@ export default function InvestorDashboard() {
                           </div>
                         </div>
                       ))}
-                    </div>
+                        </div>
 
                     {/* Chat Input */}
                     <div className="border-t border-gray-200 dark:border-gray-700 p-4">
@@ -1390,8 +1390,8 @@ export default function InvestorDashboard() {
                     </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
+                      </div>
+                    </motion.div>
           )}
         </AnimatePresence>
       </div>
@@ -1434,7 +1434,7 @@ export default function InvestorDashboard() {
     return (
       <AnimatePresence>
         {showProjectModal && (
-                    <motion.div
+                        <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1571,7 +1571,7 @@ export default function InvestorDashboard() {
                         </li>
                       ))}
                     </ul>
-                        </div>
+                    </div>
                   </div>
 
                 <div className="mt-8">
@@ -1646,7 +1646,7 @@ export default function InvestorDashboard() {
     return (
       <AnimatePresence>
         {showConnectionDetails && (
-                        <motion.div
+                    <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1701,8 +1701,8 @@ export default function InvestorDashboard() {
                         'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                               }`}>
                         {selectedConnection.status.charAt(0).toUpperCase() + selectedConnection.status.slice(1)}
-                              </span>
-                            </div>
+                                </span>
+                              </div>
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Units</p>
                       <p className="font-medium text-gray-900 dark:text-white">
@@ -1771,8 +1771,8 @@ export default function InvestorDashboard() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                               </svg>
                             </motion.button>
-                          </div>
-                        </motion.div>
+                      </div>
+                    </motion.div>
                       ))
                     ) : (
                       <p className="text-gray-500 dark:text-gray-400 text-center py-4">
@@ -1832,14 +1832,14 @@ export default function InvestorDashboard() {
                       Cancel Request
                             </motion.button>
                   )}
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                     onClick={() => setShowConnectionDetails(false)}
                     className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg"
-                  >
+                        >
                     Close
-                  </motion.button>
+                        </motion.button>
                       </div>
                   </div>
             </motion.div>
@@ -1860,178 +1860,199 @@ export default function InvestorDashboard() {
     }
 
     return (
-      <div className="max-w-4xl mx-auto p-4 sm:p-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-          <div className="p-4 sm:p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Profile</h2>
-              <button
-                onClick={() => setIsEditingProfile(!isEditingProfile)}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                {isEditingProfile ? 'Cancel' : 'Edit Profile'}
-              </button>
-            </div>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full p-6"
+        >
+          <div className="flex justify-between items-start mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Profile</h2>
+            <button
+              onClick={() => setIsEditingProfile(false)}
+              className="text-gray-400 hover:text-gray-500"
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
-            {isEditingProfile ? (
-              <form onSubmit={handleSubmit(handleProfileSave)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      {...register('name')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
-                    {errors.name && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name.message}</p>
-                    )}
-                  </div>
+                      {isEditingProfile ? (
+                        <form onSubmit={handleSubmit(handleProfileSave)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Name
+                              </label>
+                              <input
+                                type="text"
+                                {...register('name')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                              />
+                              {errors.name && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name.message}</p>
+                              )}
+                            </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      {...register('email')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
-                    {errors.email && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
-                    )}
-                  </div>
+                            <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Email
+                              </label>
+                              <input
+                                type="email"
+                                {...register('email')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                              />
+                              {errors.email && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
+                              )}
+                            </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Phone
-                    </label>
-                    <input
-                      type="tel"
-                      {...register('phone')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
-                    {errors.phone && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.phone.message}</p>
-                    )}
-                  </div>
+                            <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Phone
+                              </label>
+                              <input
+                                type="tel"
+                                {...register('phone')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                              />
+                              {errors.phone && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.phone.message}</p>
+                              )}
+                            </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Investment Experience
-                    </label>
-                    <select
-                      {...register('investmentExperience')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    >
-                      <option value="">Select experience</option>
-                      <option value="Beginner">Beginner</option>
-                      <option value="Intermediate">Intermediate</option>
-                      <option value="Advanced">Advanced</option>
-                      <option value="Expert">Expert</option>
-                    </select>
-                    {errors.investmentExperience && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investmentExperience.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Preferred Investment Amount
-                    </label>
-                    <input
-                      type="number"
-                      {...register('preferredInvestmentAmount')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
-                    {errors.preferredInvestmentAmount && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.preferredInvestmentAmount.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Risk Tolerance
-                    </label>
-                    <select
-                      {...register('riskTolerance')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    >
-                      <option value="">Select risk tolerance</option>
-                      <option value="Conservative">Conservative</option>
-                      <option value="Moderate">Moderate</option>
-                      <option value="Aggressive">Aggressive</option>
-                    </select>
-                    {errors.riskTolerance && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.riskTolerance.message}</p>
-                    )}
-                  </div>
-                </div>
+                            <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Investment Experience
+                              </label>
+                              <select
+                                {...register('investmentExperience')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                              >
+                                <option value="">Select experience</option>
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                    <option value="Expert">Expert</option>
+                              </select>
+                              {errors.investmentExperience && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investmentExperience.message}</p>
+                              )}
+                            </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Bio
+                    Preferred Investment Amount
                   </label>
-                  <textarea
-                    {...register('bio')}
-                    rows={4}
+                  <input
+                    type="number"
+                    {...register('preferredInvestmentAmount')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
-                  {errors.bio && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bio.message}</p>
+                  {errors.preferredInvestmentAmount && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.preferredInvestmentAmount.message}</p>
+                  )}
+                          </div>
+
+                          <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Risk Tolerance
+                  </label>
+                  <select
+                    {...register('riskTolerance')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  >
+                    <option value="">Select risk tolerance</option>
+                    <option value="Conservative">Conservative</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Aggressive">Aggressive</option>
+                  </select>
+                  {errors.riskTolerance && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.riskTolerance.message}</p>
                   )}
                 </div>
-
-                <div className="flex justify-end space-x-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingProfile(false)}
-                    className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600"
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Experience</h3>
-                    <p className="mt-1 text-gray-900 dark:text-white">{profile.investmentExperience || 'Not specified'}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Preferred Investment Amount</h3>
-                    <p className="mt-1 text-gray-900 dark:text-white">
-                      {profile.preferredInvestmentAmount ? `₦${profile.preferredInvestmentAmount.toLocaleString()}` : 'Not specified'}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Risk Tolerance</h3>
-                    <p className="mt-1 text-gray-900 dark:text-white">{profile.riskTolerance || 'Not specified'}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</h3>
-                    <p className="mt-1 text-gray-900 dark:text-white">{profile.phone || 'Not specified'}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Bio</h3>
-                  <p className="mt-1 text-gray-900 dark:text-white">{profile.bio || 'No bio provided'}</p>
-                </div>
               </div>
-            )}
-          </div>
-        </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Bio
+                            </label>
+                            <textarea
+                              {...register('bio')}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            />
+                            {errors.bio && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bio.message}</p>
+                            )}
+                          </div>
+
+              <div className="flex justify-end space-x-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingProfile(false)}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                            <button
+                              type="submit"
+                  className="px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600"
+                            >
+                              Save Changes
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Experience</h3>
+                  <p className="mt-1 text-gray-900 dark:text-white">{profile.investmentExperience || 'Not specified'}</p>
+                            </div>
+                            <div>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Preferred Investment Amount</h3>
+                  <p className="mt-1 text-gray-900 dark:text-white">
+                    {profile.preferredInvestmentAmount ? `₦${profile.preferredInvestmentAmount.toLocaleString()}` : 'Not specified'}
+                  </p>
+                            </div>
+                            <div>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Risk Tolerance</h3>
+                  <p className="mt-1 text-gray-900 dark:text-white">{profile.riskTolerance || 'Not specified'}</p>
+                            </div>
+                            <div>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</h3>
+                  <p className="mt-1 text-gray-900 dark:text-white">{profile.phone || 'Not specified'}</p>
+                            </div>
       </div>
+
+                  <div>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Bio</h3>
+                <p className="mt-1 text-gray-900 dark:text-white">{profile.bio || 'No bio provided'}</p>
+                  </div>
+                      </div>
+                    )}
+
+          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      onClick={() => {
+                setIsEditingProfile(false);
+                // Add your settings navigation logic here
+              }}
+              className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-gray-600 to-gray-700 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Settings
+                  </button>
+              </div>
+            </motion.div>
+    </div>
     );
   };
 
@@ -2164,7 +2185,7 @@ export default function InvestorDashboard() {
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Navigation */}
-        <motion.div
+          <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-between mb-8"
@@ -2178,30 +2199,48 @@ export default function InvestorDashboard() {
             </motion.h1>
                 </div>
           <div className="flex items-center space-x-4">
-                <motion.button
+                <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="flex items-center space-x-4"
+            >
+                  <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-              onClick={toggleDarkMode}
-              className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700"
-            >
-              {isDarkMode ? (
-                <svg className="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                    ) : (
-                <svg className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                onClick={() => setIsEditingProfile(!isEditingProfile)}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                    )}
+                Profile
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-              onClick={handleLogout}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                  >
-              Logout
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                {isDarkMode ? (
+                  <svg className="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    ) : (
+                  <svg className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                    )}
                   </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleLogout}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                Logout
+              </motion.button>
+            </motion.div>
               </div>
             </motion.div>
 
@@ -2212,11 +2251,11 @@ export default function InvestorDashboard() {
           className="border-b border-gray-200 dark:border-gray-700 mb-8"
         >
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            {['analytics', 'discover', 'connections', 'forum', 'profile'].map((tab) => (
-                  <motion.button
+            {['analytics', 'discover', 'connections', 'forum'].map((tab) => (
+              <motion.button
                 key={tab}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab(tab)}
                 className={`${
                   activeTab === tab
@@ -2225,10 +2264,10 @@ export default function InvestorDashboard() {
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors duration-200`}
               >
                 {tab}
-                  </motion.button>
+              </motion.button>
             ))}
           </nav>
-            </motion.div>
+          </motion.div>
 
         {/* Main Content */}
         <main>
