@@ -260,24 +260,42 @@ const mockConnections = [
 // Add mock forum data
 const mockForums = {
   general: {
-    id: 'general',
-    title: 'General Discussion',
-    description: 'Discuss general topics about real estate investment',
     topics: [
       {
         id: 1,
-        title: 'Welcome to Subx Forum!',
-        author: 'Admin',
-        content: 'Welcome to our community forum. Feel free to start discussions about real estate investment.',
-        replies: [],
-        views: 120,
-        lastActivity: new Date().toISOString(),
-        tags: ['welcome', 'introduction']
+        title: "Investment Strategies for Real Estate",
+        content: "What are some effective investment strategies for real estate in the current market?",
+        views: 156,
+        replies: [
+          {
+            author: "John Doe",
+            content: "I recommend focusing on emerging markets with strong growth potential.",
+            date: "2024-03-20 14:30"
+          },
+          {
+            author: "You",
+            content: "Thanks for the insight! What specific markets are you looking at?",
+            date: "2024-03-20 15:00"
+          }
+        ]
+      },
+      {
+        id: 2,
+        title: "ROI Expectations in 2024",
+        content: "What are your ROI expectations for real estate investments this year?",
+        views: 89,
+        replies: [
+          {
+            author: "Sarah Smith",
+            content: "I'm targeting 8-10% ROI on my residential properties.",
+            date: "2024-03-19 10:15"
+          }
+        ]
       }
     ]
   },
   projectForums: {}
-}
+};
 
 // Add mock messages data
 const mockMessages = {
@@ -330,7 +348,52 @@ export default function InvestorDashboard() {
   const [success, setSuccess] = useState(null)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [expandedCard, setExpandedCard] = useState(null)
-  const [connections, setConnections] = useState(mockConnections) // Initialize with mock data
+  const [connections, setConnections] = useState(mockConnections)
+  const [showNewTopicModal, setShowNewTopicModal] = useState(false)
+  const [showChatModal, setShowChatModal] = useState(false)
+  const [selectedTopic, setSelectedTopic] = useState(null)
+  const [newMessage, setNewMessage] = useState('')
+  const [isSendingMessage, setIsSendingMessage] = useState(false)
+  const [forumSearchQuery, setForumSearchQuery] = useState('')
+  const [forumTopics, setForumTopics] = useState([])
+  const [forums, setForums] = useState({
+    general: {
+      topics: [
+        {
+          id: 1,
+          title: "Investment Strategies for Real Estate",
+          content: "What are some effective investment strategies for real estate in the current market?",
+          views: 156,
+          replies: [
+            {
+              author: "John Doe",
+              content: "I recommend focusing on emerging markets with strong growth potential.",
+              date: "2024-03-20 14:30"
+            },
+            {
+              author: "You",
+              content: "Thanks for the insight! What specific markets are you looking at?",
+              date: "2024-03-20 15:00"
+            }
+          ]
+        },
+        {
+          id: 2,
+          title: "ROI Expectations in 2024",
+          content: "What are your ROI expectations for real estate investments this year?",
+          views: 89,
+          replies: [
+            {
+              author: "Sarah Smith",
+              content: "I'm targeting 8-10% ROI on my residential properties.",
+              date: "2024-03-19 10:15"
+            }
+          ]
+        }
+      ]
+    },
+    projectForums: {}
+  });
   const [analytics, setAnalytics] = useState({
     totalInvestments: 0,
     activeInvestments: 0,
@@ -360,13 +423,28 @@ export default function InvestorDashboard() {
     riskTolerance: '',
     investmentGoals: [],
     profileCompletion: 0
-  })
+  });
+
+  // Add profileImage state
+  const [profileImage, setProfileImage] = useState(null);
+
+  // Add handleImageChange function
+  const handleImageChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Form handling with react-hook-form
   const { register, handleSubmit, formState: { errors }, reset, watch } = useForm({
     resolver: yupResolver(profileSchema),
     defaultValues: profile
-  })
+  });
 
   // Calculate profile completion percentage
   const calculateProfileCompletion = (data) => {
@@ -569,33 +647,12 @@ export default function InvestorDashboard() {
   const [selectedConnection, setSelectedConnection] = useState(null)
   const [isSendingRequest, setIsSendingRequest] = useState(false)
   const [activeForum, setActiveForum] = useState('general')
-  const [selectedTopic, setSelectedTopic] = useState(null)
-  const [newMessage, setNewMessage] = useState('')
-  const [isSendingMessage, setIsSendingMessage] = useState(false)
-  const [forumSearchQuery, setForumSearchQuery] = useState('')
-  const [showNewTopicModal, setShowNewTopicModal] = useState(false)
-  const [forumTopics, setForumTopics] = useState([])
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Initialize mock forum data
-  const [mockForums] = useState({
-    general: {
-      id: 'general',
-      title: 'General Discussion',
-      topics: [
-        {
-          id: 1,
-          title: 'Welcome to Subx Forum!',
-          author: 'Admin',
-          content: 'Welcome to our community forum. Feel free to start discussions about real estate investment.',
-          replies: [],
-          views: 120,
-          lastActivity: new Date().toISOString(),
-          tags: ['welcome', 'introduction']
-        }
-      ]
-    },
-    projectForums: {}
-  });
+  // Add this before the return statement
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
 
   // Handle tab change
   const handleTabChange = (tab) => {
@@ -1224,7 +1281,7 @@ export default function InvestorDashboard() {
             </div>
             
             <div className="space-y-4">
-              {filterTopics(mockForums.general.topics).map((topic) => (
+              {forums.general.topics.map((topic) => (
                 <div
                   key={topic.id}
                   className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 sm:p-6 cursor-pointer hover:shadow-md transition-shadow"
@@ -1345,17 +1402,17 @@ export default function InvestorDashboard() {
   const renderContent = () => {
     switch (activeTab) {
       case 'analytics':
-        return renderAnalytics();
+        return <>{renderAnalytics()}</>;
       case 'discover':
-        return renderProjectCards();
+        return <>{renderProjectCards()}</>;
       case 'connections':
-        return renderConnections();
+        return <>{renderConnections()}</>;
       case 'profile':
-        return renderProfile();
+        return <>{renderProfile()}</>;
       case 'forum':
-        return renderForum();
+        return <>{renderForum()}</>;
       default:
-        return renderAnalytics();
+        return <>{renderAnalytics()}</>;
     }
   };
 
@@ -1794,50 +1851,184 @@ export default function InvestorDashboard() {
 
   // Add renderProfile function
   const renderProfile = () => {
+    if (!profile) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+        </div>
+      );
+    }
+
     return (
       <div className="max-w-4xl mx-auto p-4 sm:p-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
           <div className="p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
-              <div className="relative w-32 h-32 sm:w-40 sm:h-40">
-                <img
-                  src={profileImage || 'https://via.placeholder.com/150'}
-                  alt="Profile"
-                  className="w-full h-full object-cover rounded-lg"
-                />
-                {isEditingProfile && (
-                  <label className="absolute bottom-0 right-0 bg-blue-500 text-white p-2 rounded-full cursor-pointer">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Profile</h2>
+              <button
+                onClick={() => setIsEditingProfile(!isEditingProfile)}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                {isEditingProfile ? 'Cancel' : 'Edit Profile'}
+              </button>
+            </div>
+
+            {isEditingProfile ? (
+              <form onSubmit={handleSubmit(handleProfileSave)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Name
+                    </label>
                     <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleImageChange}
+                      type="text"
+                      {...register('name')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                  </label>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
-                  {profile.name || 'Your Name'}
-                </h2>
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1">
-                  {profile.email || 'your.email@example.com'}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {profile.investmentInterests?.map((interest, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                    {errors.name && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      {...register('email')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                    {errors.email && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Phone
+                    </label>
+                    <input
+                      type="tel"
+                      {...register('phone')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                    {errors.phone && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.phone.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Investment Experience
+                    </label>
+                    <select
+                      {...register('investmentExperience')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     >
-                      {interest}
-                    </span>
-                  ))}
+                      <option value="">Select experience</option>
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                      <option value="Expert">Expert</option>
+                    </select>
+                    {errors.investmentExperience && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investmentExperience.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Preferred Investment Amount
+                    </label>
+                    <input
+                      type="number"
+                      {...register('preferredInvestmentAmount')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                    {errors.preferredInvestmentAmount && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.preferredInvestmentAmount.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Risk Tolerance
+                    </label>
+                    <select
+                      {...register('riskTolerance')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    >
+                      <option value="">Select risk tolerance</option>
+                      <option value="Conservative">Conservative</option>
+                      <option value="Moderate">Moderate</option>
+                      <option value="Aggressive">Aggressive</option>
+                    </select>
+                    {errors.riskTolerance && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.riskTolerance.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Bio
+                  </label>
+                  <textarea
+                    {...register('bio')}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                  {errors.bio && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bio.message}</p>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingProfile(false)}
+                    className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Experience</h3>
+                    <p className="mt-1 text-gray-900 dark:text-white">{profile.investmentExperience || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Preferred Investment Amount</h3>
+                    <p className="mt-1 text-gray-900 dark:text-white">
+                      {profile.preferredInvestmentAmount ? `₦${profile.preferredInvestmentAmount.toLocaleString()}` : 'Not specified'}
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Risk Tolerance</h3>
+                    <p className="mt-1 text-gray-900 dark:text-white">{profile.riskTolerance || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</h3>
+                    <p className="mt-1 text-gray-900 dark:text-white">{profile.phone || 'Not specified'}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Bio</h3>
+                  <p className="mt-1 text-gray-900 dark:text-white">{profile.bio || 'No bio provided'}</p>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -1938,59 +2129,42 @@ export default function InvestorDashboard() {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedTopic) return;
 
-    setIsSendingMessage(true);
-    try {
-      // Create a new reply
-      const reply = {
-        id: Date.now(),
-        author: profile?.name || 'Anonymous',
-        content: newMessage,
-        timestamp: new Date().toISOString()
-      };
+    const newReply = {
+      author: 'You',
+      content: newMessage.trim(),
+      date: new Date().toLocaleString()
+    };
 
-      // Update the topic with the new reply
-      const updatedTopic = {
-        ...selectedTopic,
-        replies: [...(selectedTopic.replies || []), reply],
-        lastActivity: new Date().toISOString()
-      };
-
-      // Update the state
-      setSelectedTopic(updatedTopic);
-      
-      // Update the forum topics
-      if (activeForum === 'general') {
-        const updatedTopics = mockForums.general.topics.map(topic => 
-          topic.id === selectedTopic.id ? updatedTopic : topic
-        );
-        mockForums.general.topics = updatedTopics;
-      } else {
-        const projectId = activeForum.split('-')[1];
-        const projectForum = mockForums.projectForums[`project-${projectId}`];
-        if (projectForum) {
-          const updatedTopics = projectForum.topics.map(topic => 
-            topic.id === selectedTopic.id ? updatedTopic : topic
-          );
-          projectForum.topics = updatedTopics;
+    // Update the forums state with the new reply
+    setForums(prevForums => {
+      const updatedTopics = prevForums.general.topics.map(topic => {
+        if (topic.id === selectedTopic.id) {
+          return {
+            ...topic,
+            replies: [...topic.replies, newReply]
+          };
         }
-      }
+        return topic;
+      });
 
-      // Clear the message input
-      setNewMessage('');
-      handleToast('Reply posted successfully!', 'success');
-    } catch (error) {
-      console.error('Error posting reply:', error);
-      handleToast('Failed to post reply', 'error');
-    } finally {
-      setIsSendingMessage(false);
-    }
+      return {
+        ...prevForums,
+        general: {
+          ...prevForums.general,
+          topics: updatedTopics
+        }
+      };
+    });
+
+    // Clear the input
+    setNewMessage('');
   };
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Navigation */}
-          <motion.div
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-between mb-8"
