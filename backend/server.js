@@ -460,6 +460,61 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
+// AI Analysis endpoint for developments
+app.post('/api/developments/analyze', auth, async (req, res) => {
+  try {
+    const { developmentId } = req.body;
+    
+    // Find the development
+    const development = await Project.findById(developmentId);
+    if (!development) {
+      return res.status(404).json({ error: 'Development not found' });
+    }
+
+    // Perform AI analysis
+    const analysis = {
+      marketAnalysis: await analyzeMarket(development),
+      riskAssessment: await assessRisks(development),
+      investmentPotential: await evaluateInvestmentPotential(development),
+      recommendations: await generateRecommendations(development)
+    };
+
+    res.json(analysis);
+  } catch (error) {
+    console.error('AI Analysis error:', error);
+    res.status(500).json({ error: 'Failed to analyze development' });
+  }
+});
+
+// AI Analysis helper functions
+async function analyzeMarket(development) {
+  // TODO: Implement actual AI market analysis
+  // This is a placeholder that would be replaced with actual AI integration
+  return `Market analysis for ${development.title} shows strong potential in the ${development.location} area. 
+    The current market trends indicate ${development.propertyType} properties are in high demand.`;
+}
+
+async function assessRisks(development) {
+  // TODO: Implement actual AI risk assessment
+  return `Risk assessment indicates moderate risk level. 
+    Key factors include market volatility and construction timeline. 
+    Mitigation strategies are in place for identified risks.`;
+}
+
+async function evaluateInvestmentPotential(development) {
+  // TODO: Implement actual AI investment potential evaluation
+  return `Investment potential is rated as high. 
+    Expected ROI is promising based on current market conditions and development specifications. 
+    The project aligns well with current market demands.`;
+}
+
+async function generateRecommendations(development) {
+  // TODO: Implement actual AI recommendations
+  return `Based on the analysis, we recommend proceeding with the investment. 
+    Consider diversifying the portfolio and monitoring market trends closely. 
+    Regular progress updates and risk assessments are advised.`;
+}
+
 // Root path handler
 app.get('/', (req, res) => {
   res.json({

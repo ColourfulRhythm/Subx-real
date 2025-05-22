@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { motion, AnimatePresence } from 'framer-motion'
+import AIAnalysis from '../../components/AIAnalysis'
 
 // API endpoints (to be implemented)
 const API_ENDPOINTS = {
@@ -560,6 +561,103 @@ export default function InvestorDashboard() {
     setExpandedCard(expandedCard === cardId ? null : cardId);
   };
 
+  // Add this function to handle project selection
+  const handleProjectSelect = (project) => {
+    setSelectedProject(project)
+    setExpandedCard(project.id)
+  }
+
+  // Find the section where project cards are rendered and modify it to include AI Analysis
+  const renderProjectCards = () => {
+    return mockProjects.map((project) => (
+      <motion.div
+        key={project.id}
+        className="bg-white rounded-lg shadow-md overflow-hidden"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="relative">
+          <img
+            src={project.images[0]}
+            alt={project.title}
+            className="w-full h-48 object-cover"
+          />
+          <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
+            {project.status}
+          </div>
+        </div>
+        
+        <div className="p-6">
+          <h3 className="text-xl font-semibold mb-2">{project.title}</h3>
+          <p className="text-gray-600 mb-4">{project.description}</p>
+          
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <p className="text-sm text-gray-500">Location</p>
+              <p className="font-medium">{project.location}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Type</p>
+              <p className="font-medium">{project.type}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Amount</p>
+              <p className="font-medium">{project.amount}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">ROI</p>
+              <p className="font-medium">{project.roi}</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => toggleCardExpansion(project.id)}
+            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            {expandedCard === project.id ? 'Show Less' : 'View Details'}
+          </button>
+
+          {expandedCard === project.id && (
+            <div className="mt-4 space-y-4">
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h4 className="text-lg font-semibold mb-4">Project Details</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-gray-600 mb-4">{project.detailedDescription}</p>
+                    <div className="mb-4">
+                      <h5 className="font-medium mb-2">Amenities</h5>
+                      <ul className="list-disc list-inside text-gray-600">
+                        {project.amenities.map((amenity, index) => (
+                          <li key={index}>{amenity}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <h5 className="font-medium mb-2">Documents</h5>
+                      <ul className="space-y-2">
+                        {project.documents.map((doc, index) => (
+                          <li key={index}>
+                            <a href={doc.url} className="text-blue-600 hover:underline">
+                              {doc.name}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div>
+                    <AIAnalysis developmentId={project.id} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    ));
+  };
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -653,218 +751,34 @@ export default function InvestorDashboard() {
                 {/* Dashboard Tab */}
                 {activeTab === 'dashboard' && (
                   <div className="space-y-6">
-                    {/* Overview Cards */}
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                      <motion.div
-                        whileHover={{ scale: 1.02 }}
-                        className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-xl transition-all duration-200"
-                      >
-                        <div className="p-6">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-3">
-                              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            </div>
-                            <div className="ml-5 w-0 flex-1">
-                              <dl>
-                                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                                  Total Investment
-                                </dt>
-                                <dd className="text-2xl font-semibold text-gray-900 dark:text-white">
-                                  {analytics.totalInvestment.amount}
-                                </dd>
-                              </dl>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-
-                      <motion.div
-                        whileHover={{ scale: 1.02 }}
-                        className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-xl transition-all duration-200"
-                      >
-                        <div className="p-6">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-3">
-                              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            </div>
-                            <div className="ml-5 w-0 flex-1">
-                              <dl>
-                                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                                  Active Projects
-                                </dt>
-                                <dd className="text-2xl font-semibold text-gray-900 dark:text-white">
-                                  {analytics.activeProjects || 0}
-                                </dd>
-                              </dl>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-
-                      <motion.div
-                        whileHover={{ scale: 1.02 }}
-                        className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-xl transition-all duration-200"
-                      >
-                        <div className="p-6">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl p-3">
-                              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                              </svg>
-                            </div>
-                            <div className="ml-5 w-0 flex-1">
-                              <dl>
-                                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                                  Connected Developers
-                                </dt>
-                                <dd className="text-2xl font-semibold text-gray-900 dark:text-white">
-                                  {analytics.connectionRequests.developers.length}
-                                </dd>
-                              </dl>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-2xl font-bold">Investment Opportunities</h2>
+                      <div className="flex space-x-4">
+                        <select
+                          className="border rounded-md px-3 py-2"
+                          onChange={(e) => handleFilterChange('location', e.target.value)}
+                        >
+                          {locationOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          className="border rounded-md px-3 py-2"
+                          onChange={(e) => handleFilterChange('type', e.target.value)}
+                        >
+                          {typeOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-
-                    {/* Detailed Analytics */}
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                      {/* Investment Distribution */}
-                      <motion.div
-                        whileHover={{ scale: 1.02 }}
-                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                      >
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                          Investment Distribution
-                        </h3>
-                        <div className="space-y-4">
-                          {Object.entries(analytics.totalInvestment.breakdown).map(([location, amount]) => (
-                            <div key={location} className="flex items-center justify-between">
-                              <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                                {location}
-                              </span>
-                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {amount}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </motion.div>
-
-                      {/* Recent Activity */}
-                      <motion.div
-                        whileHover={{ scale: 1.02 }}
-                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                      >
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                          Recent Activity
-                        </h3>
-                        <div className="space-y-4">
-                          {analytics.savedProjects.recent.map((project) => (
-                            <div key={project.id} className="flex items-center justify-between">
-                              <div>
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                  {project.title}
-                                </p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                  {project.location} • {new Date(project.date).toLocaleDateString()}
-                                </p>
-                              </div>
-                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {project.amount}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    </div>
-
-                    {/* Performance Metrics */}
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                      <motion.div
-                        whileHover={{ scale: 1.02 }}
-                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                      >
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                          Response Rate
-                        </h3>
-                        <div className="flex items-center justify-center">
-                          <div className="relative">
-                            <svg className="w-24 h-24">
-                              <circle
-                                className="text-gray-200 dark:text-gray-700"
-                                strokeWidth="8"
-                                stroke="currentColor"
-                                fill="transparent"
-                                r="40"
-                                cx="48"
-                                cy="48"
-                              />
-                              <circle
-                                className="text-green-500"
-                                strokeWidth="8"
-                                strokeDasharray={251.2}
-                                strokeDashoffset={251.2 - (251.2 * analytics.responseRate) / 100}
-                                strokeLinecap="round"
-                                stroke="currentColor"
-                                fill="transparent"
-                                r="40"
-                                cx="48"
-                                cy="48"
-                              />
-                            </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-gray-900 dark:text-white">
-                              {analytics.responseRate}%
-                            </span>
-                          </div>
-                        </div>
-                      </motion.div>
-
-                      <motion.div
-                        whileHover={{ scale: 1.02 }}
-                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                      >
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                          Project Types
-                        </h3>
-                        <div className="space-y-4">
-                          {Object.entries(analytics.projectsViewed.breakdown).map(([type, count]) => (
-                            <div key={type} className="flex items-center justify-between">
-                              <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                                {type}
-                              </span>
-                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {count} projects
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </motion.div>
-
-                      <motion.div
-                        whileHover={{ scale: 1.02 }}
-                        className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                      >
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                          Location Distribution
-                        </h3>
-                        <div className="space-y-4">
-                          {Object.entries(analytics.projectsViewed.locations).map(([location, count]) => (
-                            <div key={location} className="flex items-center justify-between">
-                              <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                                {location}
-                              </span>
-                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {count} projects
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </motion.div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {renderProjectCards()}
                     </div>
                   </div>
                 )}
