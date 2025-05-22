@@ -1209,217 +1209,134 @@ export default function InvestorDashboard() {
 
   // Add this function to render the forum section
   const renderForum = () => {
-    const currentForum = activeForum === 'general' 
-      ? mockForums.general 
-      : mockForums.projectForums[activeForum];
-
-    const filteredTopics = filterTopics(currentForum?.topics || []);
-
     return (
-      <div className="space-y-6">
-        {/* Forum Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {activeForum === 'general' ? 'General Discussion' : currentForum?.projectTitle}
-            </h2>
-            <p className="text-gray-500 dark:text-gray-400">
-              {filteredTopics.length} topics
-            </p>
-          </div>
-          <button
-            onClick={() => setShowNewTopicModal(true)}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            New Topic
-          </button>
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative">
-          <input
-            type="text"
-            value={forumSearchQuery}
-            onChange={(e) => setForumSearchQuery(e.target.value)}
-            placeholder="Search topics..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          />
-          <svg
-            className="absolute right-3 top-2.5 h-5 w-5 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-        </div>
-
-        {/* Topics List */}
-        <div className="space-y-4">
-          {filteredTopics.map((topic) => (
-            <motion.div
-              key={topic.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              whileHover={{ scale: 1.02 }}
-              className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer"
-              onClick={() => setSelectedTopic(topic)}
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {topic.title}
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Posted by {topic.author} • {new Date(topic.lastActivity).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {topic.replies?.length || 0} replies
-                  </span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {topic.views} views
-                  </span>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {topic.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Topic Detail Modal (Group Chat) */}
-        {selectedTopic && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl shadow-xl flex flex-col"
-              style={{ maxHeight: '80vh' }}
-            >
-              {/* Header */}
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-700/50">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                    <span className="text-indigo-600 dark:text-indigo-300 font-semibold">
-                      {selectedTopic.title.charAt(0)}
-                    </span>
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {selectedTopic.title}
-                    </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {selectedTopic.replies?.length || 0} messages
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSelectedTopic(null)}
-                  className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+          <div className="p-4 sm:p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Forum</h2>
+              <button
+                onClick={() => setShowNewTopicModal(true)}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm sm:text-base"
+              >
+                New Topic
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {filterTopics(mockForums.general.topics).map((topic) => (
+                <div
+                  key={topic.id}
+                  className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 sm:p-6 cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => {
+                    setSelectedTopic(topic);
+                    setShowChatModal(true);
+                  }}
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Messages Container */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ maxHeight: 'calc(80vh - 140px)' }}>
-                {/* Original Post */}
-                <div className="flex flex-col space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                      <span className="text-blue-600 dark:text-blue-300 text-sm font-medium">
-                        {selectedTopic.author.charAt(0)}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate">
+                        {topic.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
+                        {topic.content}
+                      </p>
+                    </div>
+                    <div className="mt-2 sm:mt-0 sm:ml-4 flex items-center space-x-4">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {topic.replies?.length || 0} replies
+                      </span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {topic.views} views
                       </span>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">{selectedTopic.author}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {new Date(selectedTopic.lastActivity).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="ml-10 bg-blue-50 dark:bg-blue-900/30 rounded-2xl rounded-tl-none p-3 max-w-[80%]">
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{selectedTopic.content}</p>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
-                {/* Replies */}
-                {selectedTopic.replies?.map((reply) => (
-                  <div key={reply.id} className="flex flex-col space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                        <span className="text-indigo-600 dark:text-indigo-300 text-sm font-medium">
-                          {reply.author.charAt(0)}
-                        </span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{reply.author}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(reply.timestamp).toLocaleString()}
-                        </span>
+        {/* Chat Modal */}
+        <AnimatePresence>
+          {showChatModal && selectedTopic && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 overflow-y-auto"
+            >
+              <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+                  <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
+                </div>
+
+                <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                  <div className="flex flex-col h-[80vh] sm:h-[600px]">
+                    {/* Chat Header */}
+                    <div className="px-4 py-3 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                          {selectedTopic.title}
+                        </h3>
+                        <button
+                          onClick={() => setShowChatModal(false)}
+                          className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                        >
+                          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
-                    <div className="ml-10 bg-gray-50 dark:bg-gray-700 rounded-2xl rounded-tl-none p-3 max-w-[80%]">
-                      <p className="text-sm text-gray-700 dark:text-gray-300">{reply.content}</p>
+
+                    {/* Chat Messages */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                      {selectedTopic.replies.map((reply, index) => (
+                        <div
+                          key={index}
+                          className={`flex ${reply.author === 'You' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div
+                            className={`max-w-[80%] sm:max-w-[70%] rounded-lg p-3 ${
+                              reply.author === 'You'
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                            }`}
+                          >
+                            <div className="text-sm font-semibold mb-1">{reply.author}</div>
+                            <p className="text-sm sm:text-base">{reply.content}</p>
+                            <div className="text-xs mt-1 opacity-75">{reply.date}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Chat Input */}
+                    <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+                      <div className="flex space-x-2">
+                        <input
+                          type="text"
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          placeholder="Type your message..."
+                          className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                          onClick={handleSendMessage}
+                          disabled={!newMessage.trim()}
+                          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                        >
+                          Send
+                        </button>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {/* Message Input */}
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
-                <div className="flex space-x-2">
-                  <textarea
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Write your message..."
-                    rows={2}
-                    className="flex-1 text-sm border border-gray-300 rounded-2xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-none"
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={isSendingMessage || !newMessage.trim()}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center"
-                  >
-                    {isSendingMessage ? (
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                    ) : (
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
-                    )}
-                  </button>
                 </div>
               </div>
             </motion.div>
-          </motion.div>
-        )}
+          )}
+        </AnimatePresence>
       </div>
     );
   };
@@ -1878,331 +1795,52 @@ export default function InvestorDashboard() {
   // Add renderProfile function
   const renderProfile = () => {
     return (
-                  <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Profile Information</h3>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center">
-                <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {profile.profileCompletion}% Complete
-                </span>
-              </div>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setIsEditingProfile(!isEditingProfile)}
-                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:opacity-90"
-                        >
-                          {isEditingProfile ? 'Cancel' : 'Edit Profile'}
-                        </motion.button>
-            </div>
-                      </div>
-
-                      {isEditingProfile ? (
-                        <form onSubmit={handleSubmit(handleProfileSave)} className="space-y-6">
-              {/* Basic Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Full Name
-                              </label>
-                              <input
-                                type="text"
-                    id="name"
-                                {...register('name')}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                              />
-                              {errors.name && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name.message}</p>
-                              )}
-                            </div>
-
-                            <div>
-                              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Email
-                              </label>
-                              <input
-                                type="email"
-                    id="email"
-                                {...register('email')}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                              />
-                              {errors.email && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
-                              )}
-                            </div>
-
-                            <div>
-                              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Phone Number
-                              </label>
-                              <input
-                                type="tel"
-                    id="phone"
-                                {...register('phone')}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                              />
-                              {errors.phone && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.phone.message}</p>
-                              )}
-                            </div>
-
-                            <div>
-                              <label htmlFor="investmentExperience" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Investment Experience
-                              </label>
-                              <select
-                    id="investmentExperience"
-                                {...register('investmentExperience')}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                              >
-                                <option value="">Select experience</option>
-                    <option value="0-2 years">0-2 years</option>
-                    <option value="3-5 years">3-5 years</option>
-                    <option value="5-10 years">5-10 years</option>
-                    <option value="10+ years">10+ years</option>
-                              </select>
-                              {errors.investmentExperience && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investmentExperience.message}</p>
-                              )}
-                            </div>
-                          </div>
-
-              {/* Bio */}
-                          <div>
-                            <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Bio
-                            </label>
-                            <textarea
-                  id="bio"
-                              {...register('bio')}
-                  rows={4}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            />
-                            {errors.bio && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bio.message}</p>
-                            )}
-                          </div>
-
-              {/* Investment Preferences */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="preferredInvestmentAmount" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Preferred Investment Amount (₦)
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
+              <div className="relative w-32 h-32 sm:w-40 sm:h-40">
+                <img
+                  src={profileImage || 'https://via.placeholder.com/150'}
+                  alt="Profile"
+                  className="w-full h-full object-cover rounded-lg"
+                />
+                {isEditingProfile && (
+                  <label className="absolute bottom-0 right-0 bg-blue-500 text-white p-2 rounded-full cursor-pointer">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                    />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
                   </label>
-                  <input
-                    type="number"
-                    id="preferredInvestmentAmount"
-                    {...register('preferredInvestmentAmount')}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                  />
-                  {errors.preferredInvestmentAmount && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.preferredInvestmentAmount.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="riskTolerance" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Risk Tolerance
-                  </label>
-                  <select
-                    id="riskTolerance"
-                    {...register('riskTolerance')}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                  >
-                    <option value="">Select risk tolerance</option>
-                    <option value="Conservative">Conservative</option>
-                    <option value="Moderate">Moderate</option>
-                    <option value="Aggressive">Aggressive</option>
-                  </select>
-                  {errors.riskTolerance && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.riskTolerance.message}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Investment Interests */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Investment Interests
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {['Residential', 'Commercial', 'Industrial', 'Mixed-Use', 'Green Projects', 'Luxury'].map((interest) => (
-                    <label key={interest} className="inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        value={interest}
-                        {...register('investmentInterests')}
-                        className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:border-gray-600"
-                      />
-                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">{interest}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.investmentInterests && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investmentInterests.message}</p>
                 )}
               </div>
-
-              {/* Preferred Locations */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Preferred Locations
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {['Lagos', 'Abuja', 'Port Harcourt', 'Kano', 'Calabar', 'Ibadan'].map((location) => (
-                    <label key={location} className="inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        value={location}
-                        {...register('preferredLocations')}
-                        className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:border-gray-600"
-                      />
-                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">{location}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.preferredLocations && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.preferredLocations.message}</p>
-                )}
-              </div>
-
-              {/* Investment Goals */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Investment Goals
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {['Capital Appreciation', 'Passive Income', 'Portfolio Diversification', 'Tax Benefits', 'Long-term Growth'].map((goal) => (
-                    <label key={goal} className="inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        value={goal}
-                        {...register('investmentGoals')}
-                        className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:border-gray-600"
-                      />
-                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">{goal}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.investmentGoals && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investmentGoals.message}</p>
-                )}
-              </div>
-
-              {/* Form Actions */}
-              <div className="flex justify-end space-x-4">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  type="button"
-                  onClick={() => setIsEditingProfile(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300"
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                              type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:opacity-90"
-                            >
-                              Save Changes
-                </motion.button>
-                          </div>
-                        </form>
-                      ) : (
-                        <div className="space-y-6">
-              {/* Basic Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Full Name</p>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-white">{profile.name}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</p>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-white">{profile.email}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</p>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-white">{profile.phone}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Experience</p>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-white">{profile.investmentExperience}</p>
-                            </div>
-                          </div>
-
-              {/* Bio */}
-                          <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Bio</p>
-                <p className="mt-1 text-sm text-gray-900 dark:text-white">{profile.bio}</p>
-                          </div>
-
-              {/* Investment Preferences */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Preferred Investment Amount</p>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                    ₦{profile.preferredInvestmentAmount?.toLocaleString('en-NG')}
-                  </p>
-                        </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Risk Tolerance</p>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-white">{profile.riskTolerance}</p>
-                  </div>
-      </div>
-
-              {/* Investment Interests */}
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Interests</p>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
+                  {profile.name || 'Your Name'}
+                </h2>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1">
+                  {profile.email || 'your.email@example.com'}
+                </p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {profile.investmentInterests?.map((interest) => (
+                  {profile.investmentInterests?.map((interest, index) => (
                     <span
-                      key={interest}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
+                      key={index}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                     >
                       {interest}
                     </span>
                   ))}
-                  </div>
+                </div>
               </div>
-
-              {/* Preferred Locations */}
-                  <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Preferred Locations</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {profile.preferredLocations?.map((location) => (
-                    <span
-                      key={location}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                    >
-                      {location}
-                      </span>
-                  ))}
-                  </div>
-                </div>
-
-              {/* Investment Goals */}
-                    <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Goals</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {profile.investmentGoals?.map((goal) => (
-                    <span
-                      key={goal}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                    >
-                      {goal}
-                    </span>
-                  ))}
-                    </div>
-                    </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   };
 

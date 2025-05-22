@@ -657,6 +657,190 @@ export default function DeveloperDashboard() {
     }));
   };
 
+  const renderProfile = () => {
+    return (
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
+              <div className="relative w-32 h-32 sm:w-40 sm:h-40">
+                <img
+                  src={profileImage || 'https://via.placeholder.com/150'}
+                  alt="Profile"
+                  className="w-full h-full object-cover rounded-lg"
+                />
+                {isEditingProfile && (
+                  <label className="absolute bottom-0 right-0 bg-blue-500 text-white p-2 rounded-full cursor-pointer">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                    />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </label>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
+                  {profile.name || 'Your Name'}
+                </h2>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1">
+                  {profile.company || 'Your Company'}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {profile.investmentFocus?.map((focus, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                    >
+                      {focus}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderForum = () => {
+    return (
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+          <div className="p-4 sm:p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Forum</h2>
+              <button
+                onClick={() => setShowNewTopicModal(true)}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm sm:text-base"
+              >
+                New Topic
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {forums.map((topic) => (
+                <div
+                  key={topic.id}
+                  className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 sm:p-6 cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => {
+                    setSelectedForum(topic);
+                    setShowForumModal(true);
+                  }}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate">
+                        {topic.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
+                        {topic.content}
+                      </p>
+                    </div>
+                    <div className="mt-2 sm:mt-0 sm:ml-4 flex items-center space-x-4">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {topic.messages} messages
+                      </span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {topic.participants} participants
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Chat Modal */}
+        <AnimatePresence>
+          {showForumModal && selectedForum && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 overflow-y-auto"
+            >
+              <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+                  <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
+                </div>
+
+                <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                  <div className="flex flex-col h-[80vh] sm:h-[600px]">
+                    {/* Chat Header */}
+                    <div className="px-4 py-3 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                          {selectedForum.title}
+                        </h3>
+                        <button
+                          onClick={() => setShowForumModal(false)}
+                          className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                        >
+                          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Chat Messages */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                      {selectedForum.replies.map((reply, index) => (
+                        <div
+                          key={index}
+                          className={`flex ${reply.author === 'You' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div
+                            className={`max-w-[80%] sm:max-w-[70%] rounded-lg p-3 ${
+                              reply.author === 'You'
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                            }`}
+                          >
+                            <div className="text-sm font-semibold mb-1">{reply.author}</div>
+                            <p className="text-sm sm:text-base">{reply.content}</p>
+                            <div className="text-xs mt-1 opacity-75">{reply.date}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Chat Input */}
+                    <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+                      <div className="flex space-x-2">
+                        <input
+                          type="text"
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          placeholder="Type your message..."
+                          className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                          onClick={handleSendMessage}
+                          disabled={!newMessage.trim()}
+                          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                        >
+                          Send
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       {console.log('Rendering with state:', { isLoading, activeTab })}
@@ -1084,372 +1268,14 @@ export default function DeveloperDashboard() {
               {/* Forums Tab */}
               {activeTab === 'forums' && (
                 <div className="space-y-6">
-                  <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Forums</h2>
-                    
-                    {/* Forums List */}
-                    <div className="space-y-4">
-                      {forums.map((forum) => (
-                        <motion.div
-                          key={forum.id}
-                          whileHover={{ scale: 1.02 }}
-                          className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 cursor-pointer"
-                          onClick={() => {
-                            setSelectedForum(forum);
-                            setShowForumModal(true);
-                          }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{forum.title}</h3>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">{forum.description}</p>
-                            </div>
-                            <div className="flex items-center space-x-4">
-                              <span className="text-sm text-gray-500 dark:text-gray-400">
-                                {forum.messages} messages
-                              </span>
-                              <span className="text-sm text-gray-500 dark:text-gray-400">
-                                {forum.participants} participants
-                              </span>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
+                  {renderForum()}
                 </div>
               )}
 
               {/* Profile Tab */}
               {activeTab === 'profile' && (
                 <div className="space-y-6">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                  >
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                        Profile Information
-                      </h3>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setIsEditingProfile(!isEditingProfile)}
-                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      >
-                        {isEditingProfile ? 'Cancel' : 'Edit Profile'}
-                      </motion.button>
-                    </div>
-
-                    {/* Profile Form or View */}
-                    {isEditingProfile ? (
-                      <form onSubmit={handleSubmit(handleProfileSave)} className="space-y-6">
-                        {/* Profile Image */}
-                        <div className="flex items-center space-x-6">
-                          <div className="flex-shrink-0">
-                            <img
-                              className="h-24 w-24 rounded-full object-cover"
-                              src={previewImage || 'https://via.placeholder.com/150'}
-                              alt="Profile"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Profile Image
-                            </label>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleImageChange}
-                              className="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400
-                                file:mr-4 file:py-2 file:px-4
-                                file:rounded-full file:border-0
-                                file:text-sm file:font-semibold
-                                file:bg-indigo-50 file:text-indigo-700
-                                hover:file:bg-indigo-100
-                                dark:file:bg-indigo-900 dark:file:text-indigo-300"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Basic Information */}
-                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                          <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Name
-                            </label>
-                            <input
-                              type="text"
-                              {...register('name')}
-                              defaultValue={profile.name}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            />
-                            {errors.name && (
-                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name.message}</p>
-                            )}
-                          </div>
-
-                          <div>
-                            <label htmlFor="company" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Company
-                            </label>
-                            <input
-                              type="text"
-                              {...register('company')}
-                              defaultValue={profile.company}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            />
-                            {errors.company && (
-                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.company.message}</p>
-                            )}
-                          </div>
-
-                          <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Email
-                            </label>
-                            <input
-                              type="email"
-                              {...register('email')}
-                              defaultValue={profile.email}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            />
-                            {errors.email && (
-                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
-                            )}
-                          </div>
-
-                          <div>
-                            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Phone
-                            </label>
-                            <input
-                              type="tel"
-                              {...register('phone')}
-                              defaultValue={profile.phone}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            />
-                            {errors.phone && (
-                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.phone.message}</p>
-                            )}
-                          </div>
-
-                          <div>
-                            <label htmlFor="website" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Website
-                            </label>
-                            <input
-                              type="url"
-                              {...register('website')}
-                              defaultValue={profile.website}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            />
-                            {errors.website && (
-                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.website.message}</p>
-                            )}
-                          </div>
-
-                          <div>
-                            <label htmlFor="yearsOfExperience" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Years of Experience
-                            </label>
-                            <input
-                              type="number"
-                              {...register('yearsOfExperience')}
-                              defaultValue={profile.yearsOfExperience}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            />
-                            {errors.yearsOfExperience && (
-                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.yearsOfExperience.message}</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Bio */}
-                        <div>
-                          <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Bio
-                          </label>
-                          <textarea
-                            {...register('bio')}
-                            defaultValue={profile.bio}
-                            rows={4}
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          />
-                          {errors.bio && (
-                            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bio.message}</p>
-                          )}
-                        </div>
-
-                        {/* Investment Settings */}
-                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                          <div>
-                            <label htmlFor="minUnits" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Minimum Units
-                            </label>
-                            <input
-                              type="number"
-                              {...register('minUnits')}
-                              defaultValue={profile.minUnits}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            />
-                            {errors.minUnits && (
-                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.minUnits.message}</p>
-                            )}
-                          </div>
-
-                          <div>
-                            <label htmlFor="maxUnits" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Maximum Units
-                            </label>
-                            <input
-                              type="number"
-                              {...register('maxUnits')}
-                              defaultValue={profile.maxUnits}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            />
-                            {errors.maxUnits && (
-                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.maxUnits.message}</p>
-                            )}
-                          </div>
-
-                          <div>
-                            <label htmlFor="unitPrice" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Unit Price (₦)
-                            </label>
-                            <input
-                              type="number"
-                              {...register('unitPrice')}
-                              defaultValue={profile.unitPrice}
-                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                            />
-                            {errors.unitPrice && (
-                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.unitPrice.message}</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Investment Focus */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Investment Focus
-                          </label>
-                          <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3">
-                            {['Residential', 'Commercial', 'Industrial', 'Mixed-Use', 'Green Projects', 'Luxury'].map((focus) => (
-                              <div key={focus} className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  value={focus}
-                                  {...register('investmentFocus')}
-                                  defaultChecked={profile.investmentFocus?.includes(focus)}
-                                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                                />
-                                <label className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                                  {focus}
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                          {errors.investmentFocus && (
-                            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investmentFocus.message}</p>
-                          )}
-                        </div>
-
-                        {/* Submit Button */}
-                        <div className="flex justify-end">
-                          <button
-                            type="submit"
-                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                          >
-                            Save Changes
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <div className="space-y-6">
-                        {/* Profile Header */}
-                        <div className="flex items-center space-x-6">
-                          <img
-                            className="h-24 w-24 rounded-full object-cover"
-                            src={profile.imageUrl || defaultProfileImage}
-                            alt="Profile"
-                          />
-                          <div>
-                            <h4 className="text-xl font-medium text-gray-900 dark:text-gray-100">
-                              {profile.name}
-                            </h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {profile.company}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Profile Details */}
-                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                          <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</p>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.email}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</p>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.phone}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Website</p>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                              <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-500">
-                                {profile.website}
-                              </a>
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Years of Experience</p>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.yearsOfExperience}</p>
-                          </div>
-                        </div>
-
-                        {/* Bio */}
-                        <div>
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Bio</p>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.bio}</p>
-                        </div>
-
-                        {/* Investment Settings */}
-                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                          <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Minimum Units</p>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.minUnits.toLocaleString()}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Maximum Units</p>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{profile.maxUnits.toLocaleString()}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Unit Price</p>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                              ₦{profile.unitPrice.toLocaleString('en-NG')}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Investment Focus */}
-                        <div>
-                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Focus</p>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {profile.investmentFocus?.map((focus) => (
-                              <span
-                                key={focus}
-                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
-                              >
-                                {focus}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
+                  {renderProfile()}
                 </div>
               )}
             </div>
@@ -2016,125 +1842,6 @@ export default function DeveloperDashboard() {
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Forum Modal */}
-      {showForumModal && selectedForum && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col"
-          >
-            {/* Forum Header */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-t-xl">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                    <span className="text-indigo-600 dark:text-indigo-300 font-medium">
-                      {selectedForum.title.charAt(0)}
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{selectedForum.title}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{selectedForum.messages} messages</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowForumModal(false)}
-                  className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-                >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Messages Container */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Original Post */}
-              <div className="flex space-x-3">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                    <span className="text-indigo-600 dark:text-indigo-300 text-sm font-medium">
-                      {selectedForum.author.charAt(0)}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{selectedForum.author}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">{selectedForum.date}</span>
-                    </div>
-                    <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{selectedForum.content}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Replies */}
-              {selectedForum.replies?.map((reply, index) => (
-                <div key={index} className="flex space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                      <span className="text-gray-600 dark:text-gray-300 text-sm font-medium">
-                        {reply.author.charAt(0)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{reply.author}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{reply.date}</span>
-                      </div>
-                      <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{reply.content}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Message Input */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-b-xl">
-              <div className="flex space-x-3">
-                <textarea
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type your message..."
-                  className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                  rows={2}
-                />
-                <button
-                  onClick={() => {
-                    if (newMessage.trim()) {
-                      setIsSendingMessage(true);
-                      // TODO: Implement message sending
-                      setTimeout(() => {
-                        setIsSendingMessage(false);
-                        setNewMessage('');
-                      }, 1000);
-                    }
-                  }}
-                  disabled={!newMessage.trim() || isSendingMessage}
-                  className="flex-shrink-0 px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSendingMessage ? (
-                    <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                  ) : (
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
-          </motion.div>
         </div>
       )}
 
