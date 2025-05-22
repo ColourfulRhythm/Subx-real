@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -10,9 +11,16 @@ import Project from './models/Project.js';
 import Admin from './models/Admin.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import Investment from './models/Investment.js';
+import OpenAI from 'openai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -370,6 +378,67 @@ app.get('/api/investors', (req, res) => {
   }
 });
 
+// Investment routes
+app.post('/api/investments/request', auth, async (req, res) => {
+  try {
+    const { projectId, units, notes } = req.body;
+    const investorId = req.user._id; // Assuming auth middleware sets req.user
+
+    // Validate required fields
+    if (!projectId || !units) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        required: ['projectId', 'units']
+      });
+    }
+
+    // Get project details
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Validate units
+    if (units < 1) {
+      return res.status(400).json({ error: 'Minimum 1 unit required' });
+    }
+
+    if (units > project.units.available) {
+      return res.status(400).json({ error: 'Requested units exceed available units' });
+    }
+
+    // Calculate investment amount
+    const amount = units * project.units.price;
+
+    // Create investment request
+    const investment = new Investment({
+      projectId,
+      developerId: project.developerId,
+      investorId,
+      units,
+      amount,
+      notes
+    });
+
+    await investment.save();
+
+    // Update project available units
+    project.units.available -= units;
+    await project.save();
+
+    res.status(201).json({
+      message: 'Investment request submitted successfully',
+      investment
+    });
+  } catch (error) {
+    console.error('Error submitting investment request:', error);
+    res.status(500).json({
+      error: 'Failed to submit investment request',
+      details: error.message
+    });
+  }
+});
+
 // Connection routes
 app.post('/api/connections/request', async (req, res) => {
   try {
@@ -488,31 +557,163 @@ app.post('/api/developments/analyze', auth, async (req, res) => {
 
 // AI Analysis helper functions
 async function analyzeMarket(development) {
-  // TODO: Implement actual AI market analysis
-  // This is a placeholder that would be replaced with actual AI integration
-  return `Market analysis for ${development.title} shows strong potential in the ${development.location} area. 
-    The current market trends indicate ${development.propertyType} properties are in high demand.`;
+  try {
+    const prompt = `Analyze the real estate market for a ${development.propertyType} property in ${development.location}. 
+    Consider the following details:
+    - Property Type: ${development.propertyType}
+    - Location: ${development.location}
+    - Price Range: ${development.priceRange}
+    - Target Market: ${development.targetMarket}
+    - Amenities: ${development.amenities?.join(', ')}
+    
+    Provide a detailed market analysis focusing on:
+    1. Current market trends
+    2. Demand and supply dynamics
+    3. Price trends
+    4. Growth potential
+    5. Market challenges and opportunities`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: "You are a real estate market analysis expert. Provide detailed, data-driven analysis."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 500
+    });
+
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error('Market analysis error:', error);
+    return 'Unable to perform market analysis at this time.';
+  }
 }
 
 async function assessRisks(development) {
-  // TODO: Implement actual AI risk assessment
-  return `Risk assessment indicates moderate risk level. 
-    Key factors include market volatility and construction timeline. 
-    Mitigation strategies are in place for identified risks.`;
+  try {
+    const prompt = `Assess the risks associated with a ${development.propertyType} property in ${development.location}. 
+    Consider the following details:
+    - Property Type: ${development.propertyType}
+    - Location: ${development.location}
+    - Construction Status: ${development.constructionStatus}
+    - Timeline: ${development.timeline}
+    - Investment Amount: ${development.investmentAmount}
+    
+    Provide a comprehensive risk assessment covering:
+    1. Market risks
+    2. Construction risks
+    3. Financial risks
+    4. Regulatory risks
+    5. Risk mitigation strategies`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: "You are a real estate risk assessment expert. Provide detailed risk analysis and mitigation strategies."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 500
+    });
+
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error('Risk assessment error:', error);
+    return 'Unable to perform risk assessment at this time.';
+  }
 }
 
 async function evaluateInvestmentPotential(development) {
-  // TODO: Implement actual AI investment potential evaluation
-  return `Investment potential is rated as high. 
-    Expected ROI is promising based on current market conditions and development specifications. 
-    The project aligns well with current market demands.`;
+  try {
+    const prompt = `Evaluate the investment potential of a ${development.propertyType} property in ${development.location}. 
+    Consider the following details:
+    - Property Type: ${development.propertyType}
+    - Location: ${development.location}
+    - Expected ROI: ${development.expectedROI}
+    - Investment Amount: ${development.investmentAmount}
+    - Market Conditions: ${development.marketConditions}
+    
+    Provide a detailed investment potential analysis covering:
+    1. Expected returns
+    2. Investment timeline
+    3. Market opportunities
+    4. Competitive advantages
+    5. Investment recommendations`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: "You are a real estate investment expert. Provide detailed investment potential analysis and recommendations."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 500
+    });
+
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error('Investment potential evaluation error:', error);
+    return 'Unable to evaluate investment potential at this time.';
+  }
 }
 
 async function generateRecommendations(development) {
-  // TODO: Implement actual AI recommendations
-  return `Based on the analysis, we recommend proceeding with the investment. 
-    Consider diversifying the portfolio and monitoring market trends closely. 
-    Regular progress updates and risk assessments are advised.`;
+  try {
+    const prompt = `Generate investment recommendations for a ${development.propertyType} property in ${development.location}. 
+    Consider the following details:
+    - Property Type: ${development.propertyType}
+    - Location: ${development.location}
+    - Investment Amount: ${development.investmentAmount}
+    - Target Market: ${development.targetMarket}
+    - Market Conditions: ${development.marketConditions}
+    
+    Provide comprehensive recommendations covering:
+    1. Investment strategy
+    2. Risk management
+    3. Portfolio diversification
+    4. Market timing
+    5. Exit strategies`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: "You are a real estate investment advisor. Provide detailed investment recommendations and strategies."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 500
+    });
+
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error('Recommendations generation error:', error);
+    return 'Unable to generate recommendations at this time.';
+  }
 }
 
 // Root path handler
