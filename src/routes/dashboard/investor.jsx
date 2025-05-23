@@ -349,6 +349,29 @@ export default function InvestorDashboard() {
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [expandedCard, setExpandedCard] = useState(null)
   const [connections, setConnections] = useState(mockConnections)
+  const [projects, setProjects] = useState(mockProjects)
+  const [selectedProject, setSelectedProject] = useState(null)
+  const [showProjectModal, setShowProjectModal] = useState(false)
+  const [showConnectionModal, setShowConnectionModal] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [selectedImage, setSelectedImage] = useState(0)
+  const [filters, setFilters] = useState({
+    location: 'All',
+    type: 'All',
+    search: ''
+  })
+  const [unitPrice, setUnitPrice] = useState(0)
+  const [minUnits, setMinUnits] = useState(1)
+  const [maxUnits, setMaxUnits] = useState(100)
+  const [selectedUnits, setSelectedUnits] = useState(1)
+  const [investmentAmount, setInvestmentAmount] = useState('')
+  const [investmentError, setInvestmentError] = useState('')
+  const [investmentNotes, setInvestmentNotes] = useState('')
+  const [isSendingRequest, setIsSendingRequest] = useState(false)
+  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastType, setToastType] = useState('success')
   const [showNewTopicModal, setShowNewTopicModal] = useState(false)
   const [showChatModal, setShowChatModal] = useState(false)
   const [selectedTopic, setSelectedTopic] = useState(null)
@@ -393,13 +416,13 @@ export default function InvestorDashboard() {
       ]
     },
     projectForums: {}
-  });
+  })
   const [analytics, setAnalytics] = useState({
     totalInvestments: 0,
     activeInvestments: 0,
     totalReturns: 0,
     portfolioValue: 0,
-    growthRate: 0, // Year-over-Year growth rate
+    growthRate: 0,
     investmentDistribution: {},
     expectedReturns: {},
     recentTransactions: [],
@@ -409,26 +432,27 @@ export default function InvestorDashboard() {
       riskScore: 0
     }
   })
-  
-  // Initial profile data
-  const [profile, setProfile] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    bio: '',
-    investmentInterests: [],
-    investmentExperience: '',
-    preferredInvestmentAmount: 0,
-    preferredLocations: [],
-    riskTolerance: '',
-    investmentGoals: [],
-    profileCompletion: 0
-  });
+  const [profile, setProfile] = useState(null)
+  const [profileImage, setProfileImage] = useState(null)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [projectToShare, setProjectToShare] = useState(null)
+  const [settings, setSettings] = useState({
+    emailNotifications: true,
+    pushNotifications: true,
+    darkMode: false,
+    language: 'en'
+  })
+  const [showConnectionDetails, setShowConnectionDetails] = useState(false)
+  const [selectedConnection, setSelectedConnection] = useState(null)
+  const [activeForum, setActiveForum] = useState('general')
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [newTopic, setNewTopic] = useState({
+    title: '',
+    content: '',
+    category: 'general'
+  })
 
   // Add profileImage state
-  const [profileImage, setProfileImage] = useState(null);
-
-  // Add handleImageChange function
   const handleImageChange = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -526,39 +550,24 @@ export default function InvestorDashboard() {
   // API integration functions
   const fetchProfile = async () => {
     try {
-      setIsLoading(true);
-      setError(null);
-
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/investor/profile');
-      if (!response.ok) {
-        throw new Error('Failed to fetch profile');
-      }
-      const data = await response.json();
+      // For now, use mock data since backend is not connected
+      const mockProfileData = {
+        name: 'John Doe',
+        email: 'john@example.com',
+        phone: '+2341234567890',
+        bio: 'Experienced real estate investor with a focus on residential properties.',
+        investmentExperience: 'Advanced',
+        preferredInvestmentAmount: 50000000,
+        riskTolerance: 'Moderate',
+        investmentInterests: ['Residential', 'Commercial'],
+        preferredLocations: ['Lagos', 'Abuja'],
+        investmentGoals: ['Long-term Growth', 'Portfolio Diversification']
+      };
       
-      setProfile(data);
-      reset(data);
+      setProfile(mockProfileData);
     } catch (error) {
       console.error('Error fetching profile:', error);
-      setError('Failed to load profile. Please try again later.');
-      
-      // Fallback to mock data for development
-      const mockProfile = {
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        phone: '+1 (555) 123-4567',
-        bio: 'Experienced real estate investor with a focus on sustainable development projects.',
-        investmentInterests: ['Residential', 'Commercial', 'Green Projects'],
-        investmentExperience: '5+ years',
-        preferredInvestmentAmount: 250000,
-        preferredLocations: ['New York', 'Los Angeles', 'Miami'],
-        riskTolerance: 'Moderate',
-        investmentGoals: ['Capital Appreciation', 'Passive Income']
-      };
-      setProfile(mockProfile);
-      reset(mockProfile);
-    } finally {
-      setIsLoading(false);
+      handleToast('Failed to load profile data', 'error');
     }
   };
 
@@ -621,50 +630,68 @@ export default function InvestorDashboard() {
     navigate('/')
   }
 
-  // Remove the duplicate analytics object
-  const [projects, setProjects] = useState(mockProjects)
-  const [filters, setFilters] = useState({
-    location: 'All',
-    type: 'All',
-    search: ''
-  })
-  const [selectedProject, setSelectedProject] = useState(null)
-  const [showProjectModal, setShowProjectModal] = useState(false)
-  const [selectedImage, setSelectedImage] = useState(0)
-  const [showConnectionModal, setShowConnectionModal] = useState(false)
-  const [selectedUnits, setSelectedUnits] = useState(1)
-  const [investmentAmount, setInvestmentAmount] = useState('')
-  const [investmentNotes, setInvestmentNotes] = useState('')
-  const [unitPrice, setUnitPrice] = useState(0)
-  const [minUnits, setMinUnits] = useState(1)
-  const [maxUnits, setMaxUnits] = useState(100)
-  const [investmentError, setInvestmentError] = useState('')
-  const [showToast, setShowToast] = useState(false)
-  const [toastMessage, setToastMessage] = useState('')
-  const [toastType, setToastType] = useState('success')
-  const [showConfirmation, setShowConfirmation] = useState(false)
-  const [showConnectionDetails, setShowConnectionDetails] = useState(false)
-  const [selectedConnection, setSelectedConnection] = useState(null)
-  const [isSendingRequest, setIsSendingRequest] = useState(false)
-  const [activeForum, setActiveForum] = useState('general')
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [newTopic, setNewTopic] = useState({
-    title: '',
-    content: '',
-    category: 'general'
-  });
+  const handleShare = (project) => {
+    setProjectToShare(project)
+    setShowShareModal(true)
+  }
 
-  // Add this before the return statement
+  const handleCloseShareModal = () => {
+    setShowShareModal(false)
+    setProjectToShare(null)
+  }
+
+  const handleShareToSocial = (platform) => {
+    if (!projectToShare) return
+
+    const shareText = `Check out this amazing development opportunity: ${projectToShare.title} - ${projectToShare.description}`
+    const shareUrl = window.location.href
+
+    let shareLink = ''
+    switch (platform) {
+      case 'whatsapp':
+        shareLink = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`
+        break
+      case 'telegram':
+        shareLink = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`
+        break
+      case 'twitter':
+        shareLink = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`
+        break
+      case 'facebook':
+        shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`
+        break
+      case 'linkedin':
+        shareLink = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`
+        break
+      case 'instagram':
+        // Instagram doesn't support direct sharing via URL
+        handleToast('To share on Instagram, please save the image and share it to your story', 'info')
+        return
+      default:
+        return
+    }
+
+    window.open(shareLink, '_blank')
+    handleCloseShareModal()
+  }
+
   const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
+    setIsMobileMenuOpen(!isMobileMenuOpen)
+  }
 
-  // Handle tab change
   const handleTabChange = (tab) => {
     setActiveTab(tab)
     setSelectedProject(null)
     setShowProjectModal(false)
     setShowConnectionModal(false)
+    
+    // Reset profile states when switching to profile tab
+    if (tab === 'profile') {
+      setIsEditingProfile(false)
+      setShowSettings(false)
+      // Always fetch profile data when switching to profile tab
+      fetchProfile()
+    }
   }
 
   // Filter projects based on selected filters
@@ -928,7 +955,7 @@ export default function InvestorDashboard() {
   const renderProjectCards = () => {
   return (
       <div className="grid grid-cols-1 gap-6 p-4">
-        {mockProjects.map((project) => (
+        {projects.map((project) => (
         <motion.div 
             key={project.id}
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
@@ -972,7 +999,16 @@ export default function InvestorDashboard() {
                   </div>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => handleShare(project)}
+                    className="px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center space-x-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    </svg>
+                    <span>Share</span>
+                  </button>
                   <button
                     onClick={() => handleProjectSelect(project)}
                     className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:opacity-90 transition-opacity"
@@ -1323,17 +1359,15 @@ export default function InvestorDashboard() {
   const renderContent = () => {
     switch (activeTab) {
       case 'analytics':
-        return <>{renderAnalytics()}</>;
+        return renderAnalytics();
       case 'discover':
-        return <>{renderProjectCards()}</>;
+        return renderProjectCards();
       case 'connections':
-        return <>{renderConnections()}</>;
-      case 'profile':
-        return <>{renderProfile()}</>;
+        return renderConnections();
       case 'forum':
-        return <>{renderForum()}</>;
+        return renderForum();
       default:
-        return <>{renderAnalytics()}</>;
+        return renderAnalytics();
     }
   };
 
@@ -1780,199 +1814,307 @@ export default function InvestorDashboard() {
       );
     }
 
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full p-6"
-        >
+    if (showSettings) {
+      return (
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
           <div className="flex justify-between items-start mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Profile</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h2>
             <button
-              onClick={() => setIsEditingProfile(false)}
-              className="text-gray-400 hover:text-gray-500"
+              onClick={() => setShowSettings(false)}
+              className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-                      </div>
+          </div>
 
-                      {isEditingProfile ? (
-                        <form onSubmit={handleSubmit(handleProfileSave)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Name
-                              </label>
-                              <input
-                                type="text"
-                                {...register('name')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                              />
-                              {errors.name && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name.message}</p>
-                              )}
-                            </div>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Email Notifications</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Receive email updates about your investments</p>
+              </div>
+              <button
+                onClick={() => setSettings(prev => ({ ...prev, emailNotifications: !prev.emailNotifications }))}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full ${
+                  settings.emailNotifications ? 'bg-blue-600' : 'bg-gray-200'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                  settings.emailNotifications ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
 
-                            <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Email
-                              </label>
-                              <input
-                                type="email"
-                                {...register('email')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                              />
-                              {errors.email && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
-                              )}
-                            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Push Notifications</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Receive push notifications on your device</p>
+              </div>
+              <button
+                onClick={() => setSettings(prev => ({ ...prev, pushNotifications: !prev.pushNotifications }))}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full ${
+                  settings.pushNotifications ? 'bg-blue-600' : 'bg-gray-200'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                  settings.pushNotifications ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
 
-                            <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Phone
-                              </label>
-                              <input
-                                type="tel"
-                                {...register('phone')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                              />
-                              {errors.phone && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.phone.message}</p>
-                              )}
-                            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Dark Mode</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Toggle dark mode appearance</p>
+              </div>
+              <button
+                onClick={() => {
+                  setSettings(prev => ({ ...prev, darkMode: !prev.darkMode }));
+                  toggleDarkMode();
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full ${
+                  settings.darkMode ? 'bg-blue-600' : 'bg-gray-200'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                  settings.darkMode ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
 
-                            <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Investment Experience
-                              </label>
-                              <select
-                                {...register('investmentExperience')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                              >
-                                <option value="">Select experience</option>
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Advanced">Advanced</option>
-                    <option value="Expert">Expert</option>
-                              </select>
-                              {errors.investmentExperience && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investmentExperience.message}</p>
-                              )}
-                            </div>
+            <div>
+              <label className="block text-lg font-medium text-gray-900 dark:text-white mb-2">
+                Language
+              </label>
+              <select
+                value={settings.language}
+                onChange={(e) => setSettings(prev => ({ ...prev, language: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="English">English</option>
+                <option value="Spanish">Spanish</option>
+                <option value="French">French</option>
+                <option value="German">German</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Preferred Investment Amount
-                  </label>
-                  <input
-                    type="number"
-                    {...register('preferredInvestmentAmount')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  />
-                  {errors.preferredInvestmentAmount && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.preferredInvestmentAmount.message}</p>
-                  )}
-                          </div>
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
+        <div className="flex justify-between items-start mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Profile</h2>
+          <div className="flex space-x-4">
+            <button
+              onClick={() => setIsEditingProfile(!isEditingProfile)}
+              className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+            >
+              {isEditingProfile ? (
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
+        </div>
 
-                          <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Risk Tolerance
-                  </label>
-                  <select
-                    {...register('riskTolerance')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  >
-                    <option value="">Select risk tolerance</option>
-                    <option value="Conservative">Conservative</option>
-                    <option value="Moderate">Moderate</option>
-                    <option value="Aggressive">Aggressive</option>
-                  </select>
-                  {errors.riskTolerance && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.riskTolerance.message}</p>
-                  )}
-                </div>
+        {isEditingProfile ? (
+          <form onSubmit={handleSubmit(handleProfileSave)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  {...register('name')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+                {errors.name && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name.message}</p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Bio
-                            </label>
-                            <textarea
-                              {...register('bio')}
-                  rows={4}
+                  Email
+                </label>
+                <input
+                  type="email"
+                  {...register('email')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                            />
-                            {errors.bio && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bio.message}</p>
-                            )}
-                          </div>
+                />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
+                )}
+              </div>
 
-              <div className="flex justify-end space-x-4">
-                <button
-                  type="button"
-                  onClick={() => setIsEditingProfile(false)}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  {...register('phone')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+                {errors.phone && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.phone.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Investment Experience
+                </label>
+                <select
+                  {...register('investmentExperience')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >
-                  Cancel
-                </button>
-                            <button
-                              type="submit"
-                  className="px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600"
-                            >
-                              Save Changes
-                            </button>
-                          </div>
-                        </form>
-                      ) : (
-                        <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Experience</h3>
-                  <p className="mt-1 text-gray-900 dark:text-white">{profile.investmentExperience || 'Not specified'}</p>
-                            </div>
-                            <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Preferred Investment Amount</h3>
-                  <p className="mt-1 text-gray-900 dark:text-white">
-                    {profile.preferredInvestmentAmount ? `₦${profile.preferredInvestmentAmount.toLocaleString()}` : 'Not specified'}
-                  </p>
-                            </div>
-                            <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Risk Tolerance</h3>
-                  <p className="mt-1 text-gray-900 dark:text-white">{profile.riskTolerance || 'Not specified'}</p>
-                            </div>
-                            <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</h3>
-                  <p className="mt-1 text-gray-900 dark:text-white">{profile.phone || 'Not specified'}</p>
-                            </div>
-                          </div>
+                  <option value="">Select experience</option>
+                  <option value="Beginner">Beginner</option>
+                  <option value="Intermediate">Intermediate</option>
+                  <option value="Advanced">Advanced</option>
+                  <option value="Expert">Expert</option>
+                </select>
+                {errors.investmentExperience && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investmentExperience.message}</p>
+                )}
+              </div>
 
-                          <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Bio</h3>
-                <p className="mt-1 text-gray-900 dark:text-white">{profile.bio || 'No bio provided'}</p>
-                          </div>
-                        </div>
-                      )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Preferred Investment Amount
+                </label>
+                <input
+                  type="number"
+                  {...register('preferredInvestmentAmount')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+                {errors.preferredInvestmentAmount && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.preferredInvestmentAmount.message}</p>
+                )}
+              </div>
 
-          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                    <button
-                      onClick={() => {
-                setIsEditingProfile(false);
-                // Add your settings navigation logic here
-              }}
-              className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-gray-600 to-gray-700 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-            >
-              <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Risk Tolerance
+                </label>
+                <select
+                  {...register('riskTolerance')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                >
+                  <option value="">Select risk tolerance</option>
+                  <option value="Conservative">Conservative</option>
+                  <option value="Moderate">Moderate</option>
+                  <option value="Aggressive">Aggressive</option>
+                </select>
+                {errors.riskTolerance && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.riskTolerance.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Bio
+              </label>
+              <textarea
+                {...register('bio')}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+              {errors.bio && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bio.message}</p>
+              )}
+            </div>
+
+            <div className="flex justify-end space-x-4">
+              <button
+                type="button"
+                onClick={() => setIsEditingProfile(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600"
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Name</h3>
+                <p className="mt-1 text-gray-900 dark:text-white">{profile.name || 'Not specified'}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</h3>
+                <p className="mt-1 text-gray-900 dark:text-white">{profile.email || 'Not specified'}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Experience</h3>
+                <p className="mt-1 text-gray-900 dark:text-white">{profile.investmentExperience || 'Not specified'}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Preferred Investment Amount</h3>
+                <p className="mt-1 text-gray-900 dark:text-white">
+                  {profile.preferredInvestmentAmount ? `₦${profile.preferredInvestmentAmount.toLocaleString()}` : 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Risk Tolerance</h3>
+                <p className="mt-1 text-gray-900 dark:text-white">{profile.riskTolerance || 'Not specified'}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</h3>
+                <p className="mt-1 text-gray-900 dark:text-white">{profile.phone || 'Not specified'}</p>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Bio</h3>
+              <p className="mt-1 text-gray-900 dark:text-white">{profile.bio || 'No bio provided'}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => {
+              setIsEditingProfile(false);
+              // Add your settings navigation logic here
+            }}
+            className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-gray-600 to-gray-700 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          >
+            <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             Settings
-                  </button>
-                  </div>
-              </motion.div>
+          </button>
+        </div>
       </div>
     );
   };
@@ -2125,6 +2267,102 @@ export default function InvestorDashboard() {
     setNewTopic({ title: '', content: '', category: 'general' });
   };
 
+  const renderShareModal = () => {
+    if (!showShareModal || !projectToShare) return null
+
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-xl"
+          >
+            <div className="flex justify-between items-start mb-6">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Share Development</h3>
+              <button
+                onClick={handleCloseShareModal}
+                className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => handleShareToSocial('whatsapp')}
+                className="flex items-center justify-center space-x-2 p-4 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                <span>WhatsApp</span>
+              </button>
+
+              <button
+                onClick={() => handleShareToSocial('telegram')}
+                className="flex items-center justify-center space-x-2 p-4 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                </svg>
+                <span>Telegram</span>
+              </button>
+
+              <button
+                onClick={() => handleShareToSocial('twitter')}
+                className="flex items-center justify-center space-x-2 p-4 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                </svg>
+                <span>Twitter</span>
+              </button>
+
+              <button
+                onClick={() => handleShareToSocial('facebook')}
+                className="flex items-center justify-center space-x-2 p-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+                <span>Facebook</span>
+              </button>
+
+              <button
+                onClick={() => handleShareToSocial('linkedin')}
+                className="flex items-center justify-center space-x-2 p-4 bg-blue-700 text-white rounded-xl hover:bg-blue-800 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                </svg>
+                <span>LinkedIn</span>
+              </button>
+
+              <button
+                onClick={() => handleShareToSocial('instagram')}
+                className="flex items-center justify-center space-x-2 p-4 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white rounded-xl hover:opacity-90 transition-opacity"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                </svg>
+                <span>Instagram</span>
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
+    )
+  }
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -2200,7 +2438,7 @@ export default function InvestorDashboard() {
                 key={tab}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => handleTabChange(tab)}
                 className={`${
                   activeTab === tab
                     ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
@@ -2346,6 +2584,8 @@ export default function InvestorDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {renderShareModal()}
     </div>
   )
 }

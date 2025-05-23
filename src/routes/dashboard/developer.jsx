@@ -5,6 +5,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { apiCall } from '../../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 // Validation schema for developer profile
 const developerSchema = yup.object().shape({
@@ -242,29 +243,9 @@ export default function DeveloperDashboard() {
     startDate: '',
     expectedCompletion: '',
     description: '',
-    // Add new fields
     images: [],
     documents: [],
-    amenities: [],
-    specifications: {
-      totalArea: '',
-      floors: '',
-      parkingSpaces: '',
-      bedrooms: '',
-      bathrooms: '',
-    },
-    locationDetails: {
-      address: '',
-      city: '',
-      state: '',
-      coordinates: {
-        latitude: '',
-        longitude: ''
-      }
-    },
-    paymentPlans: [],
-    expectedROI: '',
-    completionStatus: '0'
+    paymentPlans: []
   });
 
   // Add new state for file uploads
@@ -317,6 +298,8 @@ export default function DeveloperDashboard() {
     const isAuthenticated = localStorage.getItem('isAuthenticated');
     const userType = localStorage.getItem('userType');
 
+    console.log('Auth check:', { isAuthenticated, userType });
+
     if (!isAuthenticated || userType !== 'developer') {
       navigate('/login');
       return;
@@ -325,9 +308,9 @@ export default function DeveloperDashboard() {
     // Initialize with mock data
     setProjects(mockProjects);
     setConnections(mockConnections);
-    setForums(mockForums); // Add this line
+    setForums(mockForums);
     setIsLoading(false);
-  }, []); // Remove navigate from dependencies
+  }, []);
 
   // Add a debug effect
   useEffect(() => {
@@ -465,6 +448,21 @@ export default function DeveloperDashboard() {
 
   // Handle add project
   const handleAddProject = () => {
+    setNewProject({
+      title: '',
+      location: '',
+      type: '',
+      amount: '',
+      units: '',
+      startDate: '',
+      expectedCompletion: '',
+      description: '',
+      images: [],
+      documents: [],
+      paymentPlans: []
+    });
+    setUploadedImages([]);
+    setUploadedDocuments([]);
     setShowAddProjectModal(true);
   };
 
@@ -475,12 +473,17 @@ export default function DeveloperDashboard() {
       title: project.title,
       location: project.location,
       type: project.type,
-      amount: project.amount.replace(/[^0-9]/g, ''), // Remove currency symbol and commas
+      amount: project.amount.replace(/[^0-9]/g, ''),
       units: project.units,
       startDate: project.startDate,
       expectedCompletion: project.expectedCompletion,
-      description: project.description || ''
+      description: project.description || '',
+      images: project.images || [],
+      documents: project.documents || [],
+      paymentPlans: project.paymentPlans || []
     });
+    setUploadedImages(project.images || []);
+    setUploadedDocuments(project.documents || []);
     setShowAddProjectModal(true);
   };
 
@@ -518,42 +521,36 @@ export default function DeveloperDashboard() {
   const handleProjectSubmit = async (e) => {
     e.preventDefault();
     try {
-      const developerId = localStorage.getItem('userId');
-      const projectData = {
-        ...newProject,
-        developerId,
-        status: 'pending',
-        amount: `₦${Number(newProject.amount).toLocaleString()}` // Format amount with currency
-      };
+      setIsLoading(true);
+      setError(null);
 
-      if (newProject.id) {
-        // Update existing project
-        const response = await apiCall(`/api/projects/${newProject.id}`, {
-          method: 'PUT',
-          body: JSON.stringify(projectData)
-        });
-        
-        if (response.error) {
-          throw new Error(response.error);
+      const formData = new FormData();
+      
+      // Add project details
+      Object.keys(newProject).forEach(key => {
+        if (key === 'images' || key === 'documents' || key === 'paymentPlans') {
+          formData.append(key, JSON.stringify(newProject[key]));
+        } else if (newProject[key] !== undefined && newProject[key] !== null) {
+          formData.append(key, newProject[key]);
         }
-        
-        setSuccess('Project updated successfully');
-        handleToast('success', 'Project updated successfully');
-      } else {
-        // Create new project
+      });
+
+      // Add uploaded files
+      uploadedImages.forEach(image => {
+        formData.append('images', image);
+      });
+
+      uploadedDocuments.forEach(doc => {
+        formData.append('documents', doc);
+      });
+
         const response = await apiCall('/api/projects', {
           method: 'POST',
-          body: JSON.stringify(projectData)
-        });
-        
-        if (response.error) {
-          throw new Error(response.error);
-        }
-        
-        setSuccess('Project created successfully');
-        handleToast('success', 'Project created successfully');
-      }
+        body: formData,
+      });
 
+      if (response.project) {
+        setProjects(prev => [...prev, response.project]);
       setShowAddProjectModal(false);
       setNewProject({
         title: '',
@@ -563,13 +560,23 @@ export default function DeveloperDashboard() {
         units: '',
         startDate: '',
         expectedCompletion: '',
-        description: ''
-      });
-      fetchProjects();
+          description: '',
+          images: [],
+          documents: [],
+          paymentPlans: []
+        });
+        setUploadedImages([]);
+        setUploadedDocuments([]);
+        handleToast('success', 'Project added successfully');
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (error) {
-      console.error('Error saving project:', error);
-      setError(error.message || 'Failed to save project');
-      handleToast('error', error.message || 'Failed to save project');
+      console.error('Error adding project:', error);
+      setError(error.message || 'Failed to add project');
+      handleToast('error', 'Failed to add project');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -658,6 +665,28 @@ export default function DeveloperDashboard() {
   };
 
   const renderProfile = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+                          </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="bg-red-50 dark:bg-red-900/50 p-4 rounded-lg">
+          <p className="text-red-600 dark:text-red-400">{error}</p>
+                          <button
+            onClick={() => setError(null)}
+            className="mt-2 text-sm text-red-600 dark:text-red-400 hover:underline"
+                          >
+            Dismiss
+                          </button>
+                        </div>
+      );
+    }
+
     return (
       <div className="max-w-4xl mx-auto p-4 sm:p-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
@@ -665,17 +694,17 @@ export default function DeveloperDashboard() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
               <div className="relative w-32 h-32 sm:w-40 sm:h-40">
                 <img
-                  src={profileImage || 'https://via.placeholder.com/150'}
-                  alt="Profile"
+                  src={previewImage || profile.imageUrl || 'https://via.placeholder.com/150'}
+                              alt="Profile"
                   className="w-full h-full object-cover rounded-lg"
                 />
                 {isEditingProfile && (
-                  <label className="absolute bottom-0 right-0 bg-blue-500 text-white p-2 rounded-full cursor-pointer">
-                    <input
-                      type="file"
+                  <label className="absolute bottom-0 right-0 bg-blue-500 text-white p-2 rounded-full cursor-pointer hover:bg-blue-600 transition-colors">
+                            <input
+                              type="file"
                       className="hidden"
-                      accept="image/*"
-                      onChange={handleImageChange}
+                              accept="image/*"
+                              onChange={handleImageChange}
                     />
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -700,9 +729,111 @@ export default function DeveloperDashboard() {
                     </span>
                   ))}
                 </div>
+                          </div>
+                        </div>
+
+            {isEditingProfile ? (
+              <form onSubmit={handleSubmit(handleProfileSave)} className="mt-6 space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Name
+                            </label>
+                            <input
+                              type="text"
+                              {...register('name')}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            />
+                            {errors.name && (
+                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name.message}</p>
+                            )}
+                          </div>
+                          <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Company
+                            </label>
+                            <input
+                              type="text"
+                              {...register('company')}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            />
+                            {errors.company && (
+                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.company.message}</p>
+                            )}
+                  </div>
+                          </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Email
+                            </label>
+                            <input
+                              type="email"
+                              {...register('email')}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            />
+                            {errors.email && (
+                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
+                            )}
+                          </div>
+                          <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Phone
+                            </label>
+                            <input
+                              type="tel"
+                              {...register('phone')}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            />
+                            {errors.phone && (
+                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.phone.message}</p>
+                            )}
+                          </div>
+                          </div>
+
+                          <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Bio
+                          </label>
+                          <textarea
+                            {...register('bio')}
+                            rows={4}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                          />
+                          {errors.bio && (
+                            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bio.message}</p>
+                          )}
+                        </div>
+
+                <div className="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingProfile(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    {isLoading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="mt-6">
+                <button
+                  onClick={() => setIsEditingProfile(true)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Edit Profile
+                </button>
               </div>
-            </div>
-          </div>
+                            )}
+                          </div>
         </div>
       </div>
     );
@@ -737,7 +868,7 @@ export default function DeveloperDashboard() {
                 </span>
               </div>
             </div>
-          </div>
+                          </div>
 
           {/* Chat Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -756,16 +887,16 @@ export default function DeveloperDashboard() {
                   <div className="text-sm font-semibold mb-1">{reply.author}</div>
                   <p className="text-sm sm:text-base">{reply.content}</p>
                   <div className="text-xs mt-1 opacity-75">{reply.date}</div>
-                </div>
+                          </div>
               </div>
             ))}
-          </div>
+                        </div>
 
           {/* Chat Input */}
           <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
             <div className="max-w-4xl mx-auto">
               <div className="flex space-x-2">
-                <input
+                                <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
@@ -785,9 +916,9 @@ export default function DeveloperDashboard() {
                 >
                   Send
                 </button>
-              </div>
-            </div>
-          </div>
+                              </div>
+                          </div>
+                        </div>
         </div>
       );
     }
@@ -798,13 +929,13 @@ export default function DeveloperDashboard() {
           <div className="p-4 sm:p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Forum</h2>
-              <button
+                          <button
                 onClick={() => setShowNewTopicModal(true)}
                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm sm:text-base"
-              >
+                          >
                 New Topic
-              </button>
-            </div>
+                          </button>
+                        </div>
             
             <div className="space-y-4">
               {forums.map((topic) => (
@@ -823,8 +954,8 @@ export default function DeveloperDashboard() {
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
                         {topic.content}
-                      </p>
-                    </div>
+                            </p>
+                          </div>
                     <div className="mt-2 sm:mt-0 sm:ml-4 flex items-center space-x-4">
                       <span className="text-sm text-gray-500 dark:text-gray-400">
                         {topic.messages} messages
@@ -832,13 +963,13 @@ export default function DeveloperDashboard() {
                       <span className="text-sm text-gray-500 dark:text-gray-400">
                         {topic.participants} participants
                       </span>
-                    </div>
-                  </div>
-                </div>
+                        </div>
+                          </div>
+                          </div>
               ))}
-            </div>
-          </div>
-        </div>
+                          </div>
+                          </div>
+                        </div>
 
         {/* New Topic Modal */}
         <AnimatePresence>
@@ -852,7 +983,7 @@ export default function DeveloperDashboard() {
               <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <div className="fixed inset-0 transition-opacity" aria-hidden="true">
                   <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
-                </div>
+                        </div>
 
                 <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
                   <div className="px-4 py-3 sm:px-6 border-b border-gray-200 dark:border-gray-700">
@@ -868,12 +999,12 @@ export default function DeveloperDashboard() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
-                    </div>
+                          </div>
                   </div>
 
                   <div className="px-4 py-5 sm:p-6">
                     <div className="space-y-4">
-                      <div>
+                          <div>
                         <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                           Title
                         </label>
@@ -885,9 +1016,9 @@ export default function DeveloperDashboard() {
                           className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
                           placeholder="Enter topic title"
                         />
-                      </div>
+                          </div>
 
-                      <div>
+                          <div>
                         <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                           Content
                         </label>
@@ -900,8 +1031,8 @@ export default function DeveloperDashboard() {
                           placeholder="Enter topic content"
                         />
                       </div>
-                    </div>
-                  </div>
+                          </div>
+                        </div>
 
                   <div className="px-4 py-3 sm:px-6 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex justify-end space-x-3">
@@ -918,14 +1049,14 @@ export default function DeveloperDashboard() {
                       >
                         Create Topic
                       </button>
-                    </div>
-                  </div>
+                          </div>
+                        </div>
+                      </div>
                 </div>
-              </div>
             </motion.div>
-          )}
+              )}
         </AnimatePresence>
-      </div>
+            </div>
     );
   };
 
@@ -998,466 +1129,16 @@ export default function DeveloperDashboard() {
     }
   };
 
-  return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      {console.log('Rendering with state:', { isLoading, activeTab })}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Navigation */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-8"
-        >
-          <div className="flex items-center">
-            <motion.h1 
-              whileHover={{ scale: 1.05 }}
-              className="text-2xl font-bold bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent"
-            >
-              Subx
-            </motion.h1>
-          </div>
-          <div className="flex items-center space-x-4">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={toggleDarkMode}
-              className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700"
-            >
-              {isDarkMode ? (
-                <svg className="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              ) : (
-                <svg className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-              )}
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleLogout}
-              className="px-4 py-2 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white font-medium hover:opacity-90"
-            >
-              Logout
-            </motion.button>
-          </div>
-        </motion.div>
+  // Add the renderAddProjectModal function
+  const renderAddProjectModal = () => {
+    if (!showAddProjectModal) return null;
 
-        {/* Tabs */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="border-b border-gray-200 dark:border-gray-700 mb-8"
-        >
-          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            {['dashboard', 'projects', 'investors', 'forums', 'profile'].map((tab) => (
-              <motion.button
-                key={tab}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setActiveTab(tab)}
-                className={`${
-                  activeTab === tab
-                    ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors duration-200`}
-              >
-                {tab}
-              </motion.button>
-            ))}
-          </nav>
-        </motion.div>
-
-        {/* Main Content */}
-        <main>
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Dashboard Tab */}
-              {activeTab === 'dashboard' && (
-                <div className="space-y-6">
-                  {/* Overview Cards */}
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-xl transition-all duration-200"
-                    >
-                      <div className="p-6">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-3">
-                            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                          </div>
-                          <div className="ml-5 w-0 flex-1">
-                            <dl>
-                              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                                Total Projects
-                              </dt>
-                              <dd className="text-2xl font-semibold text-gray-900 dark:text-white">
-                                {analytics.totalProjects}
-                              </dd>
-                            </dl>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-xl transition-all duration-200"
-                    >
-                      <div className="p-6">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-3">
-                            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </div>
-                          <div className="ml-5 w-0 flex-1">
-                            <dl>
-                              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                                Total Investment
-                              </dt>
-                              <dd className="text-2xl font-semibold text-gray-900 dark:text-white">
-                                {analytics.totalInvestment}
-                              </dd>
-                            </dl>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-xl transition-all duration-200"
-                    >
-                      <div className="p-6">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl p-3">
-                            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                          </div>
-                          <div className="ml-5 w-0 flex-1">
-                            <dl>
-                              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                                Total Investors
-                              </dt>
-                              <dd className="text-2xl font-semibold text-gray-900 dark:text-white">
-                                {analytics.totalInvestors}
-                              </dd>
-                            </dl>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  </div>
-
-                  {/* Project Status and Investment Distribution */}
-                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                    >
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                        Project Status
-                      </h3>
-                      <div className="space-y-4">
-                        {Object.entries(analytics.projectStatus).map(([status, count]) => (
-                          <div key={status} className="flex items-center justify-between">
-                            <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                              {status}
-                            </span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {count} projects
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                    >
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                        Investment Distribution
-                      </h3>
-                      <div className="space-y-4">
-                        {Object.entries(analytics.investmentDistribution).map(([type, amount]) => (
-                          <div key={type} className="flex items-center justify-between">
-                            <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                              {type}
-                            </span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {amount}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  </div>
-
-                  {/* Recent Connections and Performance Metrics */}
-                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                    >
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                        Recent Connections
-                      </h3>
-                      <div className="space-y-4">
-                        {analytics.recentConnections.map((connection) => (
-                          <div key={connection.id} className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {connection.investorName}
-                              </p>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {connection.projectTitle} • {new Date(connection.date).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {connection.amount}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                    >
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                        Response Rate
-                      </h3>
-                      <div className="flex items-center justify-center">
-                        <div className="relative">
-                          <svg className="w-24 h-24">
-                            <circle
-                              className="text-gray-200 dark:text-gray-700"
-                              strokeWidth="8"
-                              stroke="currentColor"
-                              fill="transparent"
-                              r="40"
-                              cx="48"
-                              cy="48"
-                            />
-                            <circle
-                              className="text-green-500"
-                              strokeWidth="8"
-                              strokeDasharray={251.2}
-                              strokeDashoffset={251.2 - (251.2 * analytics.responseRate) / 100}
-                              strokeLinecap="round"
-                              stroke="currentColor"
-                              fill="transparent"
-                              r="40"
-                              cx="48"
-                              cy="48"
-                            />
-                          </svg>
-                          <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-gray-900 dark:text-white">
-                            {analytics.responseRate}%
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  </div>
-
-                  {/* Project Types and Location Distribution */}
-                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                    >
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                        Project Types
-                      </h3>
-                      <div className="space-y-4">
-                        {Object.entries(analytics.projectTypes).map(([type, count]) => (
-                          <div key={type} className="flex items-center justify-between">
-                            <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                              {type}
-                            </span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {count} projects
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                    >
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                        Location Distribution
-                      </h3>
-                      <div className="space-y-4">
-                        {Object.entries(analytics.locationDistribution).map(([location, count]) => (
-                          <div key={location} className="flex items-center justify-between">
-                            <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                              {location}
-                            </span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {count} projects
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  </div>
-                </div>
-              )}
-
-              {/* Projects Tab */}
-              {activeTab === 'projects' && (
-                <div className="space-y-6">
-                  {/* Project List */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6"
-                  >
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                        Your Projects
-                      </h3>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleAddProject}
-                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      >
-                        Add New Project
-                      </motion.button>
-                    </div>
-
-                    <div className="space-y-4">
-                      {projects.map((project) => (
-                        <motion.div
-                          key={project.id}
-                          whileHover={{ scale: 1.02 }}
-                          className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                                {project.title}
-                              </h4>
-                              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                {project.location} • {project.type}
-                              </p>
-                            </div>
-                            <div className="flex items-center space-x-4">
-                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                                project.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                              }`}>
-                                {project.status}
-                              </span>
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleEditProject(project)}
-                                className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
-                              >
-                                Edit
-                              </motion.button>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </motion.div>
-                </div>
-              )}
-
-              {/* Investors Tab */}
-              {activeTab === 'investors' && (
-                <div className="space-y-6">
-                  <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                      Connected Investors
-                    </h3>
-                    <div className="space-y-4">
-                      {connections.map((connection) => (
-                        <div
-                          key={connection.id}
-                          className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl"
-                        >
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center">
-                              <span className="text-white font-medium">
-                                {connection.investorName.charAt(0)}
-                              </span>
-                            </div>
-                            <div className="ml-4">
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {connection.investorName}
-                              </p>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Investment Focus: {connection.investmentFocus}
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleViewInvestorDetails(connection)}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                          >
-                            View Details
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Forums Tab */}
-              {activeTab === 'forums' && (
-                <div className="space-y-6">
-                  {renderForum()}
-                </div>
-              )}
-
-              {/* Profile Tab */}
-              {activeTab === 'profile' && (
-                      <div className="space-y-6">
-                  {renderProfile()}
-                </div>
-              )}
-            </div>
-          )}
-        </main>
-      </div>
-
-      {/* Add Project Modal */}
-      <AnimatePresence>
-        {showAddProjectModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-gray-500/75 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ type: "spring", duration: 0.5 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full p-8 shadow-xl max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+    return (
+      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                   {newProject.id ? 'Edit Project' : 'Add New Project'}
                 </h2>
                 <motion.button
@@ -1471,53 +1152,55 @@ export default function DeveloperDashboard() {
                   </svg>
                 </motion.button>
               </div>
+            
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/50 rounded-lg">
+                <p className="text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
 
               <form onSubmit={handleProjectSubmit} className="space-y-6">
-                {/* Basic Information */}
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Project Title
                     </label>
                     <input
                       type="text"
-                      id="title"
                       name="title"
                       value={newProject.title}
                       onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Location
                     </label>
                     <input
                       type="text"
-                      id="location"
                       name="location"
                       value={newProject.location}
                       onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Project Type
                     </label>
                     <select
-                      id="type"
                       name="type"
                       value={newProject.type}
                       onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                     >
-                      <option value="">Select type</option>
+                    <option value="">Select Type</option>
                       <option value="Residential">Residential</option>
                       <option value="Commercial">Commercial</option>
                       <option value="Industrial">Industrial</option>
@@ -1526,382 +1209,248 @@ export default function DeveloperDashboard() {
                   </div>
 
                   <div>
-                    <label htmlFor="amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Total Amount (₦)
                     </label>
                     <input
                       type="number"
-                      id="amount"
                       name="amount"
                       value={newProject.amount}
                       onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       required
-                      min="0"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="units" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Total Units
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Number of Units
                     </label>
                     <input
                       type="number"
-                      id="units"
                       name="units"
                       value={newProject.units}
                       onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       required
-                      min="1"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Start Date
                     </label>
                     <input
                       type="date"
-                      id="startDate"
                       name="startDate"
                       value={newProject.startDate}
                       onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="expectedCompletion" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Expected Completion
                     </label>
                     <input
                       type="date"
-                      id="expectedCompletion"
                       name="expectedCompletion"
                       value={newProject.expectedCompletion}
                       onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Project Description
                   </label>
                   <textarea
-                    id="description"
                     name="description"
                     value={newProject.description}
                     onChange={handleInputChange}
                     rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     required
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
                   />
                 </div>
 
-                {/* Project Images */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Project Images
-                  </label>
-                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg">
-                    <div className="space-y-1 text-center">
-                      <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <div className="flex text-sm text-gray-600 dark:text-gray-400">
-                        <label className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
-                          <span>Upload images</span>
-                          <input type="file" className="sr-only" multiple accept="image/*" onChange={handleImageUpload} />
-                        </label>
-                        <p className="pl-1">or drag and drop</p>
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF up to 10MB</p>
-                    </div>
-                  </div>
-                  
-                  {/* Image Preview Grid */}
-                  {uploadedImages.length > 0 && (
-                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                      {uploadedImages.map((image) => (
-                        <div key={image.id} className="relative group">
-                          <img src={image.url} alt={image.name} className="h-24 w-full object-cover rounded-lg" />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(image.id)}
-                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Project Documents */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Project Documents
-                  </label>
-                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg">
-                    <div className="space-y-1 text-center">
-                      <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <div className="flex text-sm text-gray-600 dark:text-gray-400">
-                        <label className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
-                          <span>Upload documents</span>
-                          <input type="file" className="sr-only" multiple accept=".pdf,.doc,.docx" onChange={handleDocumentUpload} />
-                        </label>
-                        <p className="pl-1">or drag and drop</p>
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">PDF, DOC up to 10MB</p>
-                    </div>
-                  </div>
-                  
-                  {/* Document List */}
-                  {uploadedDocuments.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      {uploadedDocuments.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                          <div className="flex items-center space-x-2">
-                            <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            </svg>
-                            <span className="text-sm text-gray-900 dark:text-gray-100">{doc.name}</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeDocument(doc.id)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Project Specifications */}
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="totalArea" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Total Area (sq ft)
-                    </label>
-                    <input
-                      type="number"
-                      id="totalArea"
-                      name="specifications.totalArea"
-                      value={newProject.specifications.totalArea}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="floors" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Number of Floors
-                    </label>
-                    <input
-                      type="number"
-                      id="floors"
-                      name="specifications.floors"
-                      value={newProject.specifications.floors}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="parkingSpaces" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Parking Spaces
-                    </label>
-                    <input
-                      type="number"
-                      id="parkingSpaces"
-                      name="specifications.parkingSpaces"
-                      value={newProject.specifications.parkingSpaces}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="expectedROI" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Expected ROI (%)
-                    </label>
-                    <input
-                      type="number"
-                      id="expectedROI"
-                      name="expectedROI"
-                      value={newProject.expectedROI}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                    />
-                  </div>
-                </div>
-
-                {/* Location Details */}
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Address
-                    </label>
-                    <input
-                      type="text"
-                      id="address"
-                      name="locationDetails.address"
-                      value={newProject.locationDetails.address}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      id="city"
-                      name="locationDetails.city"
-                      value={newProject.locationDetails.city}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="state" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      State
-                    </label>
-                    <input
-                      type="text"
-                      id="state"
-                      name="locationDetails.state"
-                      value={newProject.locationDetails.state}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                    />
-                  </div>
-                </div>
-
-                {/* Payment Plans */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Payment Plans
-                    </label>
-                    <button
-                      type="button"
-                      onClick={addPaymentPlan}
-                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Project Images
+                </label>
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md">
+                  <div className="space-y-1 text-center">
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400"
+                      stroke="currentColor"
+                      fill="none"
+                      viewBox="0 0 48 48"
+                      aria-hidden="true"
                     >
-                      Add Plan
-                    </button>
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <div className="flex text-sm text-gray-600 dark:text-gray-400">
+                      <label
+                        htmlFor="file-upload"
+                        className="relative cursor-pointer bg-white dark:bg-gray-700 rounded-md font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                      >
+                        <span>Upload images</span>
+                        <input
+                          id="file-upload"
+                          name="file-upload"
+                          type="file"
+                          className="sr-only"
+                          multiple
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                        />
+                      </label>
+                      <p className="pl-1">or drag and drop</p>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      PNG, JPG, GIF up to 10MB
+                    </p>
                   </div>
-                  <div className="space-y-4">
-                    {newProject.paymentPlans.map((plan) => (
-                      <div key={plan.id} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        <div>
-                          <input
-                            type="text"
-                            placeholder="Plan Name"
-                            value={plan.name}
-                            onChange={(e) => {
-                              const updatedPlans = newProject.paymentPlans.map(p =>
-                                p.id === plan.id ? { ...p, name: e.target.value } : p
-                              );
-                              setNewProject(prev => ({ ...prev, paymentPlans: updatedPlans }));
-                            }}
-                            className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          />
-                        </div>
-                        <div>
-                          <input
-                            type="number"
-                            placeholder="Percentage"
-                            value={plan.percentage}
-                            onChange={(e) => {
-                              const updatedPlans = newProject.paymentPlans.map(p =>
-                                p.id === plan.id ? { ...p, percentage: e.target.value } : p
-                              );
-                              setNewProject(prev => ({ ...prev, paymentPlans: updatedPlans }));
-                            }}
-                            className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          />
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="date"
-                            value={plan.dueDate}
-                            onChange={(e) => {
-                              const updatedPlans = newProject.paymentPlans.map(p =>
-                                p.id === plan.id ? { ...p, dueDate: e.target.value } : p
-                              );
-                              setNewProject(prev => ({ ...prev, paymentPlans: updatedPlans }));
-                            }}
-                            className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removePaymentPlan(plan.id)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
+                </div>
+                {uploadedImages.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {uploadedImages.map((image) => (
+                      <div key={image.id} className="relative">
+                        <img
+                          src={image.url}
+                          alt={image.name}
+                          className="h-24 w-full object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(image.id)}
+                          className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                       </div>
                     ))}
                   </div>
-                </div>
+                )}
+              </div>
 
-                {/* Submit Buttons */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Project Documents
+                </label>
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md">
+                  <div className="space-y-1 text-center">
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400"
+                      stroke="currentColor"
+                      fill="none"
+                      viewBox="0 0 48 48"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <div className="flex text-sm text-gray-600 dark:text-gray-400">
+                      <label
+                        htmlFor="doc-upload"
+                        className="relative cursor-pointer bg-white dark:bg-gray-700 rounded-md font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                      >
+                        <span>Upload documents</span>
+                        <input
+                          id="doc-upload"
+                          name="doc-upload"
+                          type="file"
+                          className="sr-only"
+                          multiple
+                          accept=".pdf,.doc,.docx"
+                          onChange={handleDocumentUpload}
+                        />
+                      </label>
+                      <p className="pl-1">or drag and drop</p>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      PDF, DOC, DOCX up to 10MB
+                    </p>
+                  </div>
+                </div>
+                {uploadedDocuments.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {uploadedDocuments.map((doc) => (
+                      <div key={doc.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                        <span className="text-sm text-gray-900 dark:text-white">{doc.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeDocument(doc.id)}
+                          className="text-red-500 hover:text-red-600"
+                        >
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
                 <div className="flex justify-end space-x-4">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                <button
                     type="button"
                     onClick={() => setShowAddProjectModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-200"
                   >
                     Cancel
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                </button>
+                <button
                     type="submit"
-                    disabled={isUploading}
-                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isUploading ? (
-                      <div className="flex items-center">
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        Uploading...
-                      </div>
-                    ) : (
-                      newProject.id ? 'Update Project' : 'Create Project'
-                    )}
-                  </motion.button>
+                  disabled={isLoading}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      Saving...
                 </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  ) : (
+                    newProject.id ? 'Update Project' : 'Add Project'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
-      {/* Investor Details Modal */}
-      {showInvestorDetails && selectedInvestor && (
+  // Investor Details Modal
+  const renderInvestorDetails = () => {
+    if (!showInvestorDetails || !selectedInvestor) return null;
+
+    return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full p-6">
             <div className="flex justify-between items-start mb-4">
@@ -2000,7 +1549,46 @@ export default function DeveloperDashboard() {
             </div>
           </div>
         </div>
-      )}
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+      {/* Header with Logout Button */}
+      <div className="bg-white dark:bg-gray-800 shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Developer Dashboard</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={toggleDarkMode}
+                className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                {isDarkMode ? (
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Toast Notifications */}
       <AnimatePresence>
@@ -2017,6 +1605,275 @@ export default function DeveloperDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Navigation Tabs */}
+        <div className="border-b border-gray-200 dark:border-gray-700 mb-8">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`${
+                activeTab === 'dashboard'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => setActiveTab('projects')}
+              className={`${
+                activeTab === 'projects'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Projects
+            </button>
+            <button
+              onClick={() => setActiveTab('connections')}
+              className={`${
+                activeTab === 'connections'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Connections
+            </button>
+            <button
+              onClick={() => setActiveTab('forum')}
+              className={`${
+                activeTab === 'forum'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Forum
+            </button>
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`${
+                activeTab === 'profile'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Profile
+            </button>
+          </nav>
+        </div>
+
+        {/* Content based on active tab */}
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          </div>
+        ) : (
+          <div>
+            {activeTab === 'dashboard' && (
+              <div className="space-y-6">
+                {/* Main Analytics Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Total Projects</h3>
+                    <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{analytics.totalProjects}</p>
+                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                      {analytics.projectStatus.active} Active, {analytics.projectStatus.completed} Completed
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Active Projects</h3>
+                    <p className="text-3xl font-bold text-green-600 dark:text-green-400">{analytics.activeProjects}</p>
+                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                      {analytics.projectStatus.upcoming} Upcoming Projects
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Total Investment</h3>
+                    <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{analytics.totalInvestment}</p>
+                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                      Across {analytics.totalInvestors} Investors
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Response Rate</h3>
+                    <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{analytics.responseRate}%</p>
+                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                      Average response time: 24h
+                    </p>
+                  </div>
+                </div>
+
+                {/* Project Distribution */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Project Types</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Residential</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{analytics.projectTypes.residential} Projects</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Commercial</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{analytics.projectTypes.commercial} Projects</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Industrial</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{analytics.projectTypes.industrial} Projects</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Location Distribution</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Lagos</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{analytics.locationDistribution.lagos} Projects</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Abuja</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{analytics.locationDistribution.abuja} Projects</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Port Harcourt</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{analytics.locationDistribution.portHarcourt} Projects</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recent Connections */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Recent Connections</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Investor</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Project</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {analytics.recentConnections.map((connection) => (
+                          <tr key={connection.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                              {connection.investorName}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {connection.projectTitle}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {connection.amount}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {new Date(connection.date).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Investment Distribution */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Investment Distribution</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Residential</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{analytics.investmentDistribution.residential}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Commercial</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{analytics.investmentDistribution.commercial}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'projects' && (
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Projects</h2>
+                  <button
+                    onClick={handleAddProject}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+                  >
+                    Add New Project
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {projects.map((project) => (
+                    <div key={project.id} className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                      <img
+                        src={project.imageUrl || 'https://via.placeholder.com/400x200'}
+                        alt={project.title}
+                        className="w-full h-48 object-cover"
+                      />
+                      <div className="p-4">
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">{project.title}</h3>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{project.location}</p>
+                        <div className="mt-4 flex items-center justify-between">
+                          <span className="text-sm text-gray-500 dark:text-gray-400">{project.type}</span>
+                          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">{project.amount}</span>
+                        </div>
+                        <div className="mt-4 flex justify-end space-x-2">
+                          <button
+                            onClick={() => handleEditProject(project)}
+                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'connections' && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Connections</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {connections.map((connection) => (
+                    <div key={connection.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">{connection.investorName}</h3>
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{connection.investmentFocus}</p>
+                      <div className="mt-4">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Investment Range: {connection.investmentRange}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Preferred Locations: {connection.preferredLocations.join(', ')}</p>
+                      </div>
+                      <div className="mt-4 flex justify-end">
+                        <button
+                          onClick={() => handleViewInvestorDetails(connection)}
+                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                          View Details
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'forum' && renderForum()}
+            {activeTab === 'profile' && renderProfile()}
+          </div>
+        )}
+      </div>
+
+      {/* Add Project Modal */}
+      {showAddProjectModal && renderAddProjectModal()}
+
+      {/* Investor Details Modal */}
+      {showInvestorDetails && renderInvestorDetails()}
     </div>
   );
 } 
