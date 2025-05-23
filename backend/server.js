@@ -18,9 +18,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Initialize OpenAI client
-const openai = new OpenAI({
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
-});
+}) : null;
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -71,6 +71,29 @@ const auth = async (req, res, next) => {
     next();
   } catch (error) {
     res.status(401).json({ error: 'Please authenticate' });
+  }
+};
+
+// Admin authentication middleware
+const adminAuth = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      throw new Error();
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const admin = await Admin.findOne({ _id: decoded.id });
+    
+    if (!admin) {
+      throw new Error();
+    }
+
+    req.admin = admin;
+    req.token = token;
+    next();
+  } catch (error) {
+    res.status(401).json({ error: 'Please authenticate as admin' });
   }
 };
 
@@ -493,39 +516,127 @@ app.get('/api/connections/:investorId', (req, res) => {
 app.post('/api/admin/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Validate input
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-
-    // Find admin
     const admin = await Admin.findOne({ email });
+
     if (!admin) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Check password
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate token
-    const token = jwt.sign({ id: admin._id, role: 'admin' }, JWT_SECRET);
+    const token = jwt.sign({ id: admin._id }, JWT_SECRET);
+    res.json({ admin, token });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
-    // Return success response
+// Admin dashboard routes
+app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
+  try {
+    const totalDevelopers = await Developer.countDocuments();
+    const totalInvestors = await Investor.countDocuments();
+    const totalProjects = await Project.countDocuments();
+    const totalInvestments = await Investment.countDocuments();
+
+    const recentProjects = await Project.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('developer', 'name company');
+
+    const recentInvestments = await Investment.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('investor', 'name')
+      .populate('project', 'title');
+
     res.json({
-      message: 'Login successful',
-      admin: {
-        id: admin._id,
-        email: admin.email
+      stats: {
+        totalDevelopers,
+        totalInvestors,
+        totalProjects,
+        totalInvestments
       },
-      token
+      recentProjects,
+      recentInvestments
     });
   } catch (error) {
-    console.error('Admin login error:', error);
-    res.status(500).json({ error: 'Server error during login' });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Project approval routes
+app.put('/api/admin/projects/:id/approve', adminAuth, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    project.status = 'approved';
+    await project.save();
+
+    res.json({ message: 'Project approved successfully', project });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/admin/projects/:id/reject', adminAuth, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    project.status = 'rejected';
+    project.rejectionReason = req.body.reason;
+    await project.save();
+
+    res.json({ message: 'Project rejected successfully', project });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// User management routes
+app.get('/api/admin/users', adminAuth, async (req, res) => {
+  try {
+    const developers = await Developer.find().select('-password');
+    const investors = await Investor.find().select('-password');
+    
+    res.json({ developers, investors });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/admin/users/:id/status', adminAuth, async (req, res) => {
+  try {
+    const { type, status } = req.body;
+    let user;
+
+    if (type === 'developer') {
+      user = await Developer.findById(req.params.id);
+    } else if (type === 'investor') {
+      user = await Investor.findById(req.params.id);
+    } else {
+      return res.status(400).json({ error: 'Invalid user type' });
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.status = status;
+    await user.save();
+
+    res.json({ message: 'User status updated successfully', user });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -716,6 +827,68 @@ async function generateRecommendations(development) {
   }
 }
 
+// Admin profile routes
+app.get('/api/admin/profile', adminAuth, async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin._id).select('-password');
+    res.json(admin);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/admin/profile', adminAuth, async (req, res) => {
+  try {
+    const { name, phone, bio, settings } = req.body;
+    const admin = await Admin.findById(req.admin._id);
+    
+    if (name) admin.name = name;
+    if (phone) admin.phone = phone;
+    if (bio) admin.bio = bio;
+    if (settings) admin.settings = { ...admin.settings, ...settings };
+    
+    await admin.save();
+    res.json({ message: 'Profile updated successfully', admin });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+app.put('/api/admin/settings', adminAuth, async (req, res) => {
+  try {
+    const { emailNotifications, pushNotifications, darkMode, language } = req.body;
+    const admin = await Admin.findById(req.admin._id);
+    
+    admin.settings = {
+      emailNotifications: emailNotifications ?? admin.settings.emailNotifications,
+      pushNotifications: pushNotifications ?? admin.settings.pushNotifications,
+      darkMode: darkMode ?? admin.settings.darkMode,
+      language: language ?? admin.settings.language
+    };
+    
+    await admin.save();
+    res.json({ message: 'Settings updated successfully', settings: admin.settings });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/profile/image', adminAuth, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    const admin = await Admin.findById(req.admin._id);
+    admin.imageUrl = `/uploads/${req.file.filename}`;
+    await admin.save();
+
+    res.json({ message: 'Profile image updated successfully', imageUrl: admin.imageUrl });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Root path handler
 app.get('/', (req, res) => {
   res.json({
@@ -739,7 +912,7 @@ app.get('/', (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ status: 'ok', message: 'Server is running' });
 });
 
 // Error handling middleware
