@@ -5,6 +5,9 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { motion, AnimatePresence } from 'framer-motion'
 import AIAnalysis from '../../components/AIAnalysis'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { doc, updateDoc } from 'firebase/firestore'
+import { auth, db } from '../../firebase'
 
 // API endpoints (to be implemented)
 const API_ENDPOINTS = {
@@ -341,7 +344,7 @@ const mockMessages = {
 
 export default function InvestorDashboard() {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState('analytics')
+  const [activeTab, setActiveTab] = useState('dashboard')
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -451,16 +454,34 @@ export default function InvestorDashboard() {
     content: '',
     category: 'general'
   })
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
   // Add profileImage state
-  const handleImageChange = (event) => {
+  const handleImageChange = async (event) => {
     const file = event.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImage(reader.result);
-      };
-      reader.readAsDataURL(file);
+      try {
+        // Create a preview URL
+        const previewUrl = URL.createObjectURL(file);
+        setProfileImage(previewUrl);
+
+        // Upload to Firebase Storage
+        const storageRef = ref(storage, `profile_images/${auth.currentUser.uid}`);
+        const uploadResult = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(uploadResult.ref);
+
+        // Update profile in Firestore
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+        await updateDoc(userRef, {
+          profileImage: downloadURL
+        });
+
+        handleToast('Profile picture updated successfully');
+      } catch (error) {
+        console.error('Error uploading profile image:', error);
+        handleToast('Failed to update profile picture', 'error');
+      }
     }
   };
 
@@ -1366,6 +1387,8 @@ export default function InvestorDashboard() {
         return renderConnections();
       case 'forum':
         return renderForum();
+      case 'profile':
+        return renderProfile();
       default:
         return renderAnalytics();
     }
@@ -1937,6 +1960,33 @@ export default function InvestorDashboard() {
 
         {isEditingProfile ? (
           <form onSubmit={handleSubmit(handleProfileSave)} className="space-y-6">
+            <div className="flex flex-col items-center mb-6">
+              <div className="relative">
+                <img
+                  src={profileImage || 'https://via.placeholder.com/150'}
+                  alt="Profile"
+                  className="h-32 w-32 rounded-full object-cover border-4 border-indigo-500"
+                />
+                <label
+                  htmlFor="profile-image-upload"
+                  className="absolute bottom-0 right-0 bg-indigo-600 text-white p-2 rounded-full cursor-pointer hover:bg-indigo-700 transition-colors"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </label>
+                <input
+                  id="profile-image-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageChange}
+                />
+              </div>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Click the camera icon to change your profile picture</p>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -2363,6 +2413,25 @@ export default function InvestorDashboard() {
     )
   }
 
+  const handleProfileClick = () => {
+    setIsProfileDropdownOpen(!isProfileDropdownOpen);
+  };
+
+  const handleProfileOptionClick = (option) => {
+    setIsProfileDropdownOpen(false);
+    switch (option) {
+      case 'view':
+        handleTabChange('profile');
+        break;
+      case 'settings':
+        setIsEditingProfile(true);
+        break;
+      case 'logout':
+        handleLogout();
+        break;
+    }
+  };
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -2387,17 +2456,65 @@ export default function InvestorDashboard() {
               transition={{ delay: 0.3 }}
               className="flex items-center space-x-4"
             >
-                <motion.button
+                <div className="relative">
+                  <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                onClick={() => setIsEditingProfile(!isEditingProfile)}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    onClick={handleProfileClick}
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
-                <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                Profile
-                </motion.button>
+                    <img
+                      src={profileImage || 'https://via.placeholder.com/32'}
+                      alt="Profile"
+                      className="h-8 w-8 rounded-full mr-2"
+                    />
+                    <span>{profile?.name || 'Profile'}</span>
+                    <motion.svg
+                      className="ml-2 h-5 w-5"
+                      animate={{ rotate: isProfileDropdownOpen ? 180 : 0 }}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </motion.svg>
+                  </motion.button>
+
+                  <AnimatePresence>
+                    {isProfileDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50"
+                      >
+                        <div className="py-1" role="menu" aria-orientation="vertical">
+                          <button
+                            onClick={() => handleProfileOptionClick('view')}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            role="menuitem"
+                          >
+                            View Profile
+                          </button>
+                          <button
+                            onClick={() => handleProfileOptionClick('settings')}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            role="menuitem"
+                          >
+                            Settings
+                          </button>
+                          <button
+                            onClick={() => handleProfileOptionClick('logout')}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            role="menuitem"
+                          >
+                            Logout
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}

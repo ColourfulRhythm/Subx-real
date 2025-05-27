@@ -2,6 +2,48 @@ import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 
+// Animated background component
+const AnimatedBackground = () => {
+  return (
+    <div className="fixed inset-0 -z-10">
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50" />
+      <motion.div
+        className="absolute inset-0 opacity-30"
+        animate={{
+          background: [
+            'radial-gradient(circle at 0% 0%, #818cf8 0%, transparent 50%)',
+            'radial-gradient(circle at 100% 0%, #818cf8 0%, transparent 50%)',
+            'radial-gradient(circle at 100% 100%, #818cf8 0%, transparent 50%)',
+            'radial-gradient(circle at 0% 100%, #818cf8 0%, transparent 50%)',
+            'radial-gradient(circle at 0% 0%, #818cf8 0%, transparent 50%)',
+          ],
+        }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: "linear"
+        }}
+      />
+      <motion.div
+        className="absolute inset-0 opacity-20"
+        animate={{
+          background: [
+            'radial-gradient(circle at 50% 50%, #c084fc 0%, transparent 50%)',
+            'radial-gradient(circle at 30% 70%, #c084fc 0%, transparent 50%)',
+            'radial-gradient(circle at 70% 30%, #c084fc 0%, transparent 50%)',
+            'radial-gradient(circle at 50% 50%, #c084fc 0%, transparent 50%)',
+          ],
+        }}
+        transition={{
+          duration: 15,
+          repeat: Infinity,
+          ease: "linear"
+        }}
+      />
+    </div>
+  )
+}
+
 export default function LandingPage() {
   const navigate = useNavigate()
 
@@ -20,7 +62,9 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen relative overflow-hidden">
+      <AnimatedBackground />
+      
       {/* Navigation */}
       <motion.nav 
         initial={{ y: -100 }}
@@ -66,7 +110,7 @@ export default function LandingPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
-        className="pt-24 pb-16 bg-gradient-to-b from-white to-indigo-50"
+        className="pt-24 pb-16 relative"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -122,7 +166,7 @@ export default function LandingPage() {
         whileInView="animate"
         viewport={{ once: true }}
         variants={staggerContainer}
-        className="py-20 bg-white"
+        className="py-20 relative"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -168,7 +212,7 @@ export default function LandingPage() {
         whileInView="animate"
         viewport={{ once: true }}
         variants={staggerContainer}
-        className="py-20 bg-gradient-to-b from-indigo-50 to-white"
+        className="py-20 relative"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.h2 
@@ -222,7 +266,7 @@ export default function LandingPage() {
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 0.8 }}
-        className="py-20 bg-white"
+        className="py-20 relative"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.h2 
@@ -271,49 +315,72 @@ export default function LandingPage() {
         className="bg-gray-50 py-12"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            variants={staggerContainer}
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-8"
-          >
-            {[
-              {
-                title: "Product",
-                links: ["Features", "Pricing", "Security"]
-              },
-              {
-                title: "Company",
-                links: ["About", "Blog", "Careers"]
-              },
-              {
-                title: "Resources",
-                links: ["Documentation", "Help Center", "Contact"]
-              },
-              {
-                title: "Legal",
-                links: ["Privacy", "Terms", "Security"]
-              }
-            ].map((section, index) => (
-              <motion.div
-                key={index}
-                variants={fadeInUp}
-              >
-                <h3 className="text-sm font-semibold text-gray-900 mb-4">{section.title}</h3>
-                <ul className="space-y-2">
-                  {section.links.map((link, linkIndex) => (
-                    <motion.li
-                      key={linkIndex}
-                      whileHover={{ x: 5 }}
-                    >
-                      <a href="#" className="text-gray-600 hover:text-indigo-600">{link}</a>
-                    </motion.li>
-                  ))}
-                </ul>
-              </motion.div>
-            ))}
-          </motion.div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Product</h3>
+              <ul className="mt-4 space-y-4">
+                {[
+                  { name: 'Features', href: '/features' },
+                  { name: 'Pricing', href: '/pricing' },
+                  { name: 'Security', href: '#' }
+                ].map((item) => (
+                  <li key={item.name}>
+                    <Link to={item.href} className="text-base text-gray-500 hover:text-gray-900">
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Company</h3>
+              <ul className="mt-4 space-y-4">
+                {[
+                  { name: 'About', href: '#' },
+                  { name: 'Blog', href: '#' },
+                  { name: 'Careers', href: '#' }
+                ].map((item) => (
+                  <li key={item.name}>
+                    <Link to={item.href} className="text-base text-gray-500 hover:text-gray-900">
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Resources</h3>
+              <ul className="mt-4 space-y-4">
+                {[
+                  { name: 'Documentation', href: '#' },
+                  { name: 'Guides', href: '#' },
+                  { name: 'API Status', href: '#' }
+                ].map((item) => (
+                  <li key={item.name}>
+                    <Link to={item.href} className="text-base text-gray-500 hover:text-gray-900">
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Legal</h3>
+              <ul className="mt-4 space-y-4">
+                {[
+                  { name: 'Privacy', href: '/privacy' },
+                  { name: 'Terms', href: '/terms' },
+                  { name: 'Cookie Policy', href: '/cookie-policy' }
+                ].map((item) => (
+                  <li key={item.name}>
+                    <Link to={item.href} className="text-base text-gray-500 hover:text-gray-900">
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
           <motion.div 
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
