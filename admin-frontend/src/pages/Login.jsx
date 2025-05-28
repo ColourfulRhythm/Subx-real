@@ -19,7 +19,31 @@ export default function Login() {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to login');
+      let errorMessage = 'Failed to login';
+      
+      switch (err.code) {
+        case 'auth/invalid-email':
+          errorMessage = 'Invalid email address';
+          break;
+        case 'auth/user-disabled':
+          errorMessage = 'This account has been disabled';
+          break;
+        case 'auth/user-not-found':
+          errorMessage = 'No account found with this email';
+          break;
+        case 'auth/wrong-password':
+          errorMessage = 'Incorrect password';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Too many failed attempts. Please try again later';
+          break;
+        default:
+          if (err.message === 'User is not authorized as an admin') {
+            errorMessage = 'You are not authorized to access the admin panel';
+          }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

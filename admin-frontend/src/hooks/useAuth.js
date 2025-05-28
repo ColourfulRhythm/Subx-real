@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { auth, db } from '../firebase';
+import { 
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -7,47 +13,51 @@ export function useAuth() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      checkAuth();
-    } else {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // Check if user is an admin
+        const adminDoc = await getDoc(doc(db, 'admins', firebaseUser.uid));
+        if (adminDoc.exists()) {
+          setUser({ ...firebaseUser, ...adminDoc.data() });
+          setIsAuthenticated(true);
+        } else {
+          // User is not an admin, sign them out
+          await signOut(auth);
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+      }
       setLoading(false);
-    }
-  }, []);
+    });
 
-  const checkAuth = async () => {
-    try {
-      const response = await axios.get('/api/admin/dashboard');
-      setUser(response.data.admin);
-      setIsAuthenticated(true);
-    } catch (error) {
-      localStorage.removeItem('adminToken');
-      delete axios.defaults.headers.common['Authorization'];
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => unsubscribe();
+  }, []);
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('/api/admin/login', { email, password });
-      const { token, admin } = response.data;
-      localStorage.setItem('adminToken', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(admin);
-      setIsAuthenticated(true);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const adminDoc = await getDoc(doc(db, 'admins', userCredential.user.uid));
+      
+      if (!adminDoc.exists()) {
+        await signOut(auth);
+        throw new Error('User is not authorized as an admin');
+      }
+
       return true;
     } catch (error) {
       throw error;
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('adminToken');
-    delete axios.defaults.headers.common['Authorization'];
-    setUser(null);
-    setIsAuthenticated(false);
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   return {
