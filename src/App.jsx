@@ -18,6 +18,7 @@ import Pricing from './routes/Pricing'
 import Privacy from './routes/legal/Privacy'
 import Terms from './routes/legal/Terms'
 import CookiePolicy from './routes/legal/CookiePolicy'
+import About from './routes/About'
 import ToastProvider from './components/ToastProvider'
 
 const ProtectedRoute = ({ children, requiredUserType }) => {
@@ -134,6 +135,11 @@ const App = () => {
           <Route path="/pricing" element={
             <PageTransition>
               <Pricing />
+            </PageTransition>
+          } />
+          <Route path="/about" element={
+            <PageTransition>
+              <About />
             </PageTransition>
           } />
           <Route path="/privacy" element={

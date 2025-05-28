@@ -336,25 +336,9 @@ export default function LandingPage() {
               <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Company</h3>
               <ul className="mt-4 space-y-4">
                 {[
-                  { name: 'About', href: '#' },
+                  { name: 'About', href: '/about' },
                   { name: 'Blog', href: '#' },
                   { name: 'Careers', href: '#' }
-                ].map((item) => (
-                  <li key={item.name}>
-                    <Link to={item.href} className="text-base text-gray-500 hover:text-gray-900">
-                      {item.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Resources</h3>
-              <ul className="mt-4 space-y-4">
-                {[
-                  { name: 'Documentation', href: '#' },
-                  { name: 'Guides', href: '#' },
-                  { name: 'API Status', href: '#' }
                 ].map((item) => (
                   <li key={item.name}>
                     <Link to={item.href} className="text-base text-gray-500 hover:text-gray-900">
@@ -388,7 +372,7 @@ export default function LandingPage() {
             transition={{ delay: 0.4 }}
             className="mt-12 pt-8 border-t border-gray-200"
           >
-            <p className="text-center text-gray-500">© 2024 Subx. All rights reserved.</p>
+            <p className="text-center text-gray-500">© 2025 Subx. All rights reserved.</p>
           </motion.div>
         </div>
       </motion.footer>

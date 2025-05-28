@@ -98,6 +98,12 @@ const FirebaseAuth = () => {
                 >
                   Continue as Developer
                 </button>
+                <button
+                  onClick={() => navigate('/')}
+                  className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Cancel
+                </button>
               </div>
 
               {/* Additional Info */}
@@ -155,13 +161,21 @@ const FirebaseAuth = () => {
             ></div>
 
             {/* Back button */}
-            <div className="mt-4 text-center">
+            <div className="mt-4 text-center space-y-4">
               <button
                 onClick={() => setSelectedProfile(null)}
                 className="text-sm text-indigo-600 hover:text-indigo-500"
               >
                 ← Back to profile selection
               </button>
+              <div>
+                <button
+                  onClick={() => navigate('/')}
+                  className="text-sm text-gray-600 hover:text-gray-500"
+                >
+                  Cancel and return to home
+                </button>
+              </div>
             </div>
 
             {/* Additional Info */}

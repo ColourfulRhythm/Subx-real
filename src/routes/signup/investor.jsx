@@ -14,7 +14,7 @@ const schema = yup.object().shape({
     .oneOf([yup.ref('password'), null], 'Passwords must match')
     .required('Confirm password is required'),
   investmentFocus: yup.string().required('Investment focus is required'),
-  investmentAmount: yup.number().min(10000, 'Minimum investment amount is $10,000').required('Investment amount is required'),
+  investmentAmount: yup.number().min(10000, 'Minimum investment amount is ₦10,000').required('Investment amount is required'),
   experience: yup.string().required('Experience level is required'),
 })
 
@@ -240,7 +240,7 @@ export default function InvestorSignup() {
               transition={{ delay: 1.0 }}
             >
               <label htmlFor="investmentAmount" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Investment Amount ($)
+                Investment Amount (₦)
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input

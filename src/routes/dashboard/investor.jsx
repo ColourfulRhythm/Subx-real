@@ -1658,7 +1658,7 @@ export default function InvestorDashboard() {
                 </motion.button>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
                 {/* Project Information */}
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6">
                   <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">

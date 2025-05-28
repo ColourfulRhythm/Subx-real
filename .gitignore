@@ -29,5 +29,9 @@ yarn-error.log*
 *.swp
 *.swo
 
+# Firebase
+.firebase/
+firebase-debug.log
+
 # MongoDB
-data/db/
+data/

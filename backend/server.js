@@ -13,6 +13,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import Investment from './models/Investment.js';
 import OpenAI from 'openai';
+import adminRouter from './routes/admin.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -889,6 +890,9 @@ app.post('/api/admin/profile/image', adminAuth, upload.single('image'), async (r
   }
 });
 
+// Admin routes
+app.use('/api/admin', adminRouter);
+
 // Root path handler
 app.get('/', (req, res) => {
   res.json({
@@ -924,7 +928,7 @@ app.use((err, req, res, next) => {
 // Start server with error handling
 const startServer = (port) => {
   const server = app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+    console.log(`Server running at http://localhost:${port}`);
   }).on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       console.log(`Port ${port} is in use, trying ${port + 1}...`);
@@ -945,4 +949,4 @@ const startServer = (port) => {
   });
 };
 
-startServer(port); 
+startServer(30001); 
