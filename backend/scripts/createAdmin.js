@@ -1,35 +1,35 @@
 import 'dotenv/config';
-import connectDB from '../config/db.js';
-import Admin from '../models/Admin.js';
+import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import Admin from '../models/Admin.js';
+import connectDB from '../config/db.js';
 
-const createDefaultAdmin = async () => {
+const createAdmin = async () => {
   try {
     await connectDB();
 
-    // Check if admin already exists
-    const existingAdmin = await Admin.findOne({ email: 'admin@subx.com' });
+    const adminData = {
+      name: 'Admin User',
+      email: process.env.ADMIN_EMAIL || 'admin@subx.com',
+      password: await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', 10),
+      role: 'super_admin'
+    };
+
+    const existingAdmin = await Admin.findOne({ email: adminData.email });
     if (existingAdmin) {
-      console.log('Default admin already exists');
+      console.log('Admin user already exists');
       process.exit(0);
     }
 
-    // Create default admin
-    const hashedPassword = await bcrypt.hash('admin123', 10);
-    const admin = new Admin({
-      name: 'Admin User',
-      email: 'admin@subx.com',
-      password: hashedPassword,
-      role: 'super_admin'
-    });
-
+    const admin = new Admin(adminData);
     await admin.save();
-    console.log('Default admin created successfully');
+
+    console.log('Admin user created successfully');
     process.exit(0);
   } catch (error) {
-    console.error('Error creating default admin:', error);
+    console.error('Error creating admin user:', error);
     process.exit(1);
   }
 };
 
-createDefaultAdmin(); 
+createAdmin(); 

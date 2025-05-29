@@ -14,6 +14,7 @@ import jwt from 'jsonwebtoken';
 import Investment from './models/Investment.js';
 import OpenAI from 'openai';
 import adminRouter from './routes/admin.js';
+import notificationsRouter from './routes/notifications.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,7 +25,7 @@ const openai = process.env.OPENAI_API_KEY ? new OpenAI({
 }) : null;
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 30001;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Connect to MongoDB
@@ -39,6 +40,10 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Mount routes
+app.use('/api/admin', adminRouter);
+app.use('/api/notifications', notificationsRouter);
 
 // Configure multer for image uploads
 const storage = multer.diskStorage({
@@ -890,9 +895,6 @@ app.post('/api/admin/profile/image', adminAuth, upload.single('image'), async (r
   }
 });
 
-// Admin routes
-app.use('/api/admin', adminRouter);
-
 // Root path handler
 app.get('/', (req, res) => {
   res.json({
@@ -925,28 +927,27 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// Start server with error handling
-const startServer = (port) => {
-  const server = app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-  }).on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      console.log(`Port ${port} is in use, trying ${port + 1}...`);
-      startServer(port + 1);
-    } else {
-      console.error('Error starting server:', err);
-      process.exit(1);
-    }
-  });
-
-  // Handle graceful shutdown
-  process.on('SIGTERM', () => {
-    console.log('SIGTERM signal received: closing HTTP server');
-    server.close(() => {
-      console.log('HTTP server closed');
-      process.exit(0);
+// Add error handling for port in use
+const startServer = async () => {
+  try {
+    const server = app.listen(port, () => {
+      console.log(`Server running at http://localhost:${port}`);
     });
-  });
+
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${port} is in use. Please free up the port or use a different one.`);
+        process.exit(1);
+      } else {
+        console.error('Error starting server:', error);
+        process.exit(1);
+      }
+    });
+  } catch (error) {
+    console.error('Error starting server:', error);
+    process.exit(1);
+  }
 };
 
-startServer(30001); 
+// Start server after MongoDB connection
+startServer(); 
