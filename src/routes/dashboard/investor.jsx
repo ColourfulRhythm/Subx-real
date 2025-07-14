@@ -118,6 +118,13 @@ const mockDevelopers = {
     minUnits: 150,
     maxUnits: 1000000,
     unitPrice: 350000 // ₦350,000 per unit
+  },
+  'focalpoint': {
+    id: 'focalpoint',
+    name: 'Focal Point Property Development and Management Services Ltd.',
+    minUnits: 4,
+    maxUnits: 5000,
+    unitPrice: 5000 // ₦5,000 per sqm
   }
 }
 
