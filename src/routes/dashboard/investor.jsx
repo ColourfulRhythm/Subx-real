@@ -302,7 +302,6 @@ const mockMessages = {
 }
 
 // Add Paystack script loader
-import { useEffect } from 'react';
 
 // Add Paystack payment handler
 const payWithPaystack = (amount, email, name) => {
