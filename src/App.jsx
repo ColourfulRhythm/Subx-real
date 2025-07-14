@@ -105,7 +105,11 @@ const App = () => {
       console.log('Auth state changed:', user ? 'User logged in' : 'No user')
     })
 
-    return () => unsubscribe()
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe()
+      }
+    }
   }, [])
 
   return (

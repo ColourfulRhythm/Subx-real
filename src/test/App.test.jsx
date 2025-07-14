@@ -1,44 +1,62 @@
+import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import App from '../App';
-import LandingPage from '../routes/LandingPage';
-import DeveloperSignup from '../routes/signup/developer';
-import InvestorSignup from '../routes/signup/investor';
 
 describe('App Component', () => {
   test('renders landing page by default', () => {
-    render(
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    );
-    expect(screen.getByText(/Connect Developers/i)).toBeInTheDocument();
+    render(<App />);
+    const ownershipTexts = screen.getAllByText(/Real Estate Ownership/i);
+    expect(ownershipTexts.length).toBeGreaterThan(0);
+    expect(screen.getByText(/Made Simple/i)).toBeInTheDocument();
+  });
+
+  test('renders signup form fields', async () => {
+    render(<App />);
+    
+    // Navigate to developer signup
+    const developerButton = screen.getByText(/Get Started as Developer/i);
+    fireEvent.click(developerButton);
+    
+    // Wait for form to be visible
+    const firstNameLabel = await screen.findByLabelText(/First Name/i);
+    expect(firstNameLabel).toBeInTheDocument();
+    expect(screen.getByLabelText(/Company Name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Phone Number/i)).toBeInTheDocument();
+  });
+
+  test('renders investor signup form fields', async () => {
+    render(<App />);
+    
+    // Navigate to investor signup
+    const investorButton = screen.getByText(/Get Started as Investor/i);
+    fireEvent.click(investorButton);
+    
+    // Wait for form to be visible
+    const firstNameLabel = await screen.findByLabelText(/First Name/i);
+    expect(firstNameLabel).toBeInTheDocument();
+    expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Phone Number/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Investment Focus/i)).toBeInTheDocument();
   });
 });
 
 describe('LandingPage Component', () => {
   test('renders developer and investor signup buttons', () => {
-    render(
-      <BrowserRouter>
-        <LandingPage />
-      </BrowserRouter>
-    );
-    expect(screen.getByText(/I'm a Developer/i)).toBeInTheDocument();
-    expect(screen.getByText(/I'm an Investor/i)).toBeInTheDocument();
+    render(<App />);
+    expect(screen.getByText(/Get Started as Developer/i)).toBeInTheDocument();
+    expect(screen.getByText(/Get Started as Investor/i)).toBeInTheDocument();
   });
 });
 
 describe('DeveloperSignup Component', () => {
   test('renders signup form fields', () => {
-    render(
-      <BrowserRouter>
-        <DeveloperSignup />
-      </BrowserRouter>
-    );
-    expect(screen.getByLabelText(/Name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Company/i)).toBeInTheDocument();
+    render(<App />);
+    expect(screen.getByLabelText(/First Name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Company Name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Phone/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Phone Number/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Website/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Bio/i)).toBeInTheDocument();
   });
@@ -46,15 +64,11 @@ describe('DeveloperSignup Component', () => {
 
 describe('InvestorSignup Component', () => {
   test('renders signup form fields', () => {
-    render(
-      <BrowserRouter>
-        <InvestorSignup />
-      </BrowserRouter>
-    );
-    expect(screen.getByLabelText(/Name/i)).toBeInTheDocument();
+    render(<App />);
+    expect(screen.getByLabelText(/First Name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Phone/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Bio/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Investment Interests/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Phone Number/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Investment Focus/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Investment Amount/i)).toBeInTheDocument();
   });
 }); 

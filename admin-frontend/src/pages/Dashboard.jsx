@@ -1,7 +1,21 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { HomeIcon, UsersIcon, BuildingOfficeIcon, ShieldCheckIcon, CogIcon } from '@heroicons/react/24/outline';
+import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import VerificationReview from '../components/VerificationReview';
+import Settings from '../components/Settings';
 
-export default function Dashboard() {
+const navigation = [
+  { name: 'Overview', href: '/', icon: HomeIcon },
+  { name: 'Users', href: '/users', icon: UsersIcon },
+  { name: 'Projects', href: '/projects', icon: BuildingOfficeIcon },
+  { name: 'Verifications', href: '/verifications', icon: ShieldCheckIcon },
+  { name: 'Settings', href: '/settings', icon: CogIcon }
+];
+
+const Dashboard = () => {
+  const location = useLocation();
+  
   const [stats, setStats] = useState({
     totalDevelopers: 0,
     totalInvestors: 0,
@@ -38,94 +52,64 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-      
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="card">
-          <h3 className="text-lg font-medium text-gray-900">Total Developers</h3>
-          <p className="mt-2 text-3xl font-semibold text-primary-600">{stats.totalDevelopers}</p>
+    <div className="min-h-screen bg-gray-100">
+      <div className="flex">
+        {/* Sidebar */}
+        <div className="hidden md:flex md:flex-shrink-0">
+          <div className="flex flex-col w-64">
+            <div className="flex flex-col h-0 flex-1 bg-white border-r border-gray-200">
+              <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+                <div className="flex items-center flex-shrink-0 px-4">
+                  <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
+                </div>
+                <nav className="mt-5 flex-1 px-2 bg-white space-y-1">
+                  {navigation.map((item) => {
+                    const isActive = location.pathname === item.href;
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        className={`${
+                          isActive
+                            ? 'bg-gray-100 text-gray-900'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        } group flex items-center px-2 py-2 text-sm font-medium rounded-md`}
+                      >
+                        <item.icon
+                          className={`${
+                            isActive ? 'text-gray-500' : 'text-gray-400 group-hover:text-gray-500'
+                          } mr-3 flex-shrink-0 h-6 w-6`}
+                          aria-hidden="true"
+                        />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="card">
-          <h3 className="text-lg font-medium text-gray-900">Total Investors</h3>
-          <p className="mt-2 text-3xl font-semibold text-primary-600">{stats.totalInvestors}</p>
-        </div>
-        <div className="card">
-          <h3 className="text-lg font-medium text-gray-900">Total Projects</h3>
-          <p className="mt-2 text-3xl font-semibold text-primary-600">{stats.totalProjects}</p>
-        </div>
-        <div className="card">
-          <h3 className="text-lg font-medium text-gray-900">Total Investments</h3>
-          <p className="mt-2 text-3xl font-semibold text-primary-600">{stats.totalInvestments}</p>
-        </div>
-      </div>
 
-      {/* Recent Projects */}
-      <div className="card">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Projects</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Developer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {recentProjects.map((project) => (
-                <tr key={project._id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{project.title}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{project.developer?.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      project.status === 'approved' ? 'bg-green-100 text-green-800' :
-                      project.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {project.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(project.createdAt).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Recent Investments */}
-      <div className="card">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Investments</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Investor</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {recentInvestments.map((investment) => (
-                <tr key={investment._id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{investment.investor?.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{investment.project?.title}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${investment.amount}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(investment.createdAt).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Main content */}
+        <div className="flex flex-col w-0 flex-1 overflow-hidden">
+          <main className="flex-1 relative overflow-y-auto focus:outline-none">
+            <div className="py-6">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                <Routes>
+                  <Route path="/" element={<Overview />} />
+                  <Route path="/users" element={<Users />} />
+                  <Route path="/projects" element={<Projects />} />
+                  <Route path="/verifications" element={<VerificationReview />} />
+                  <Route path="/settings" element={<Settings />} />
+                </Routes>
+              </div>
+            </div>
+          </main>
         </div>
       </div>
     </div>
   );
-} 
+};
+
+export default Dashboard; 

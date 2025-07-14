@@ -1,3 +1,5 @@
+import { auth } from '../firebase';
+
 // Utility function to find available backend port
 export const findBackendPort = async () => {
   // Try port 3000 first since that's our main backend
@@ -47,9 +49,10 @@ export const apiCall = async (endpoint, options = {}) => {
       'Content-Type': 'application/json',
     };
 
-    // Add auth token if available
-    const token = localStorage.getItem('token');
-    if (token) {
+    // Add Firebase ID token if user is authenticated
+    const user = auth.currentUser;
+    if (user) {
+      const token = await user.getIdToken();
       defaultHeaders.Authorization = `Bearer ${token}`;
     }
 

@@ -86,6 +86,7 @@ export default function DeveloperSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
+                  id="firstName"
                   {...register('firstName')}
                   type="text"
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
@@ -112,6 +113,7 @@ export default function DeveloperSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
+                  id="lastName"
                   {...register('lastName')}
                   type="text"
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
@@ -138,6 +140,7 @@ export default function DeveloperSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
+                  id="company"
                   {...register('company')}
                   type="text"
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
@@ -164,6 +167,7 @@ export default function DeveloperSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
+                  id="email"
                   {...register('email')}
                   type="email"
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
@@ -190,6 +194,7 @@ export default function DeveloperSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
+                  id="password"
                   {...register('password')}
                   type="password"
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
@@ -216,6 +221,7 @@ export default function DeveloperSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
+                  id="confirmPassword"
                   {...register('confirmPassword')}
                   type="password"
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
@@ -242,6 +248,7 @@ export default function DeveloperSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
+                  id="phone"
                   {...register('phone')}
                   type="tel"
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
@@ -268,6 +275,7 @@ export default function DeveloperSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
+                  id="website"
                   {...register('website')}
                   type="url"
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
@@ -294,6 +302,7 @@ export default function DeveloperSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <textarea
+                  id="bio"
                   {...register('bio')}
                   rows={4}
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
@@ -320,6 +329,7 @@ export default function DeveloperSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <select
+                  id="projectTypes"
                   {...register('projectTypes')}
                   multiple
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
@@ -351,6 +361,7 @@ export default function DeveloperSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <select
+                  id="experience"
                   {...register('experience')}
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
                 >

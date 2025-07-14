@@ -15,6 +15,7 @@ import Investment from './models/Investment.js';
 import OpenAI from 'openai';
 import adminRouter from './routes/admin.js';
 import notificationsRouter from './routes/notifications.js';
+import verificationRouter from './routes/verification.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,7 +26,7 @@ const openai = process.env.OPENAI_API_KEY ? new OpenAI({
 }) : null;
 
 const app = express();
-const port = process.env.PORT || 30001;
+const port = process.env.PORT || 30002;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Connect to MongoDB
@@ -44,6 +45,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Mount routes
 app.use('/api/admin', adminRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/verification', verificationRouter);
 
 // Configure multer for image uploads
 const storage = multer.diskStorage({

@@ -35,106 +35,59 @@ const profileSchema = yup.object().shape({
 const mockProjects = [
   {
     id: 1,
-    title: 'Lekki Luxury Apartments',
-    developer: 'Lagos Properties Ltd',
-    developerId: 'dev1',
-    location: 'Lagos',
+    title: '2 Seasons',
+    developer: 'Focal Point Property Development and Management Services Ltd.',
+    developerId: 'focalpoint',
+    location: 'Kobape, Abeokuta, Ogun State',
     type: 'Residential',
-    amount: '₦250,000,000',
-    roi: '25%',
-    timeline: '24 months',
-    riskLevel: 'Medium',
-    minUnits: 100,
-    description: 'Luxury apartment complex in the heart of Lekki Phase 1, featuring modern amenities and premium finishes.',
-    detailedDescription: 'This premium residential development offers 150 luxury apartments across 15 floors. Each unit features high-end finishes, smart home technology, and panoramic views of the Lagos skyline. The complex includes a rooftop pool, fitness center, and 24/7 security.',
-    status: 'Active',
-    images: [
-      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-    ],
-    amenities: ['Swimming Pool', 'Fitness Center', '24/7 Security', 'Smart Home', 'Parking'],
-    documents: [
-      { name: 'Project Brochure', url: '#' },
-      { name: 'Financial Projections', url: '#' },
-      { name: 'Location Map', url: '#' }
-    ]
-  },
-  {
-    id: 2,
-    title: 'Maitama Office Complex',
-    developer: 'Abuja Developers',
-    developerId: 'dev2',
-    location: 'Abuja',
-    type: 'Commercial',
-    amount: '₦180,000,000',
-    roi: '20%',
-    timeline: '18 months',
+    amount: '₦5,000/sqm',
+    roi: 'Capital Appreciation',
+    timeline: 'Ongoing',
     riskLevel: 'Low',
-    minUnits: 50,
-    description: 'Premium office space in Maitama, designed for corporate clients with state-of-the-art facilities.',
-    detailedDescription: 'A modern office complex in the heart of Maitama, offering premium office spaces with cutting-edge technology and amenities. The complex features a business center, conference facilities, and premium security services.',
-    status: 'Active',
+    minUnits: 4,
+    maxUnits: 5000,
+    availablePlots: 10,
+    plotSize: 500,
+    description: 'Discover the Future of Living, Wellness, and Innovation. 2 Seasons is a landmark 4-section community set to redefine how people live, own, and create in Ogun State. More than a real estate development, 2 Seasons is a destination—a place where modern lifestyles, nature, and opportunity meet.',
+    detailedDescription: `\
+Why Own in 2 Seasons?\n\n
+Strategic Location\nKobape is rapidly emerging as Abeokuta's most sought-after corridor, driven by infrastructure expansion, migration of Lagos professionals, and strong year-on-year land appreciation.\n\n
+Diverse Revenue Streams\nWith residential plots, luxury lakefront villas, wellness amenities, and a creator-focused tech hub, owners enjoy multiple avenues for short-term returns and long-term growth.\n\n
+Sustainable Design\n2 Seasons integrates green spaces, cycling lanes, water features, and eco-friendly infrastructure, aligning with global trends in regenerative living.\n\n
+First-Mover Advantage\nBe among the pioneers in a project that will set the benchmark for large-scale, mixed-use communities in Ogun State.\n\n
+The Four Sections of 2 Seasons\n\nSection 1 – Residential Space\nA secure, modern neighborhood designed for families, retirees, and professionals.\nFeatures: Gated access, Landscaped streets, Dedicated play areas, Retail and convenience outlets.\n\nSection 2 – The Wellness Hub\nA unique destination for health, relaxation, and connection with nature.\nFeatures: Yoga pavilions, Organic market stalls, Spa and therapy facilities, Walking and cycling trails.\n\nSection 3 – True Vine Lakefront Villas\nPremium waterfront living that combines tranquility with prestige.\nFeatures: Luxury villas overlooking the signature lake, Short-let and Airbnb income potential, Private docks and lounge decks.\n\nSection 4 – Hygge Town\nNigeria's first startup, tech, and creator-focused enclave.\nFeatures: Co-working spaces and digital studios, Smart housing units, Innovation hubs and content creation pods, Spaces designed for collaboration and growth.\n\nGroup Ownership Opportunity\nAvailable: Residential plots only.\nPrice: ₦5,000/sqm.\nPlots: 10 plots of 500 sqm each.\nMinimum ownership: 4 sqm.\n\nInvestor Benefits\nFlexible Payment Plans\nCapital Appreciation Potential\nEarly Owner Discounts\nProfessional Estate Management\nTransparent Documentation and Allocation\n`,
+    status: 'Available',
     images: [
-      'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-      'https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-      'https://images.unsplash.com/photo-1497366754035-f200968a6e72?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
+      '/2 Seasons/2seasons, Abeokuta..PNG',
+      '/2 Seasons/IMG_5877.JPG',
+      '/2 Seasons/IMG_6576.HEIC',
+      '/2 Seasons/IMG_6958.JPG',
+      '/2 Seasons/IMG_6960.JPG',
+      '/2 Seasons/IMG_6962.JPG',
+      '/2 Seasons/IMG_6964.JPG',
+      '/2 Seasons/IMG_6965.JPG',
+      '/2 Seasons/IMG_6966.JPG',
+      '/2 Seasons/IMG_6967.JPG',
+      '/2 Seasons/IMG_6970.JPG',
+      '/2 Seasons/IMG_6972.JPG',
+      '/2 Seasons/Land image.JPG',
+      '/2 Seasons/b60443aa-d807-4de9-8fa7-326e8ab4b1cf.JPG'
     ],
-    amenities: ['Business Center', 'Conference Rooms', 'High-Speed Internet', 'Security', 'Parking'],
-    documents: [
-      { name: 'Project Brochure', url: '#' },
-      { name: 'Floor Plans', url: '#' },
-      { name: 'Location Map', url: '#' }
-    ]
-  },
-  {
-    id: 3,
-    title: 'Victoria Island Mall',
-    developer: 'Lagos Properties Ltd',
-    developerId: 'dev3',
-    location: 'Lagos',
-    type: 'Commercial',
-    amount: '₦500,000,000',
-    roi: '30%',
-    timeline: '36 months',
-    riskLevel: 'High',
-    minUnits: 200,
-    description: 'Luxury shopping mall in Victoria Island, featuring international brands and entertainment facilities.',
-    detailedDescription: 'A premier shopping destination in Victoria Island, offering a mix of luxury retail, entertainment, and dining options. The mall features international brands, a cinema complex, and a food court.',
-    status: 'Active',
-    images: [
-      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-      'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-      'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
+    amenities: [
+      'Gated access',
+      'Landscaped streets',
+      'Dedicated play areas',
+      'Retail and convenience outlets',
+      'Yoga pavilions',
+      'Organic market stalls',
+      'Spa and therapy facilities',
+      'Walking and cycling trails',
+      'Luxury lakefront villas',
+      'Co-working spaces',
+      'Smart housing units',
+      'Innovation hubs',
+      'Content creation pods'
     ],
-    amenities: ['Cinema', 'Food Court', 'Parking', 'Security', 'WiFi'],
-    documents: [
-      { name: 'Project Brochure', url: '#' },
-      { name: 'Tenant Mix', url: '#' },
-      { name: 'Location Map', url: '#' }
-    ]
-  },
-  {
-    id: 4,
-    title: 'Port Harcourt Industrial Park',
-    developer: 'Port Harcourt Estates',
-    developerId: 'dev3',
-    location: 'Port Harcourt',
-    type: 'Industrial',
-    amount: '₦350,000,000',
-    roi: '22%',
-    timeline: '30 months',
-    riskLevel: 'Medium',
-    minUnits: 150,
-    description: 'Modern industrial park with warehouse facilities and logistics support.',
-    detailedDescription: 'A state-of-the-art industrial park offering modern warehouse facilities, logistics support, and business services. The park is strategically located near major transportation routes.',
-    status: 'Active',
-    images: [
-      'https://images.unsplash.com/photo-1504307651254-35680f356dfd?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
-    ],
-    amenities: ['Warehouse Space', 'Logistics Support', 'Security', 'Parking', 'Loading Docks'],
     documents: [
       { name: 'Project Brochure', url: '#' },
       { name: 'Site Plans', url: '#' },
@@ -818,12 +771,11 @@ export default function InvestorDashboard() {
 
   const handleRequestSubmit = () => {
     if (!validateInvestment(selectedUnits)) {
-      return
+      return;
     }
-    setShowConfirmation(true)
+    submitConnectionRequest();
   }
 
-  // Update submitConnectionRequest to use handleToast
   const submitConnectionRequest = async () => {
     try {
       if (!validateInvestment(selectedUnits)) {
@@ -832,40 +784,42 @@ export default function InvestorDashboard() {
 
       setIsSendingRequest(true);
       
-      // Get auth token from localStorage
-      const token = localStorage.getItem('token');
-      if (!token) {
+      // Get Firebase ID token
+      const user = auth.currentUser;
+      if (!user) {
         handleToast('Please log in to submit investment requests', 'error');
         return;
       }
 
-      try {
-        // Prepare request data
-        const requestData = {
-          projectId: selectedProject.id,
-          units: parseInt(selectedUnits),
-          notes: investmentNotes
-        };
+      const token = await user.getIdToken();
+      
+      // Prepare request data
+      const requestData = {
+        projectId: selectedProject.id,
+        units: parseInt(selectedUnits),
+        notes: investmentNotes
+      };
 
-        // Send request to backend
-        const response = await fetch('http://localhost:3000/api/investments/request', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(requestData)
-        });
+      // Send request to backend
+      const response = await fetch('http://localhost:30001/api/investments/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestData)
+      });
 
-        const data = await response.json();
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit investment request');
+      }
 
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to submit investment request');
-        }
+      const data = await response.json();
 
-        // Create new connection object
+      // Create new connection object
       const newConnection = {
-          id: data.investment._id,
+        id: data.investment._id,
         developerId: selectedProject.developerId,
         developer: selectedProject.developer,
         projectId: selectedProject.id,
@@ -874,53 +828,22 @@ export default function InvestorDashboard() {
         amount: investmentAmount,
         status: 'pending',
         createdAt: new Date().toISOString(),
-          notes: investmentNotes,
-          documents: []
+        notes: investmentNotes,
+        documents: []
       };
 
       // Update connections list
-        setConnections(prev => [newConnection, ...prev]);
-        
-        // Show success message
-        handleToast(
-          `Investment request sent successfully! We've notified ${selectedProject.developer} about your interest in ${selectedUnits} unit(s) (${investmentAmount}).`
-        );
+      setConnections(prev => [newConnection, ...prev]);
+      
+      // Show success message
+      handleToast(
+        `Investment request sent successfully! We've notified ${selectedProject.developer} about your interest in ${selectedUnits} unit(s) (${investmentAmount}).`
+      );
 
-        // Switch to connections tab
-        setActiveTab('connections');
-      } catch (error) {
-        // If backend request fails, create a temporary connection
-        console.warn('Backend request failed, creating temporary connection:', error);
-        
-        const tempConnection = {
-          id: Date.now().toString(),
-          developerId: selectedProject.developerId,
-          developer: selectedProject.developer,
-          projectId: selectedProject.id,
-          projectTitle: selectedProject.title,
-          units: selectedUnits,
-          amount: investmentAmount,
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-          notes: investmentNotes,
-          documents: []
-        };
-
-        // Update connections list with temporary connection
-        setConnections(prev => [tempConnection, ...prev]);
-        
-        // Show success message
-        handleToast(
-          `Investment request created! Note: Backend connection failed, this is a temporary record.`,
-          'warning'
-        );
-
-        // Switch to connections tab
-        setActiveTab('connections');
-      }
+      // Switch to connections tab
+      setActiveTab('connections');
       
       // Reset states
-      setSelectedProject(null);
       setSelectedUnits(1);
       setInvestmentAmount('');
       setInvestmentNotes('');

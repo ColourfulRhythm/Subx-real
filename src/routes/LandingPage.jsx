@@ -143,16 +143,7 @@ export default function LandingPage() {
                   whileTap={{ scale: 0.95 }}
                   className="px-8 py-3 text-base font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:opacity-90 transition-opacity"
                 >
-                  Get Started as Investor
-                </motion.button>
-              </Link>
-              <Link to="/signup/developer">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-8 py-3 text-base font-medium text-indigo-600 border-2 border-indigo-600 rounded-full hover:bg-indigo-50 transition-colors"
-                >
-                  Get Started as Developer
+                  Get Started
                 </motion.button>
               </Link>
             </motion.div>
@@ -173,18 +164,18 @@ export default function LandingPage() {
             {[
               {
                 icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
-                title: "Group Investment",
-                description: "Pool resources with others to access larger, more profitable real estate opportunities."
+                title: "Group Co-Ownership",
+                description: "Pool resources with others to access larger, more profitable real estate ownership opportunities with Focal Point Property Development and Management Services Ltd."
               },
               {
                 icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
                 title: "Secure Platform",
-                description: "Your investments are protected with industry-leading security and transparent processes."
+                description: "Your ownership is protected with industry-leading security and transparent processes."
               },
               {
                 icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6",
                 title: "Growth Potential",
-                description: "Access premium real estate opportunities and maximize your investment returns."
+                description: "Access premium real estate opportunities and maximize your co-ownership benefits."
               }
             ].map((feature, index) => (
               <motion.div
@@ -226,17 +217,17 @@ export default function LandingPage() {
               {
                 number: "1",
                 title: "Create Your Profile",
-                description: "Sign up and set your investment preferences"
+                description: "Sign up and set your co-ownership preferences"
               },
               {
                 number: "2",
                 title: "Find Your Group",
-                description: "Connect with like-minded investors"
+                description: "Connect with like-minded co-owners"
               },
               {
                 number: "3",
-                title: "Start Investing",
-                description: "Pool resources and invest in premium properties"
+                title: "Start Co-Owning",
+                description: "Pool resources and co-own premium properties with Focal Point Property Development and Management Services Ltd."
               }
             ].map((step, index) => (
               <motion.div
@@ -276,7 +267,7 @@ export default function LandingPage() {
             transition={{ delay: 0.2 }}
             className="text-4xl font-bold mb-8"
           >
-            Ready to Start Your Investment Journey?
+            Ready to Start Your Ownership Journey?
           </motion.h2>
           <motion.p 
             initial={{ y: 20, opacity: 0 }}
@@ -285,7 +276,7 @@ export default function LandingPage() {
             transition={{ delay: 0.4 }}
             className="text-xl text-gray-600 mb-8"
           >
-            Join thousands of investors who are already growing their portfolios with Subx
+            Join thousands of co-owners who are already growing their portfolios with Subx and Focal Point Property Development and Management Services Ltd.
           </motion.p>
           <motion.div 
             initial={{ y: 20, opacity: 0 }}

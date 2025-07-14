@@ -83,6 +83,7 @@ export default function InvestorSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
+                  id="firstName"
                   {...register('firstName')}
                   type="text"
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
@@ -109,6 +110,7 @@ export default function InvestorSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
+                  id="lastName"
                   {...register('lastName')}
                   type="text"
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
@@ -135,6 +137,7 @@ export default function InvestorSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
+                  id="email"
                   {...register('email')}
                   type="email"
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
@@ -161,6 +164,7 @@ export default function InvestorSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
+                  id="password"
                   {...register('password')}
                   type="password"
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
@@ -187,6 +191,7 @@ export default function InvestorSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
+                  id="confirmPassword"
                   {...register('confirmPassword')}
                   type="password"
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
@@ -213,6 +218,7 @@ export default function InvestorSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <select
+                  id="investmentFocus"
                   {...register('investmentFocus')}
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
                 >
@@ -244,6 +250,7 @@ export default function InvestorSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
+                  id="investmentAmount"
                   {...register('investmentAmount')}
                   type="number"
                   min="10000"
@@ -271,6 +278,7 @@ export default function InvestorSignup() {
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <select
+                  id="experience"
                   {...register('experience')}
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
                 >
