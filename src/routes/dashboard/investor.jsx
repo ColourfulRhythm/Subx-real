@@ -295,6 +295,33 @@ const mockMessages = {
   ]
 }
 
+// Add Paystack script loader
+import { useEffect } from 'react';
+
+// Add Paystack payment handler
+const payWithPaystack = (amount, email, name) => {
+  if (!window.PaystackPop) {
+    alert('Payment gateway not loaded. Please try again.');
+    return;
+  }
+  const handler = window.PaystackPop.setup({
+    key: 'pk_live_c6e9456f9a1b1071ed96b977c21f8fae727400e0',
+    email: email,
+    amount: amount * 100, // Paystack expects amount in kobo
+    currency: 'NGN',
+    ref: 'SUBX-' + Math.floor(Math.random() * 1000000000),
+    label: name,
+    callback: function(response) {
+      handleToast('Payment successful! Reference: ' + response.reference, 'success');
+      // Optionally, notify backend here
+    },
+    onClose: function() {
+      handleToast('Payment window closed', 'info');
+    }
+  });
+  handler.openIframe();
+};
+
 export default function InvestorDashboard() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -520,6 +547,16 @@ export default function InvestorDashboard() {
     }
     fetchData()
   }, [])
+
+  // Load Paystack script on mount
+  useEffect(() => {
+    if (!window.PaystackPop) {
+      const script = document.createElement('script');
+      script.src = 'https://js.paystack.co/v1/inline.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
 
   // API integration functions
   const fetchProfile = async () => {
@@ -889,11 +926,16 @@ export default function InvestorDashboard() {
     setSelectedImage(0)
   }
 
-  const handleInvestNow = (project) => {
-    setSelectedProject(project)
-    setShowProjectModal(false)
-    handleConnectionRequest(project)
-  }
+  // Update handleInvestNow to trigger Paystack
+  const handleOwnNow = (project) => {
+    setSelectedProject(project);
+    setShowProjectModal(false);
+    // Use logged-in user's email and name if available
+    const userEmail = profile?.email || 'test@example.com';
+    const userName = profile?.name || 'User';
+    // Use selectedUnits and unitPrice for amount
+    payWithPaystack(selectedUnits * unitPrice, userEmail, userName);
+  };
 
   // Find the section where project cards are rendered and modify it to include AI Analysis
   const renderProjectCards = () => {
@@ -1487,10 +1529,10 @@ export default function InvestorDashboard() {
                     Close
                   </button>
                   <button
-                    onClick={() => handleInvestNow(selectedProject)}
+                    onClick={() => handleOwnNow(selectedProject)}
                     className="px-6 py-3 text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl hover:opacity-90"
                   >
-                    Invest Now
+                    Own Now
                   </button>
                 </div>
                       </div>
