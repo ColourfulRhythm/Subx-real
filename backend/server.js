@@ -16,6 +16,7 @@ import OpenAI from 'openai';
 import adminRouter from './routes/admin.js';
 import notificationsRouter from './routes/notifications.js';
 import verificationRouter from './routes/verification.js';
+import axios from 'axios';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -953,3 +954,25 @@ const startServer = async () => {
 
 // Start server after MongoDB connection
 startServer(); 
+
+// Paystack payment verification endpoint
+app.get('/api/verify-paystack/:reference', async (req, res) => {
+  const { reference } = req.params;
+  try {
+    const response = await axios.get(
+      `https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
+        }
+      }
+    );
+    if (response.data.status && response.data.data.status === 'success') {
+      res.json({ success: true, data: response.data.data });
+    } else {
+      res.status(400).json({ success: false, message: 'Payment not successful' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Verification failed', error: error.message });
+  }
+}); 

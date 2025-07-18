@@ -1,35 +1,38 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Projects from './pages/Projects';
-import Users from './pages/Users';
-import Layout from './components/Layout';
-import { useAuth } from './hooks/useAuth';
-import Profile from './pages/Profile';
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import Login from './pages/Login.jsx';
+import Dashboard from './pages/Dashboard.jsx';
+import Users from './pages/Users.jsx';
+import Connections from './pages/Connections.jsx';
+import Documents from './pages/Documents.jsx';
+import Messaging from './pages/Messaging.jsx';
+import Projects from './pages/Projects.jsx';
+import Analytics from './pages/Analytics.jsx';
+import PaystackVerification from './pages/PaystackVerification.jsx';
+import Layout from './components/Layout.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
 
-function App() {
-  const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
-  return (
-    <Routes>
-      <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
-      <Route path="/" element={isAuthenticated ? <Layout /> : <Navigate to="/login" />}>
-        <Route index element={<Dashboard />} />
-        <Route path="projects" element={<Projects />} />
-        <Route path="users" element={<Users />} />
-        <Route path="profile" element={<Profile />} />
-      </Route>
-    </Routes>
-  );
-}
+const App = () => (
+  <Routes>
+    <Route path="/login" element={<Login />} />
+    <Route
+      path="/"
+      element={
+        <ProtectedRoute>
+          <Layout />
+        </ProtectedRoute>
+      }
+    >
+      <Route index element={<Dashboard />} />
+      <Route path="users" element={<Users />} />
+      <Route path="connections" element={<Connections />} />
+      <Route path="documents" element={<Documents />} />
+      <Route path="messaging" element={<Messaging />} />
+      <Route path="projects" element={<Projects />} />
+      <Route path="analytics" element={<Analytics />} />
+      <Route path="paystack-verification" element={<PaystackVerification />} />
+    </Route>
+  </Routes>
+);
 
 export default App; 

@@ -8,6 +8,9 @@ import AIAnalysis from '../../components/AIAnalysis'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { doc, updateDoc } from 'firebase/firestore'
 import { auth, db } from '../../firebase'
+import PaymentSuccessModal from '../../components/PaymentSuccessModal'
+import DeedSignatureModal from '../../components/DeedSignatureModal'
+import { generateReceipt } from '../../components/ReceiptDownload'
 
 // API endpoints (to be implemented)
 const API_ENDPOINTS = {
@@ -309,16 +312,29 @@ const payWithPaystack = (amount, email, name) => {
     alert('Payment gateway not loaded. Please try again.');
     return;
   }
+  const reference = 'SUBX-' + Math.floor(Math.random() * 1000000000);
   const handler = window.PaystackPop.setup({
     key: 'pk_live_c6e9456f9a1b1071ed96b977c21f8fae727400e0',
     email: email,
     amount: amount * 100, // Paystack expects amount in kobo
     currency: 'NGN',
-    ref: 'SUBX-' + Math.floor(Math.random() * 1000000000),
+    ref: reference,
     label: name,
     callback: function(response) {
-      handleToast('Payment successful! Reference: ' + response.reference, 'success');
-      // Optionally, notify backend here
+      // Show a loading spinner or message
+      fetch(`http://localhost:30002/api/verify-paystack/${response.reference}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            // Payment is verified!
+            // Show receipt, update user profile, etc.
+          } else {
+            // Show error
+          }
+        })
+        .catch(() => {
+          // Network or server error, show error
+        });
     },
     onClose: function() {
       handleToast('Payment window closed', 'info');
@@ -329,7 +345,7 @@ const payWithPaystack = (amount, email, name) => {
 
 export default function InvestorDashboard() {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useState('discover');
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -441,6 +457,14 @@ export default function InvestorDashboard() {
   })
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  // Add state for payment/deed modals and document storage
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const [showDeedModal, setShowDeedModal] = useState(false);
+  const [receipts, setReceipts] = useState([]); // {reference, date}
+  const [deeds, setDeeds] = useState([]); // {date, signatureDataUrl}
+  const [showSqmModal, setShowSqmModal] = useState(false);
+  const [desiredSqm, setDesiredSqm] = useState(2);
+  const [sqmError, setSqmError] = useState('');
 
   // Add profileImage state
   const handleImageChange = async (event) => {
@@ -934,12 +958,9 @@ export default function InvestorDashboard() {
   // Update handleInvestNow to trigger Paystack
   const handleOwnNow = (project) => {
     setSelectedProject(project);
-    setShowProjectModal(false);
-    // Use logged-in user's email and name if available
-    const userEmail = profile?.email || 'test@example.com';
-    const userName = profile?.name || 'User';
-    // Use selectedUnits and unitPrice for amount
-    payWithPaystack(selectedUnits * unitPrice, userEmail, userName);
+    setDesiredSqm(project.minUnits || 2); // default to minimum
+    setSqmError('');
+    setShowSqmModal(true);
   };
 
   // Find the section where project cards are rendered and modify it to include AI Analysis
@@ -2402,6 +2423,28 @@ export default function InvestorDashboard() {
     }
   };
 
+  // Receipt download handler
+  const handleDownloadReceipt = () => {
+    const lastReceipt = receipts[receipts.length - 1];
+    if (!lastReceipt) return;
+    generateReceipt({
+      user: profile,
+      project: selectedProject,
+      amount: investmentAmount,
+      date: lastReceipt.date,
+      reference: lastReceipt.reference,
+    });
+  };
+
+  // Deed signature handlers
+  const handleSignDeed = () => {
+    setShowDeedModal(true);
+  };
+  const handleDeedSubmit = (signatureDataUrl) => {
+    setDeeds(prev => [...prev, { date: new Date().toLocaleString(), signatureDataUrl }]);
+    setShowDeedModal(false);
+  };
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -2673,6 +2716,68 @@ export default function InvestorDashboard() {
       </AnimatePresence>
 
       {renderShareModal()}
+      <PaymentSuccessModal
+        open={showPaymentSuccess}
+        onClose={() => setShowPaymentSuccess(false)}
+        onDownloadReceipt={handleDownloadReceipt}
+        onSignDeed={handleSignDeed}
+      />
+      <DeedSignatureModal
+        open={showDeedModal}
+        onClose={() => setShowDeedModal(false)}
+        onSubmit={handleDeedSubmit}
+      />
+      {showSqmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">How many sqm do you want to own?</h2>
+            <input
+              type="number"
+              min={selectedProject?.minUnits || 2}
+              value={desiredSqm}
+              onChange={e => setDesiredSqm(Number(e.target.value))}
+              className="border p-2 rounded w-full mb-2"
+            />
+            <div className="flex gap-2 mb-2">
+              {[150, 300, 500, 600].map(val => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setDesiredSqm(val)}
+                  className="px-3 py-1 bg-gray-100 rounded hover:bg-blue-100 border border-gray-300"
+                >
+                  {val}
+                </button>
+              ))}
+            </div>
+            <div className="mb-2 text-lg font-semibold">
+              Amount: ₦{(desiredSqm * 5000).toLocaleString()}
+            </div>
+            {sqmError && <div className="text-red-600 mb-2">{sqmError}</div>}
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowSqmModal(false)}
+                className="px-4 py-2 bg-gray-200 rounded"
+              >Cancel</button>
+              <button
+                onClick={() => {
+                  if (desiredSqm < (selectedProject?.minUnits || 2)) {
+                    setSqmError(`Minimum is ${selectedProject?.minUnits || 2} sqm`);
+                    return;
+                  }
+                  setShowSqmModal(false);
+                  setSelectedUnits(desiredSqm);
+                  setUnitPrice(5000); // 2 Seasons price per sqm
+                  const userEmail = profile?.email || 'test@example.com';
+                  const userName = profile?.name || 'User';
+                  payWithPaystack(desiredSqm * 5000, userEmail, userName);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded"
+              >Proceed to Payment</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

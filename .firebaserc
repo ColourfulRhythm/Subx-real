@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "subx-825e9"
-  }
+    "default": "subx-825e9",
+    "staging": "subx-825e9"
+  },
+  "targets": {},
+  "etags": {}
 }

@@ -8,9 +8,26 @@ import { Project } from '../models/Project.js';
 import { Investment } from '../models/Investment.js';
 import { Verification } from '../models/Verification.js';
 import { Settings } from '../models/Settings.js';
+import Connection from '../models/Connection.js';
+import Document from '../models/Document.js';
+import multer from 'multer';
+import path from 'path';
+import Message from '../models/Message.js';
+import axios from 'axios';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+// Multer setup for file uploads (local storage)
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(process.cwd(), 'uploads/documents'));
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage });
 
 // Admin login
 router.post('/login', async (req, res) => {
@@ -138,6 +155,54 @@ router.get('/users', auth, async (req, res) => {
   }
 });
 
+// Update user status
+router.patch('/users/:id/status', auth, async (req, res) => {
+  try {
+    const { isActive } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { isActive },
+      { new: true }
+    );
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error('Error updating user status:', error);
+    res.status(500).json({ error: 'Failed to update user status' });
+  }
+});
+
+// Create a new user
+router.post('/users', auth, async (req, res) => {
+  try {
+    const { name, email, password, role, phone, bio } = req.body;
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ error: 'Name, email, password, and role are required' });
+    }
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return res.status(400).json({ error: 'Email already exists' });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+      phone,
+      bio,
+      isActive: true
+    });
+    await user.save();
+    res.status(201).json(user);
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
 // Get all projects
 router.get('/projects', auth, async (req, res) => {
   try {
@@ -149,6 +214,91 @@ router.get('/projects', auth, async (req, res) => {
   } catch (error) {
     console.error('Error fetching projects:', error);
     res.status(500).json({ error: 'Failed to fetch projects' });
+  }
+});
+
+// Property CRUD endpoints (admin)
+
+// Create a new project
+router.post('/projects', auth, upload.array('images', 10), async (req, res) => {
+  try {
+    const { title, description, location, type, developerId, status, unitsTotal, unitsAvailable, unitsPrice } = req.body;
+    const imageUrls = req.files ? req.files.map(file => `/uploads/documents/${file.filename}`) : [];
+    const project = new Project({
+      title,
+      description,
+      location,
+      type,
+      imageUrls,
+      developerId,
+      status: status || 'planning',
+      units: {
+        total: unitsTotal,
+        available: unitsAvailable,
+        price: unitsPrice
+      }
+    });
+    await project.save();
+    res.status(201).json(project);
+  } catch (error) {
+    console.error('Error creating project:', error);
+    res.status(500).json({ error: 'Failed to create project' });
+  }
+});
+
+// Get a single project by ID
+router.get('/projects/:id', auth, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    res.json(project);
+  } catch (error) {
+    console.error('Error fetching project:', error);
+    res.status(500).json({ error: 'Failed to fetch project' });
+  }
+});
+
+// Update a project
+router.put('/projects/:id', auth, upload.array('images', 10), async (req, res) => {
+  try {
+    const { title, description, location, type, developerId, status, unitsTotal, unitsAvailable, unitsPrice } = req.body;
+    const imageUrls = req.files ? req.files.map(file => `/uploads/documents/${file.filename}`) : undefined;
+    const update = {
+      title,
+      description,
+      location,
+      type,
+      developerId,
+      status,
+      'units.total': unitsTotal,
+      'units.available': unitsAvailable,
+      'units.price': unitsPrice
+    };
+    if (imageUrls && imageUrls.length > 0) update.imageUrls = imageUrls;
+    const project = await Project.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    res.json(project);
+  } catch (error) {
+    console.error('Error updating project:', error);
+    res.status(500).json({ error: 'Failed to update project' });
+  }
+});
+
+// Delete a project
+router.delete('/projects/:id', auth, async (req, res) => {
+  try {
+    const project = await Project.findByIdAndDelete(req.params.id);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    res.json({ message: 'Project deleted' });
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    res.status(500).json({ error: 'Failed to delete project' });
   }
 });
 
@@ -301,6 +451,228 @@ router.put('/settings', auth, async (req, res) => {
   } catch (error) {
     console.error('Error updating settings:', error);
     res.status(500).json({ message: 'Error updating settings' });
+  }
+});
+
+// --- CONNECTIONS ENDPOINTS ---
+
+// Get all connections
+router.get('/connections', auth, async (req, res) => {
+  try {
+    const connections = await Connection.find().sort({ createdAt: -1 });
+    res.json(connections);
+  } catch (error) {
+    console.error('Error fetching connections:', error);
+    res.status(500).json({ error: 'Failed to fetch connections' });
+  }
+});
+
+// Get a single connection by ID
+router.get('/connections/:id', auth, async (req, res) => {
+  try {
+    const connection = await Connection.findById(req.params.id);
+    if (!connection) {
+      return res.status(404).json({ error: 'Connection not found' });
+    }
+    res.json(connection);
+  } catch (error) {
+    console.error('Error fetching connection:', error);
+    res.status(500).json({ error: 'Failed to fetch connection' });
+  }
+});
+
+// Update connection status
+router.patch('/connections/:id/status', auth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const connection = await Connection.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+    if (!connection) {
+      return res.status(404).json({ error: 'Connection not found' });
+    }
+    res.json(connection);
+  } catch (error) {
+    console.error('Error updating connection status:', error);
+    res.status(500).json({ error: 'Failed to update connection status' });
+  }
+});
+
+// Delete a connection
+router.delete('/connections/:id', auth, async (req, res) => {
+  try {
+    const connection = await Connection.findByIdAndDelete(req.params.id);
+    if (!connection) {
+      return res.status(404).json({ error: 'Connection not found' });
+    }
+    res.json({ message: 'Connection deleted' });
+  } catch (error) {
+    console.error('Error deleting connection:', error);
+    res.status(500).json({ error: 'Failed to delete connection' });
+  }
+});
+
+// --- DOCUMENTS ENDPOINTS ---
+
+// Upload a document
+router.post('/documents', auth, upload.single('file'), async (req, res) => {
+  try {
+    const { type, userId } = req.body;
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    const document = new Document({
+      filename: req.file.filename,
+      url: `/uploads/documents/${req.file.filename}`,
+      type: type || 'other',
+      uploadedBy: req.user._id,
+      userId: userId || undefined
+    });
+    await document.save();
+    res.status(201).json(document);
+  } catch (error) {
+    console.error('Error uploading document:', error);
+    res.status(500).json({ error: 'Failed to upload document' });
+  }
+});
+
+// List all documents
+router.get('/documents', auth, async (req, res) => {
+  try {
+    const documents = await Document.find().sort({ createdAt: -1 });
+    res.json(documents);
+  } catch (error) {
+    console.error('Error fetching documents:', error);
+    res.status(500).json({ error: 'Failed to fetch documents' });
+  }
+});
+
+// Send a document to a user (associate and set sentAt)
+router.post('/documents/:id/send', auth, async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const document = await Document.findByIdAndUpdate(
+      req.params.id,
+      { userId, sentAt: new Date() },
+      { new: true }
+    );
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+    res.json(document);
+  } catch (error) {
+    console.error('Error sending document:', error);
+    res.status(500).json({ error: 'Failed to send document' });
+  }
+});
+
+// Delete a document
+router.delete('/documents/:id', auth, async (req, res) => {
+  try {
+    const document = await Document.findByIdAndDelete(req.params.id);
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+    res.json({ message: 'Document deleted' });
+  } catch (error) {
+    console.error('Error deleting document:', error);
+    res.status(500).json({ error: 'Failed to delete document' });
+  }
+});
+
+// --- MESSAGING ENDPOINTS ---
+
+// List all messages (optionally filter by user)
+router.get('/messages', auth, async (req, res) => {
+  try {
+    const { userId } = req.query;
+    const filter = userId
+      ? { $or: [
+            { senderId: userId, senderType: 'User' },
+            { recipientId: userId, recipientType: 'User' }
+        ] }
+      : {};
+    const messages = await Message.find(filter).sort({ createdAt: -1 });
+    res.json(messages);
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
+// Send a message to a user
+router.post('/messages', auth, async (req, res) => {
+  try {
+    const { recipientId, content } = req.body;
+    const message = new Message({
+      senderId: req.user._id,
+      senderType: 'Admin',
+      recipientId,
+      recipientType: 'User',
+      content
+    });
+    await message.save();
+    res.status(201).json(message);
+  } catch (error) {
+    console.error('Error sending message:', error);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// Mark a message as read
+router.patch('/messages/:id/read', auth, async (req, res) => {
+  try {
+    const message = await Message.findByIdAndUpdate(
+      req.params.id,
+      { read: true },
+      { new: true }
+    );
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+    res.json(message);
+  } catch (error) {
+    console.error('Error marking message as read:', error);
+    res.status(500).json({ error: 'Failed to mark message as read' });
+  }
+});
+
+// Delete a message
+router.delete('/messages/:id', auth, async (req, res) => {
+  try {
+    const message = await Message.findByIdAndDelete(req.params.id);
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+    res.json({ message: 'Message deleted' });
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    res.status(500).json({ error: 'Failed to delete message' });
+  }
+});
+
+// --- PAYSTACK VERIFICATION ENDPOINT ---
+
+router.get('/paystack/verify/:reference', auth, async (req, res) => {
+  const { reference } = req.params;
+  try {
+    const response = await axios.get(
+      `https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
+        }
+      }
+    );
+    if (response.data.status && response.data.data.status === 'success') {
+      res.json({ success: true, data: response.data.data });
+    } else {
+      res.status(400).json({ success: false, message: 'Payment not successful' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Verification failed', error: error.message });
   }
 });
 
