@@ -8,10 +8,32 @@ export default function Projects() {
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editProject, setEditProject] = useState(null);
-  const [form, setForm] = useState({ title: '', description: '', location: '', type: '', developerId: '', status: 'planning', unitsTotal: '', unitsAvailable: '', unitsPrice: '', images: [] });
+  const [form, setForm] = useState({ 
+    title: '', 
+    description: '', 
+    location: '', 
+    type: '', 
+    developerId: '', 
+    status: 'planning', 
+    unitsTotal: '', 
+    unitsAvailable: '', 
+    unitsPrice: '', 
+    images: [],
+    amenities: [],
+    propertyType: 'residential',
+    priceRange: '',
+    targetMarket: '',
+    completionDate: '',
+    roi: '',
+    riskLevel: 'low',
+    minInvestment: '',
+    maxInvestment: ''
+  });
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => {
     fetchProjects();
@@ -98,16 +120,25 @@ export default function Projects() {
   const openEditModal = (project) => {
     setEditProject(project);
     setForm({
-      title: project.title,
-      description: project.description,
-      location: project.location,
-      type: project.type,
+      title: project.title || '',
+      description: project.description || '',
+      location: project.location || '',
+      type: project.type || '',
       developerId: project.developerId?._id || project.developerId || '',
-      status: project.status,
+      status: project.status || 'planning',
       unitsTotal: project.units?.total || '',
       unitsAvailable: project.units?.available || '',
       unitsPrice: project.units?.price || '',
-      images: []
+      images: [],
+      amenities: project.amenities || [],
+      propertyType: project.propertyType || 'residential',
+      priceRange: project.priceRange || '',
+      targetMarket: project.targetMarket || '',
+      completionDate: project.completionDate || '',
+      roi: project.roi || '',
+      riskLevel: project.riskLevel || 'low',
+      minInvestment: project.minInvestment || '',
+      maxInvestment: project.maxInvestment || ''
     });
     setShowEdit(true);
   };
@@ -124,46 +155,94 @@ export default function Projects() {
     return <div className="text-red-500 text-center mt-8">{error}</div>;
   }
 
+  const filteredProjects = projects.filter(project => {
+    const matchesSearch = project.title.toLowerCase().includes(search.toLowerCase()) ||
+                         project.location.toLowerCase().includes(search.toLowerCase()) ||
+                         (project.developerId?.name || '').toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || project.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-gray-900">Projects</h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Projects Management</h1>
+          <p className="text-gray-600 mt-1">Manage all property projects and listings</p>
+        </div>
         <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
           + New Project
         </button>
       </div>
-      {successMsg && <div className="text-green-600 text-center">{successMsg}</div>}
-      {error && <div className="text-red-500 text-center mt-2">{error}</div>}
+
+      {/* Filters */}
+      <div className="flex space-x-4">
+        <input
+          type="text"
+          className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          placeholder="Search projects..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select
+          className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+        >
+          <option value="all">All Status</option>
+          <option value="planning">Planning</option>
+          <option value="in-progress">In Progress</option>
+          <option value="completed">Completed</option>
+          <option value="suspended">Suspended</option>
+        </select>
+      </div>
+
+      {successMsg && <div className="text-green-600 text-center p-3 bg-green-50 rounded">{successMsg}</div>}
+      {error && <div className="text-red-500 text-center mt-2 p-3 bg-red-50 rounded">{error}</div>}
       <div className="card">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Developer</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {projects.map((project) => (
+              {filteredProjects.map((project) => (
                 <tr
                   key={project._id}
                   className="cursor-pointer hover:bg-gray-50"
                   onClick={() => openEditModal(project)}
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{project.title}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{project.developerId?.name || project.developer?.name || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{project.title}</div>
+                      <div className="text-sm text-gray-500">{project.propertyType}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {project.developerId?.name || project.developer?.name || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{project.location}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{project.type}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                       project.status === 'completed' ? 'bg-green-100 text-green-800' :
                       project.status === 'in-progress' ? 'bg-yellow-100 text-yellow-800' :
+                      project.status === 'suspended' ? 'bg-red-100 text-red-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>
                       {project.status}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {project.units?.available || 0}/{project.units?.total || 0}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button

@@ -5,18 +5,19 @@ import bodyParser from 'body-parser';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import connectDB from './config/db.js';
-import Developer from './models/Developer.js';
-import Project from './models/Project.js';
-import Admin from './models/Admin.js';
+import { connectDB } from './config/db.js';
+import { Developer } from './models/Developer.js';
+import { Project } from './models/Project.js';
+import { Admin } from './models/Admin.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import Investment from './models/Investment.js';
+import { Investment } from './models/Investment.js';
 import OpenAI from 'openai';
-import adminRouter from './routes/admin.js';
-import notificationsRouter from './routes/notifications.js';
-import verificationRouter from './routes/verification.js';
+import { adminRouter } from './routes/admin.js';
+import { notificationsRouter } from './routes/notifications.js';
+import { verificationRouter } from './routes/verification.js';
 import axios from 'axios';
+import { documentsRouter } from './routes/documents.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,6 +48,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/admin', adminRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/verification', verificationRouter);
+app.use('/api/documents', documentsRouter);
 
 // Configure multer for image uploads
 const storage = multer.diskStorage({
@@ -522,27 +524,6 @@ app.get('/api/connections/:investorId', (req, res) => {
 });
 
 // Admin routes
-app.post('/api/admin/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const admin = await Admin.findOne({ email });
-
-    if (!admin) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const isMatch = await bcrypt.compare(password, admin.password);
-    if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign({ id: admin._id }, JWT_SECRET);
-    res.json({ admin, token });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
 // Admin dashboard routes
 app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
   try {

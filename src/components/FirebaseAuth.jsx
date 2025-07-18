@@ -93,10 +93,11 @@ const FirebaseAuth = () => {
                   Continue as Investor
                 </button>
                 <button
-                  onClick={() => handleProfileSelect('developer')}
-                  className="w-full flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  className="w-full flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gray-400 cursor-not-allowed opacity-60"
+                  disabled
+                  title="Not available, coming soon"
                 >
-                  Continue as Developer
+                  Continue as Developer (Coming Soon)
                 </button>
                 <button
                   onClick={() => navigate('/')}

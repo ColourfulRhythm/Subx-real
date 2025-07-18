@@ -1,57 +1,33 @@
 import mongoose from 'mongoose';
 
 const projectSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: [true, 'Title is required'],
-    trim: true
-  },
-  description: {
-    type: String,
-    required: [true, 'Description is required'],
-    trim: true
-  },
-  location: {
-    type: String,
-    required: [true, 'Location is required'],
-    trim: true
-  },
-  type: {
-    type: String,
-    required: [true, 'Project type is required'],
-    trim: true
-  },
-  imageUrls: [{
-    type: String
-  }],
-  developerId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Developer',
-    required: true
-  },
-  status: {
-    type: String,
-    enum: ['planning', 'in-progress', 'completed'],
-    default: 'planning'
-  },
+  title: { type: String, required: true },
+  description: { type: String },
+  location: { type: String, required: true },
+  type: { type: String, required: true },
+  propertyType: { type: String, enum: ['residential', 'commercial', 'industrial', 'mixed-use'], default: 'residential' },
+  priceRange: { type: String },
+  targetMarket: { type: String },
+  completionDate: { type: Date },
+  roi: { type: String },
+  riskLevel: { type: String, enum: ['low', 'medium', 'high'], default: 'low' },
+  minInvestment: { type: Number },
+  maxInvestment: { type: Number },
+  imageUrls: [{ type: String }],
+  amenities: [{ type: String }],
+  developerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Developer' },
+  amount: { type: String },
+  status: { type: String, default: 'planning' },
   units: {
-    total: {
-      type: Number,
-      required: true
-    },
-    available: {
-      type: Number,
-      required: true
-    },
-    price: {
-      type: Number,
-      required: true
-    }
-  }
-}, {
-  timestamps: true
-});
+    total: { type: Number, default: 0 },
+    available: { type: Number, default: 0 },
+    price: { type: Number, default: 0 }
+  },
+  soldUnits: { type: Number },
+  startDate: { type: Date },
+  expectedCompletion: { type: Date },
+  investors: { type: Number },
+  totalInvestment: { type: String }
+}, { timestamps: true });
 
-const Project = mongoose.model('Project', projectSchema);
-
-export default Project; 
+export const Project = mongoose.model('Project', projectSchema); 

@@ -10,7 +10,7 @@ import { doc, updateDoc } from 'firebase/firestore'
 import { auth, db } from '../../firebase'
 import PaymentSuccessModal from '../../components/PaymentSuccessModal'
 import DeedSignatureModal from '../../components/DeedSignatureModal'
-import { generateReceipt } from '../../components/ReceiptDownload'
+import { generateReceipt, generateOwnershipCertificate, generateDeedPDF } from '../../components/ReceiptDownload'
 
 // API endpoints (to be implemented)
 const API_ENDPOINTS = {
@@ -37,8 +37,8 @@ const profileSchema = yup.object().shape({
 // Mock data for projects with additional media
 const mockProjects = [
   {
-    id: 1,
-    title: '2 Seasons',
+    id: 76,
+    title: '2 Seasons - Plot 76',
     developer: 'Focal Point Property Development and Management Services Ltd.',
     developerId: 'focalpoint',
     location: 'Kobape, Abeokuta, Ogun State',
@@ -47,33 +47,16 @@ const mockProjects = [
     roi: 'Capital Appreciation',
     timeline: 'Ongoing',
     riskLevel: 'Low',
-    minUnits: 4,
-    maxUnits: 5000,
-    availablePlots: 10,
+    minUnits: 2,
+    maxUnits: 500,
     plotSize: 500,
-    description: 'Discover the Future of Living, Wellness, and Innovation. 2 Seasons is a landmark 4-section community set to redefine how people live, own, and create in Ogun State. More than a real estate development, 2 Seasons is a destination—a place where modern lifestyles, nature, and opportunity meet.',
-    detailedDescription: `\
-Why Own in 2 Seasons?\n\n
-Strategic Location\nKobape is rapidly emerging as Abeokuta's most sought-after corridor, driven by infrastructure expansion, migration of Lagos professionals, and strong year-on-year land appreciation.\n\n
-Diverse Revenue Streams\nWith residential plots, luxury lakefront villas, wellness amenities, and a creator-focused tech hub, owners enjoy multiple avenues for short-term returns and long-term growth.\n\n
-Sustainable Design\n2 Seasons integrates green spaces, cycling lanes, water features, and eco-friendly infrastructure, aligning with global trends in regenerative living.\n\n
-First-Mover Advantage\nBe among the pioneers in a project that will set the benchmark for large-scale, mixed-use communities in Ogun State.\n\n
-The Four Sections of 2 Seasons\n\nSection 1 – Residential Space\nA secure, modern neighborhood designed for families, retirees, and professionals.\nFeatures: Gated access, Landscaped streets, Dedicated play areas, Retail and convenience outlets.\n\nSection 2 – The Wellness Hub\nA unique destination for health, relaxation, and connection with nature.\nFeatures: Yoga pavilions, Organic market stalls, Spa and therapy facilities, Walking and cycling trails.\n\nSection 3 – True Vine Lakefront Villas\nPremium waterfront living that combines tranquility with prestige.\nFeatures: Luxury villas overlooking the signature lake, Short-let and Airbnb income potential, Private docks and lounge decks.\n\nSection 4 – Hygge Town\nNigeria's first startup, tech, and creator-focused enclave.\nFeatures: Co-working spaces and digital studios, Smart housing units, Innovation hubs and content creation pods, Spaces designed for collaboration and growth.\n\nGroup Ownership Opportunity\nAvailable: Residential plots only.\nPrice: ₦5,000/sqm.\nPlots: 10 plots of 500 sqm each.\nMinimum ownership: 4 sqm.\n\nInvestor Benefits\nFlexible Payment Plans\nCapital Appreciation Potential\nEarly Owner Discounts\nProfessional Estate Management\nTransparent Documentation and Allocation\n`,
+    description: 'Own Plot 76 in the prestigious 2 Seasons community. Each plot is 500sqm. Minimum ownership: 2sqm.',
+    detailedDescription: 'Plot 76 is available for individual ownership in 2 Seasons, Kobape, Abeokuta. Secure your piece of this landmark development. Minimum purchase: 2sqm. Maximum: 500sqm.',
     status: 'Available',
     images: [
       '/2-seasons/2seasons-abeokuta.png',
-      '/2-seasons/img_5877.jpg',
       '/2-seasons/img_6958.jpg',
-      '/2-seasons/img_6960.jpg',
-      '/2-seasons/img_6962.jpg',
-      '/2-seasons/img_6964.jpg',
-      '/2-seasons/img_6965.jpg',
-      '/2-seasons/img_6966.jpg',
-      '/2-seasons/img_6967.jpg',
-      '/2-seasons/img_6970.jpg',
-      '/2-seasons/img_6972.jpg',
-      '/2-seasons/land-image.jpg',
-      '/2-seasons/b60443aa-d807-4de9-8fa7-326e8ab4b1cf.jpg'
+      '/2-seasons/img_6960.jpg'
     ],
     amenities: [
       'Gated access',
@@ -81,19 +64,211 @@ The Four Sections of 2 Seasons\n\nSection 1 – Residential Space\nA secure, mod
       'Dedicated play areas',
       'Retail and convenience outlets',
       'Yoga pavilions',
-      'Organic market stalls',
-      'Spa and therapy facilities',
       'Walking and cycling trails',
-      'Luxury lakefront villas',
-      'Co-working spaces',
-      'Smart housing units',
-      'Innovation hubs',
-      'Content creation pods'
+      'Playground Park Area',
+      'Community Garden Space',
+      'School/Daycare Plot',
+      'Mini Mall/Plaza Plot',
+      'Sport/Multi-use Court Area',
+      'Co-working or Gathering Space',
+      'Basketball court',
+      'Coffee shop/co-working space',
+      'Proximity to a wellness hub',
+      'Perimeter green loop',
+      'Proximity to a lake',
+      'Proximity to commercial town'
     ],
     documents: [
       { name: 'Project Brochure', url: '#' },
-      { name: 'Site Plans', url: '#' },
-      { name: 'Location Map', url: '#' }
+      { name: 'Site Plans', url: '#' }
+    ]
+  },
+  {
+    id: 77,
+    title: '2 Seasons - Plot 77',
+    developer: 'Focal Point Property Development and Management Services Ltd.',
+    developerId: 'focalpoint',
+    location: 'Kobape, Abeokuta, Ogun State',
+    type: 'Residential',
+    amount: '₦5,000/sqm',
+    roi: 'Capital Appreciation',
+    timeline: 'Ongoing',
+    riskLevel: 'Low',
+    minUnits: 2,
+    maxUnits: 500,
+    plotSize: 500,
+    description: 'Own Plot 77 in the prestigious 2 Seasons community. Each plot is 500sqm. Minimum ownership: 2sqm.',
+    detailedDescription: 'Plot 77 is available for individual ownership in 2 Seasons, Kobape, Abeokuta. Secure your piece of this landmark development. Minimum purchase: 2sqm. Maximum: 500sqm.',
+    status: 'Available',
+    images: [
+      '/2-seasons/2seasons-abeokuta.png',
+      '/2-seasons/img_6962.jpg',
+      '/2-seasons/img_6964.jpg'
+    ],
+    amenities: [
+      'Gated access',
+      'Landscaped streets',
+      'Dedicated play areas',
+      'Retail and convenience outlets',
+      'Yoga pavilions',
+      'Walking and cycling trails',
+      'Playground Park Area',
+      'Community Garden Space',
+      'School/Daycare Plot',
+      'Mini Mall/Plaza Plot',
+      'Sport/Multi-use Court Area',
+      'Co-working or Gathering Space',
+      'Basketball court',
+      'Coffee shop/co-working space',
+      'Proximity to a wellness hub',
+      'Perimeter green loop',
+      'Proximity to a lake',
+      'Proximity to commercial town'
+    ],
+    documents: [
+      { name: 'Project Brochure', url: '#' },
+      { name: 'Site Plans', url: '#' }
+    ]
+  },
+  {
+    id: 78,
+    title: '2 Seasons - Plot 78',
+    developer: 'Focal Point Property Development and Management Services Ltd.',
+    developerId: 'focalpoint',
+    location: 'Kobape, Abeokuta, Ogun State',
+    type: 'Residential',
+    amount: '₦5,000/sqm',
+    roi: 'Capital Appreciation',
+    timeline: 'Ongoing',
+    riskLevel: 'Low',
+    minUnits: 2,
+    maxUnits: 500,
+    plotSize: 500,
+    description: 'Own Plot 78 in the prestigious 2 Seasons community. Each plot is 500sqm. Minimum ownership: 2sqm.',
+    detailedDescription: 'Plot 78 is available for individual ownership in 2 Seasons, Kobape, Abeokuta. Secure your piece of this landmark development. Minimum purchase: 2sqm. Maximum: 500sqm.',
+    status: 'Available',
+    images: [
+      '/2-seasons/2seasons-abeokuta.png',
+      '/2-seasons/img_6965.jpg',
+      '/2-seasons/img_6966.jpg'
+    ],
+    amenities: [
+      'Gated access',
+      'Landscaped streets',
+      'Dedicated play areas',
+      'Retail and convenience outlets',
+      'Yoga pavilions',
+      'Walking and cycling trails',
+      'Playground Park Area',
+      'Community Garden Space',
+      'School/Daycare Plot',
+      'Mini Mall/Plaza Plot',
+      'Sport/Multi-use Court Area',
+      'Co-working or Gathering Space',
+      'Basketball court',
+      'Coffee shop/co-working space',
+      'Proximity to a wellness hub',
+      'Perimeter green loop',
+      'Proximity to a lake',
+      'Proximity to commercial town'
+    ],
+    documents: [
+      { name: 'Project Brochure', url: '#' },
+      { name: 'Site Plans', url: '#' }
+    ]
+  },
+  {
+    id: 79,
+    title: '2 Seasons - Plot 79',
+    developer: 'Focal Point Property Development and Management Services Ltd.',
+    developerId: 'focalpoint',
+    location: 'Kobape, Abeokuta, Ogun State',
+    type: 'Residential',
+    amount: '₦5,000/sqm',
+    roi: 'Capital Appreciation',
+    timeline: 'Ongoing',
+    riskLevel: 'Low',
+    minUnits: 2,
+    maxUnits: 500,
+    plotSize: 500,
+    description: 'Own Plot 79 in the prestigious 2 Seasons community. Each plot is 500sqm. Minimum ownership: 2sqm.',
+    detailedDescription: 'Plot 79 is available for individual ownership in 2 Seasons, Kobape, Abeokuta. Secure your piece of this landmark development. Minimum purchase: 2sqm. Maximum: 500sqm.',
+    status: 'Available',
+    images: [
+      '/2-seasons/2seasons-abeokuta.png',
+      '/2-seasons/img_6967.jpg',
+      '/2-seasons/img_6970.jpg'
+    ],
+    amenities: [
+      'Gated access',
+      'Landscaped streets',
+      'Dedicated play areas',
+      'Retail and convenience outlets',
+      'Yoga pavilions',
+      'Walking and cycling trails',
+      'Playground Park Area',
+      'Community Garden Space',
+      'School/Daycare Plot',
+      'Mini Mall/Plaza Plot',
+      'Sport/Multi-use Court Area',
+      'Co-working or Gathering Space',
+      'Basketball court',
+      'Coffee shop/co-working space',
+      'Proximity to a wellness hub',
+      'Perimeter green loop',
+      'Proximity to a lake',
+      'Proximity to commercial town'
+    ],
+    documents: [
+      { name: 'Project Brochure', url: '#' },
+      { name: 'Site Plans', url: '#' }
+    ]
+  },
+  {
+    id: 80,
+    title: '2 Seasons - Plot 80',
+    developer: 'Focal Point Property Development and Management Services Ltd.',
+    developerId: 'focalpoint',
+    location: 'Kobape, Abeokuta, Ogun State',
+    type: 'Residential',
+    amount: '₦5,000/sqm',
+    roi: 'Capital Appreciation',
+    timeline: 'Ongoing',
+    riskLevel: 'Low',
+    minUnits: 2,
+    maxUnits: 500,
+    plotSize: 500,
+    description: 'Own Plot 80 in the prestigious 2 Seasons community. Each plot is 500sqm. Minimum ownership: 2sqm.',
+    detailedDescription: 'Plot 80 is available for individual ownership in 2 Seasons, Kobape, Abeokuta. Secure your piece of this landmark development. Minimum purchase: 2sqm. Maximum: 500sqm.',
+    status: 'Available',
+    images: [
+      '/2-seasons/2seasons-abeokuta.png',
+      '/2-seasons/img_6972.jpg',
+      '/2-seasons/land-image.jpg'
+    ],
+    amenities: [
+      'Gated access',
+      'Landscaped streets',
+      'Dedicated play areas',
+      'Retail and convenience outlets',
+      'Yoga pavilions',
+      'Walking and cycling trails',
+      'Playground Park Area',
+      'Community Garden Space',
+      'School/Daycare Plot',
+      'Mini Mall/Plaza Plot',
+      'Sport/Multi-use Court Area',
+      'Co-working or Gathering Space',
+      'Basketball court',
+      'Coffee shop/co-working space',
+      'Proximity to a wellness hub',
+      'Perimeter green loop',
+      'Proximity to a lake',
+      'Proximity to commercial town'
+    ],
+    documents: [
+      { name: 'Project Brochure', url: '#' },
+      { name: 'Site Plans', url: '#' }
     ]
   }
 ]
@@ -138,89 +313,19 @@ const typeOptions = ['All', 'Residential', 'Commercial', 'Industrial', 'Mixed-Us
 const mockConnections = [
   {
     id: 1,
-    developerId: 'dev1',
-    developer: 'Lagos Properties Ltd',
-    projectId: 1,
-    projectTitle: 'Lekki Luxury Apartments',
-    units: 2,
-    amount: '₦500,000',
-    status: 'approved',
-    createdAt: '2024-03-15T10:30:00Z',
-    notes: 'Interested in long-term investment',
-    updatedAt: '2024-03-16T14:20:00Z',
-    documents: [
-      {
-        id: 'doc1',
-        name: 'Investment Agreement',
-        type: 'pdf',
-        size: '2.4 MB',
-        url: '#',
-        uploadedAt: '2024-03-16T14:20:00Z'
-      },
-      {
-        id: 'doc2',
-        name: 'Property Deed',
-        type: 'pdf',
-        size: '1.8 MB',
-        url: '#',
-        uploadedAt: '2024-03-16T14:20:00Z'
-      },
-      {
-        id: 'doc3',
-        name: 'Financial Projections',
-        type: 'xlsx',
-        size: '1.2 MB',
-        url: '#',
-        uploadedAt: '2024-03-16T14:20:00Z'
-      }
-    ]
-  },
-  {
-    id: 2,
-    developerId: 'dev2',
-    developer: 'Abuja Developers',
-    projectId: 2,
-    projectTitle: 'Maitama Office Complex',
+    developer: 'Focal Point Property Development and Management Services Ltd.',
+    developerId: 'focalpoint',
+    projectId: 76, // Example plot/project ID
+    projectTitle: '2 Seasons - Plot 76',
     units: 1,
-    amount: '₦180,000',
-    status: 'pending',
-    createdAt: '2024-03-20T09:15:00Z',
-    notes: 'Looking for commercial space investment',
-    documents: [
-      {
-        id: 'doc4',
-        name: 'Proposal Document',
-        type: 'pdf',
-        size: '3.1 MB',
-        url: '#',
-        uploadedAt: '2024-03-20T09:15:00Z'
-      }
-    ]
-  },
-  {
-    id: 3,
-    developerId: 'dev3',
-    developer: 'Port Harcourt Estates',
-    projectId: 4,
-    projectTitle: 'Port Harcourt Industrial Park',
-    units: 3,
-    amount: '₦1,050,000',
-    status: 'rejected',
-    createdAt: '2024-03-10T16:45:00Z',
-    notes: 'Investment proposal under review',
-    updatedAt: '2024-03-12T11:30:00Z',
-    documents: [
-      {
-        id: 'doc5',
-        name: 'Rejection Letter',
-        type: 'pdf',
-        size: '0.8 MB',
-        url: '#',
-        uploadedAt: '2024-03-12T11:30:00Z'
-      }
-    ]
+    amount: '₦2,500,000',
+    status: 'approved',
+    createdAt: '2024-07-18T10:00:00Z',
+    notes: 'Interested in long-term ownership',
+    updatedAt: '2024-07-18T10:30:00Z',
+    documents: [] // Will be fetched from backend
   }
-]
+];
 
 // Add mock forum data
 const mockForums = {
@@ -302,7 +407,7 @@ const mockMessages = {
       likes: 3
     }
   ]
-}
+};
 
 // Add Paystack script loader
 
@@ -465,6 +570,8 @@ export default function InvestorDashboard() {
   const [showSqmModal, setShowSqmModal] = useState(false);
   const [desiredSqm, setDesiredSqm] = useState(2);
   const [sqmError, setSqmError] = useState('');
+  // Add state for fetched documents
+  const [connectionDocuments, setConnectionDocuments] = useState([]);
 
   // Add profileImage state
   const handleImageChange = async (event) => {
@@ -1370,10 +1477,10 @@ export default function InvestorDashboard() {
   // Modify the renderContent function to include analytics, connections, and forum
   const renderContent = () => {
     switch (activeTab) {
-      case 'analytics':
-        return renderAnalytics();
       case 'discover':
         return renderProjectCards();
+      case 'analytics':
+        return renderAnalytics();
       case 'connections':
         return renderConnections();
       case 'forum':
@@ -1381,7 +1488,7 @@ export default function InvestorDashboard() {
       case 'profile':
         return renderProfile();
       default:
-        return renderAnalytics();
+        return renderProjectCards();
     }
   };
 
@@ -2445,6 +2552,52 @@ export default function InvestorDashboard() {
     setShowDeedModal(false);
   };
 
+  // Example usage after a successful purchase (replace with your actual purchase handler):
+  const handleDownloadCertificate = () => {
+    if (!profile || !selectedProject) return;
+    generateOwnershipCertificate({
+      user: profile,
+      project: selectedProject,
+      sqm: selectedUnits,
+      date: new Date().toLocaleDateString(),
+      certificateId: `${selectedProject.id}-${profile.email}-${Date.now()}`
+    });
+  };
+
+  // Example usage after deed signing (replace with your actual deed signing handler):
+  const handleDownloadDeed = () => {
+    if (!profile || !selectedProject) return;
+    generateDeedPDF({
+      user: profile,
+      project: selectedProject,
+      sqm: selectedUnits,
+      date: new Date().toLocaleDateString(),
+      deedId: `${selectedProject.id}-${profile.email}-${Date.now()}`,
+      signatureDataUrl: deeds.length > 0 ? deeds[deeds.length - 1].signatureDataUrl : null
+    });
+  };
+
+  // Only show Focal Point connections
+  const focalPointConnections = connections.filter(
+    (conn) => conn.developer === 'Focal Point Property Development and Management Services Ltd.'
+  );
+
+  // Fetch documents for the selected connection
+  useEffect(() => {
+    async function fetchDocuments() {
+      if (!showConnectionModal || !selectedConnection) return;
+      try {
+        const res = await fetch(`/api/documents/list?userId=${profile?.email}`);
+        const docs = await res.json();
+        // Filter by plotId (projectId)
+        setConnectionDocuments(docs.filter(doc => doc.plotId == selectedConnection.projectId));
+      } catch (err) {
+        setConnectionDocuments([]);
+      }
+    }
+    fetchDocuments();
+  }, [showConnectionModal, selectedConnection, profile]);
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -2563,7 +2716,7 @@ export default function InvestorDashboard() {
           className="border-b border-gray-200 dark:border-gray-700 mb-8"
         >
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            {['analytics', 'discover', 'connections', 'forum'].map((tab) => (
+            {["discover", "analytics", "connections", "forum"].map((tab) => (
               <motion.button
                 key={tab}
                 whileHover={{ scale: 1.05 }}
@@ -2579,7 +2732,7 @@ export default function InvestorDashboard() {
               </motion.button>
             ))}
           </nav>
-                    </motion.div>
+        </motion.div>
 
         {/* Main Content */}
         <main>

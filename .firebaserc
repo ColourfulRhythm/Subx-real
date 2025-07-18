@@ -3,6 +3,17 @@
     "default": "subx-825e9",
     "staging": "subx-825e9"
   },
-  "targets": {},
+  "targets": {
+    "subx-825e9": {
+      "hosting": {
+        "user": [
+          "subx-825e9"
+        ],
+        "admin": [
+          "subx-825e9-admin"
+        ]
+      }
+    }
+  },
   "etags": {}
 }

@@ -92,13 +92,13 @@ export default function LandingPage() {
                 onClick={() => navigate('/login')}
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors"
               >
-                Log in
+                Log in as Investor
               </button>
               <button
                 onClick={() => navigate('/signup/investor')}
                 className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:opacity-90 transition-opacity"
               >
-                Sign up
+                Sign up as Investor
               </button>
             </motion.div>
           </div>
@@ -143,9 +143,16 @@ export default function LandingPage() {
                   whileTap={{ scale: 0.95 }}
                   className="px-8 py-3 text-base font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:opacity-90 transition-opacity"
                 >
-                  Get Started
+                  Get Started as Investor
                 </motion.button>
               </Link>
+              <button
+                className="px-8 py-3 text-base font-medium text-white bg-gray-400 rounded-full cursor-not-allowed opacity-60"
+                disabled
+                title="Not available, coming soon"
+              >
+                Developer (Coming Soon)
+              </button>
             </motion.div>
           </div>
         </div>

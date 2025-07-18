@@ -23,34 +23,34 @@ const FeatureCard = ({ icon, title, description }) => (
 export default function Features() {
   const features = [
     {
-      icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
-      title: "Connect with Developers",
-      description: "Directly connect with trusted real estate developers, view their portfolios, and discuss potential investment opportunities."
+      icon: "M13 10V3L4 14h7v7l9-11h-7z",
+      title: "End-to-End Property Development",
+      description: "From concept to completion, we manage every stage of your property project."
     },
     {
       icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
-      title: "Fractional Ownership",
-      description: "Buy properties in units and co-ownership, making real estate investment accessible to everyone regardless of budget."
+      title: "Professional Property Management",
+      description: "Comprehensive management services for residential, commercial, and mixed-use properties."
     },
     {
       icon: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z",
-      title: "Group Chats & Forums",
-      description: "Join multiple group chats and forums to discuss properties, share insights, and connect with other investors."
-    },
-    {
-      icon: "M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z",
-      title: "Social Sharing",
-      description: "Easily share property listings and investment opportunities with your network through social media integration."
+      title: "Investment Advisory",
+      description: "Expert guidance to maximize your real estate investment returns."
     },
     {
       icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
-      title: "Secure Platform",
-      description: "Your investments are protected with industry-leading security measures and transparent processes."
+      title: "Transparent Reporting",
+      description: "Real-time updates and detailed reports for all your projects and properties."
+    },
+    {
+      icon: "M7 10a2 2 0 11-4 0 2 2 0 014 0zM17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z",
+      title: "Tenant & Lease Management",
+      description: "Efficient tenant screening, onboarding, and lease administration."
     },
     {
       icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6",
-      title: "Growth Potential",
-      description: "Access premium real estate opportunities and maximize your investment returns with our expert guidance."
+      title: "Maintenance & Facility Services",
+      description: "Proactive maintenance and 24/7 support for all managed properties."
     }
   ]
 
@@ -66,7 +66,7 @@ export default function Features() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <Link to="/" className="flex items-center">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Subx</h1>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Focal Point</h1>
             </Link>
           </div>
         </div>
@@ -82,10 +82,10 @@ export default function Features() {
             className="text-center"
           >
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              Discover Our Features
+              Discover Our Services
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Explore the powerful tools and features that make Subx the perfect platform for real estate investment and development.
+              Explore the professional solutions that make Focal Point Property Development and Management Services Ltd. your trusted partner in real estate.
             </p>
           </motion.div>
         </div>
@@ -113,25 +113,16 @@ export default function Features() {
           >
             <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
             <p className="text-xl text-gray-600 mb-8">
-              Join thousands of investors and developers who are already using Subx
+              Contact us today to discuss your property needs and discover how we can help you succeed.
             </p>
             <div className="flex justify-center gap-4">
-              <Link to="/signup/investor">
+              <Link to="/about">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="px-8 py-3 text-base font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:opacity-90 transition-opacity"
                 >
-                  Sign Up as Investor
-                </motion.button>
-              </Link>
-              <Link to="/signup/developer">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-8 py-3 text-base font-medium text-indigo-600 border-2 border-indigo-600 rounded-full hover:bg-indigo-50 transition-colors"
-                >
-                  Sign Up as Developer
+                  Learn More
                 </motion.button>
               </Link>
             </div>

@@ -1,8 +1,7 @@
- import { initializeApp, applicationDefault, cert } from 'firebase-admin/app';
+import { initializeApp, applicationDefault, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import fs from 'fs';
 
-// Load service account from environment variable or file
 let firebaseConfig;
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   firebaseConfig = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -12,13 +11,14 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
 
 let app;
 if (!firebaseConfig) {
-  // Use default credentials (for local dev with gcloud auth)
   app = initializeApp({
     credential: applicationDefault(),
+    storageBucket: 'subx-825e9.appspot.com' // Replace with your actual bucket name
   });
 } else {
   app = initializeApp({
     credential: cert(firebaseConfig),
+    storageBucket: 'subx-825e9.appspot.com' // Replace with your actual bucket name
   });
 }
 

@@ -1,19 +1,20 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import Admin from '../models/Admin.js';
-import { auth } from '../middleware/auth.js';
-import { User } from '../models/User.js';
-import { Project } from '../models/Project.js';
+import { Admin } from '../models/Admin.js';
+import { auth, adminAuth } from '../middleware/auth.js';
 import { Investment } from '../models/Investment.js';
+import { Project } from '../models/Project.js';
 import { Verification } from '../models/Verification.js';
+import { User } from '../models/User.js';
 import { Settings } from '../models/Settings.js';
-import Connection from '../models/Connection.js';
-import Document from '../models/Document.js';
+import { Connection } from '../models/Connection.js';
+import { Document } from '../models/Document.js';
 import multer from 'multer';
 import path from 'path';
-import Message from '../models/Message.js';
+import { Message } from '../models/Message.js';
 import axios from 'axios';
+import { Developer } from '../models/Developer.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -86,8 +87,51 @@ router.get('/profile', async (req, res) => {
   }
 });
 
+// Update admin profile
+router.put('/profile', upload.single('image'), async (req, res) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const admin = await Admin.findById(decoded.id);
+    if (!admin) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+    // Update fields
+    if (req.body.name) admin.name = req.body.name;
+    if (req.body.phone) admin.phone = req.body.phone;
+    if (req.body.bio) admin.bio = req.body.bio;
+    if (req.body.settings) {
+      try {
+        admin.settings = JSON.parse(req.body.settings);
+      } catch (e) {
+        // fallback: ignore settings if not valid JSON
+      }
+    }
+    // Handle image upload
+    if (req.file) {
+      admin.imageUrl = `/uploads/documents/${req.file.filename}`;
+    }
+    await admin.save();
+    res.json({
+      id: admin._id,
+      name: admin.name,
+      email: admin.email,
+      phone: admin.phone,
+      bio: admin.bio,
+      imageUrl: admin.imageUrl,
+      settings: admin.settings || {}
+    });
+  } catch (error) {
+    console.error('Update admin profile error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
 // Get dashboard stats
-router.get('/stats', auth, async (req, res) => {
+router.get('/stats', adminAuth, async (req, res) => {
   try {
     const [totalDevelopers, totalInvestors, totalProjects, totalInvestments, pendingVerifications] = await Promise.all([
       User.countDocuments({ role: 'developer' }),
@@ -111,10 +155,10 @@ router.get('/stats', auth, async (req, res) => {
 });
 
 // Get recent projects
-router.get('/recent-projects', auth, async (req, res) => {
+router.get('/recent-projects', adminAuth, async (req, res) => {
   try {
     const projects = await Project.find()
-      .populate('developer', 'name')
+      .populate('developerId', 'name company')
       .sort({ createdAt: -1 })
       .limit(5);
 
@@ -126,23 +170,26 @@ router.get('/recent-projects', auth, async (req, res) => {
 });
 
 // Get recent investments
-router.get('/recent-investments', auth, async (req, res) => {
+router.get('/recent-investments', adminAuth, async (req, res) => {
   try {
+    console.log('Fetching recent investments...');
+    const count = await Investment.countDocuments();
+    console.log('Total investments in DB:', count);
+    
     const investments = await Investment.find()
-      .populate('investor', 'name')
-      .populate('project', 'title')
       .sort({ createdAt: -1 })
       .limit(5);
-
+    
+    console.log('Found investments:', investments.length);
     res.json(investments);
   } catch (error) {
     console.error('Error fetching recent investments:', error);
-    res.status(500).json({ error: 'Failed to fetch recent investments' });
+    res.status(500).json({ error: 'Failed to fetch recent investments', details: error.message });
   }
 });
 
 // Get all users
-router.get('/users', auth, async (req, res) => {
+router.get('/users', adminAuth, async (req, res) => {
   try {
     const users = await User.find()
       .select('-password')
@@ -156,7 +203,7 @@ router.get('/users', auth, async (req, res) => {
 });
 
 // Update user status
-router.patch('/users/:id/status', auth, async (req, res) => {
+router.patch('/users/:id/status', adminAuth, async (req, res) => {
   try {
     const { isActive } = req.body;
     const user = await User.findByIdAndUpdate(
@@ -175,7 +222,7 @@ router.patch('/users/:id/status', auth, async (req, res) => {
 });
 
 // Create a new user
-router.post('/users', auth, async (req, res) => {
+router.post('/users', adminAuth, async (req, res) => {
   try {
     const { name, email, password, role, phone, bio } = req.body;
     if (!name || !email || !password || !role) {
@@ -204,10 +251,10 @@ router.post('/users', auth, async (req, res) => {
 });
 
 // Get all projects
-router.get('/projects', auth, async (req, res) => {
+router.get('/projects', adminAuth, async (req, res) => {
   try {
     const projects = await Project.find()
-      .populate('developer', 'name')
+      .populate('developerId', 'name company')
       .sort({ createdAt: -1 });
 
     res.json(projects);
@@ -220,7 +267,7 @@ router.get('/projects', auth, async (req, res) => {
 // Property CRUD endpoints (admin)
 
 // Create a new project
-router.post('/projects', auth, upload.array('images', 10), async (req, res) => {
+router.post('/projects', adminAuth, upload.array('images', 10), async (req, res) => {
   try {
     const { title, description, location, type, developerId, status, unitsTotal, unitsAvailable, unitsPrice } = req.body;
     const imageUrls = req.files ? req.files.map(file => `/uploads/documents/${file.filename}`) : [];
@@ -247,7 +294,7 @@ router.post('/projects', auth, upload.array('images', 10), async (req, res) => {
 });
 
 // Get a single project by ID
-router.get('/projects/:id', auth, async (req, res) => {
+router.get('/projects/:id', adminAuth, async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
     if (!project) {
@@ -261,7 +308,7 @@ router.get('/projects/:id', auth, async (req, res) => {
 });
 
 // Update a project
-router.put('/projects/:id', auth, upload.array('images', 10), async (req, res) => {
+router.put('/projects/:id', adminAuth, upload.array('images', 10), async (req, res) => {
   try {
     const { title, description, location, type, developerId, status, unitsTotal, unitsAvailable, unitsPrice } = req.body;
     const imageUrls = req.files ? req.files.map(file => `/uploads/documents/${file.filename}`) : undefined;
@@ -676,4 +723,4 @@ router.get('/paystack/verify/:reference', auth, async (req, res) => {
   }
 });
 
-export default router; 
+export { router as adminRouter }; 

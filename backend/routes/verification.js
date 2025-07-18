@@ -2,9 +2,9 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import Verification from '../models/Verification.js';
+import { Verification } from '../models/Verification.js';
 import { auth } from '../middleware/auth.js';
-import { adminAuth } from '../middleware/adminAuth.js';
+import { adminAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
@@ -259,4 +259,4 @@ router.post('/admin/complete-review/:verificationId', adminAuth, async (req, res
   }
 });
 
-export default router; 
+export { router as verificationRouter }; 

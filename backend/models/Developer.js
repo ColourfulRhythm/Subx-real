@@ -74,6 +74,4 @@ const developerSchema = new mongoose.Schema({
   timestamps: true
 });
 
-const Developer = mongoose.model('Developer', developerSchema);
-
-export default Developer; 
+export const Developer = mongoose.model('Developer', developerSchema); 
