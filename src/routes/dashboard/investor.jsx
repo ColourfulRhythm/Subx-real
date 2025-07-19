@@ -34,245 +34,6 @@ const profileSchema = yup.object().shape({
   investmentGoals: yup.array().min(1, 'Select at least one investment goal')
 })
 
-// Mock data for projects with additional media
-const mockProjects = [
-  {
-    id: 76,
-    title: '2 Seasons - Plot 76',
-    developer: 'Focal Point Property Development and Management Services Ltd.',
-    developerId: 'focalpoint',
-    location: 'Kobape, Abeokuta, Ogun State',
-    type: 'Residential',
-    amount: '₦5,000/sqm',
-    roi: 'Capital Appreciation',
-    timeline: 'Ongoing',
-    riskLevel: 'Low',
-    minUnits: 2,
-    maxUnits: 500,
-    plotSize: 500,
-    description: 'Own Plot 76 in the prestigious 2 Seasons community. Each plot is 500sqm. Minimum ownership: 2sqm.',
-    detailedDescription: 'Plot 76 is available for individual ownership in 2 Seasons, Kobape, Abeokuta. Secure your piece of this landmark development. Minimum purchase: 2sqm. Maximum: 500sqm.',
-    status: 'Available',
-    images: [
-      '/2-seasons/2seasons-abeokuta.png',
-      '/2-seasons/img_6958.jpg',
-      '/2-seasons/img_6960.jpg'
-    ],
-    amenities: [
-      'Gated access',
-      'Landscaped streets',
-      'Dedicated play areas',
-      'Retail and convenience outlets',
-      'Yoga pavilions',
-      'Walking and cycling trails',
-      'Playground Park Area',
-      'Community Garden Space',
-      'School/Daycare Plot',
-      'Mini Mall/Plaza Plot',
-      'Sport/Multi-use Court Area',
-      'Co-working or Gathering Space',
-      'Basketball court',
-      'Coffee shop/co-working space',
-      'Proximity to a wellness hub',
-      'Perimeter green loop',
-      'Proximity to a lake',
-      'Proximity to commercial town'
-    ],
-    documents: [
-      { name: 'Project Brochure', url: '#' },
-      { name: 'Site Plans', url: '#' }
-    ]
-  },
-  {
-    id: 77,
-    title: '2 Seasons - Plot 77',
-    developer: 'Focal Point Property Development and Management Services Ltd.',
-    developerId: 'focalpoint',
-    location: 'Kobape, Abeokuta, Ogun State',
-    type: 'Residential',
-    amount: '₦5,000/sqm',
-    roi: 'Capital Appreciation',
-    timeline: 'Ongoing',
-    riskLevel: 'Low',
-    minUnits: 2,
-    maxUnits: 500,
-    plotSize: 500,
-    description: 'Own Plot 77 in the prestigious 2 Seasons community. Each plot is 500sqm. Minimum ownership: 2sqm.',
-    detailedDescription: 'Plot 77 is available for individual ownership in 2 Seasons, Kobape, Abeokuta. Secure your piece of this landmark development. Minimum purchase: 2sqm. Maximum: 500sqm.',
-    status: 'Available',
-    images: [
-      '/2-seasons/2seasons-abeokuta.png',
-      '/2-seasons/img_6962.jpg',
-      '/2-seasons/img_6964.jpg'
-    ],
-    amenities: [
-      'Gated access',
-      'Landscaped streets',
-      'Dedicated play areas',
-      'Retail and convenience outlets',
-      'Yoga pavilions',
-      'Walking and cycling trails',
-      'Playground Park Area',
-      'Community Garden Space',
-      'School/Daycare Plot',
-      'Mini Mall/Plaza Plot',
-      'Sport/Multi-use Court Area',
-      'Co-working or Gathering Space',
-      'Basketball court',
-      'Coffee shop/co-working space',
-      'Proximity to a wellness hub',
-      'Perimeter green loop',
-      'Proximity to a lake',
-      'Proximity to commercial town'
-    ],
-    documents: [
-      { name: 'Project Brochure', url: '#' },
-      { name: 'Site Plans', url: '#' }
-    ]
-  },
-  {
-    id: 78,
-    title: '2 Seasons - Plot 78',
-    developer: 'Focal Point Property Development and Management Services Ltd.',
-    developerId: 'focalpoint',
-    location: 'Kobape, Abeokuta, Ogun State',
-    type: 'Residential',
-    amount: '₦5,000/sqm',
-    roi: 'Capital Appreciation',
-    timeline: 'Ongoing',
-    riskLevel: 'Low',
-    minUnits: 2,
-    maxUnits: 500,
-    plotSize: 500,
-    description: 'Own Plot 78 in the prestigious 2 Seasons community. Each plot is 500sqm. Minimum ownership: 2sqm.',
-    detailedDescription: 'Plot 78 is available for individual ownership in 2 Seasons, Kobape, Abeokuta. Secure your piece of this landmark development. Minimum purchase: 2sqm. Maximum: 500sqm.',
-    status: 'Available',
-    images: [
-      '/2-seasons/2seasons-abeokuta.png',
-      '/2-seasons/img_6965.jpg',
-      '/2-seasons/img_6966.jpg'
-    ],
-    amenities: [
-      'Gated access',
-      'Landscaped streets',
-      'Dedicated play areas',
-      'Retail and convenience outlets',
-      'Yoga pavilions',
-      'Walking and cycling trails',
-      'Playground Park Area',
-      'Community Garden Space',
-      'School/Daycare Plot',
-      'Mini Mall/Plaza Plot',
-      'Sport/Multi-use Court Area',
-      'Co-working or Gathering Space',
-      'Basketball court',
-      'Coffee shop/co-working space',
-      'Proximity to a wellness hub',
-      'Perimeter green loop',
-      'Proximity to a lake',
-      'Proximity to commercial town'
-    ],
-    documents: [
-      { name: 'Project Brochure', url: '#' },
-      { name: 'Site Plans', url: '#' }
-    ]
-  },
-  {
-    id: 79,
-    title: '2 Seasons - Plot 79',
-    developer: 'Focal Point Property Development and Management Services Ltd.',
-    developerId: 'focalpoint',
-    location: 'Kobape, Abeokuta, Ogun State',
-    type: 'Residential',
-    amount: '₦5,000/sqm',
-    roi: 'Capital Appreciation',
-    timeline: 'Ongoing',
-    riskLevel: 'Low',
-    minUnits: 2,
-    maxUnits: 500,
-    plotSize: 500,
-    description: 'Own Plot 79 in the prestigious 2 Seasons community. Each plot is 500sqm. Minimum ownership: 2sqm.',
-    detailedDescription: 'Plot 79 is available for individual ownership in 2 Seasons, Kobape, Abeokuta. Secure your piece of this landmark development. Minimum purchase: 2sqm. Maximum: 500sqm.',
-    status: 'Available',
-    images: [
-      '/2-seasons/2seasons-abeokuta.png',
-      '/2-seasons/img_6967.jpg',
-      '/2-seasons/img_6970.jpg'
-    ],
-    amenities: [
-      'Gated access',
-      'Landscaped streets',
-      'Dedicated play areas',
-      'Retail and convenience outlets',
-      'Yoga pavilions',
-      'Walking and cycling trails',
-      'Playground Park Area',
-      'Community Garden Space',
-      'School/Daycare Plot',
-      'Mini Mall/Plaza Plot',
-      'Sport/Multi-use Court Area',
-      'Co-working or Gathering Space',
-      'Basketball court',
-      'Coffee shop/co-working space',
-      'Proximity to a wellness hub',
-      'Perimeter green loop',
-      'Proximity to a lake',
-      'Proximity to commercial town'
-    ],
-    documents: [
-      { name: 'Project Brochure', url: '#' },
-      { name: 'Site Plans', url: '#' }
-    ]
-  },
-  {
-    id: 80,
-    title: '2 Seasons - Plot 80',
-    developer: 'Focal Point Property Development and Management Services Ltd.',
-    developerId: 'focalpoint',
-    location: 'Kobape, Abeokuta, Ogun State',
-    type: 'Residential',
-    amount: '₦5,000/sqm',
-    roi: 'Capital Appreciation',
-    timeline: 'Ongoing',
-    riskLevel: 'Low',
-    minUnits: 2,
-    maxUnits: 500,
-    plotSize: 500,
-    description: 'Own Plot 80 in the prestigious 2 Seasons community. Each plot is 500sqm. Minimum ownership: 2sqm.',
-    detailedDescription: 'Plot 80 is available for individual ownership in 2 Seasons, Kobape, Abeokuta. Secure your piece of this landmark development. Minimum purchase: 2sqm. Maximum: 500sqm.',
-    status: 'Available',
-    images: [
-      '/2-seasons/2seasons-abeokuta.png',
-      '/2-seasons/img_6972.jpg',
-      '/2-seasons/land-image.jpg'
-    ],
-    amenities: [
-      'Gated access',
-      'Landscaped streets',
-      'Dedicated play areas',
-      'Retail and convenience outlets',
-      'Yoga pavilions',
-      'Walking and cycling trails',
-      'Playground Park Area',
-      'Community Garden Space',
-      'School/Daycare Plot',
-      'Mini Mall/Plaza Plot',
-      'Sport/Multi-use Court Area',
-      'Co-working or Gathering Space',
-      'Basketball court',
-      'Coffee shop/co-working space',
-      'Proximity to a wellness hub',
-      'Perimeter green loop',
-      'Proximity to a lake',
-      'Proximity to commercial town'
-    ],
-    documents: [
-      { name: 'Project Brochure', url: '#' },
-      { name: 'Site Plans', url: '#' }
-    ]
-  }
-]
-
 // Add developer profiles
 const mockDevelopers = {
   'dev1': {
@@ -368,46 +129,44 @@ const mockForums = {
 };
 
 // Add mock messages data
-const mockMessages = {
-  'topic-1': [
-    {
-      id: 1,
-      type: 'investor',
-      author: 'John Doe',
-      avatar: 'https://ui-avatars.com/api/?name=John+Doe&background=random',
-      content: "What are the current market trends in Lagos? I'm particularly interested in the Lekki area.",
-      timestamp: '2024-03-20T10:30:00Z',
-      likes: 5
-    },
-    {
-      id: 2,
-      type: 'developer',
-      author: 'Lagos Properties Ltd',
-      avatar: 'https://ui-avatars.com/api/?name=Lagos+Properties&background=random',
-      content: "The Lekki area is experiencing significant growth, with property values increasing by 15% year-over-year. We're seeing strong demand for both residential and commercial properties.",
-      timestamp: '2024-03-20T10:35:00Z',
-      likes: 8
-    },
-    {
-      id: 3,
-      type: 'update',
-      author: 'Lagos Properties Ltd',
-      avatar: 'https://ui-avatars.com/api/?name=Lagos+Properties&background=random',
-      content: "📢 Construction Update: Phase 1 of the Lekki Luxury Apartments is now 75% complete. We're on track for the Q3 2024 completion date.",
-      timestamp: '2024-03-20T11:00:00Z',
-      isUpdate: true
-    },
-    {
-      id: 4,
-      type: 'investor',
-      author: 'Jane Smith',
-      avatar: 'https://ui-avatars.com/api/?name=Jane+Smith&background=random',
-      content: "That's great news! What about the amenities? Will there be a swimming pool and gym?",
-      timestamp: '2024-03-20T11:05:00Z',
-      likes: 3
-    }
-  ]
-};
+const mockMessages = [
+  {
+    id: 1,
+    type: 'investor',
+    author: 'John Doe',
+    avatar: 'https://ui-avatars.com/api/?name=John+Doe&background=random',
+    content: "What are the current market trends in Lagos? I'm particularly interested in the Lekki area.",
+    timestamp: '2024-03-20T10:30:00Z',
+    likes: 5
+  },
+  {
+    id: 2,
+    type: 'developer',
+    author: 'Lagos Properties Ltd',
+    avatar: 'https://ui-avatars.com/api/?name=Lagos+Properties&background=random',
+    content: "The Lekki area is experiencing significant growth, with property values increasing by 15% year-over-year. We're seeing strong demand for both residential and commercial properties.",
+    timestamp: '2024-03-20T10:35:00Z',
+    likes: 8
+  },
+  {
+    id: 3,
+    type: 'update',
+    author: 'Lagos Properties Ltd',
+    avatar: 'https://ui-avatars.com/api/?name=Lagos+Properties&background=random',
+    content: "📢 Construction Update: Phase 1 of the Lekki Luxury Apartments is now 75% complete. We're on track for the Q3 2024 completion date.",
+    timestamp: '2024-03-20T11:00:00Z',
+    isUpdate: true
+  },
+  {
+    id: 4,
+    type: 'investor',
+    author: 'Jane Smith',
+    avatar: 'https://ui-avatars.com/api/?name=Jane+Smith&background=random',
+    content: "That's great news! What about the amenities? Will there be a swimming pool and gym?",
+    timestamp: '2024-03-20T11:05:00Z',
+    likes: 3
+  }
+];
 // Add Paystack script loader
 
 // Add Paystack payment handler
@@ -456,8 +215,8 @@ export default function InvestorDashboard() {
   const [success, setSuccess] = useState(null)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [expandedCard, setExpandedCard] = useState(null)
-  const [connections, setConnections] = useState(mockConnections)
-  const [projects, setProjects] = useState(mockProjects)
+  const [connections, setConnections] = useState([])
+  const [projects, setProjects] = useState([])
   const [selectedProject, setSelectedProject] = useState(null)
   const [showProjectModal, setShowProjectModal] = useState(false)
   const [showConnectionModal, setShowConnectionModal] = useState(false)
@@ -571,6 +330,7 @@ export default function InvestorDashboard() {
   const [sqmError, setSqmError] = useState('');
   // Add state for fetched documents
   const [connectionDocuments, setConnectionDocuments] = useState([]);
+  const [messages, setMessages] = useState([]);
 
   // Add profileImage state
   const handleImageChange = async (event) => {
@@ -669,19 +429,32 @@ export default function InvestorDashboard() {
 
   // Fetch profile and analytics data on component mount
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true)
-        await Promise.all([fetchProfile(), fetchAnalytics()])
-      } catch (error) {
-        console.error('Error fetching data:', error)
-        setError('Failed to load data')
-      } finally {
-        setIsLoading(false)
-      }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Not authenticated');
+      setIsLoading(false);
+      return;
     }
-    fetchData()
-  }, [])
+    setIsLoading(true);
+    Promise.all([
+      fetch('/api/investors/profile', { headers: { Authorization: `Bearer ${token}` } })
+        .then(res => res.json()),
+      fetch('/api/projects').then(res => res.json()),
+      fetch('/api/connections/' + JSON.parse(atob(token.split('.')[1])).id).then(res => res.json()),
+      fetch('/api/admin/messages?userId=' + JSON.parse(atob(token.split('.')[1])).id, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json())
+    ])
+      .then(([profileData, projectsData, connectionsData, messagesData]) => {
+        setProfile(profileData);
+        setProjects(Array.isArray(projectsData) ? projectsData : []);
+        setConnections(Array.isArray(connectionsData) ? connectionsData : []);
+        setMessages(Array.isArray(messagesData) ? messagesData : []);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        setError('Failed to load data');
+        setIsLoading(false);
+      });
+  }, []);
 
   // Load Paystack script on mount
   useEffect(() => {
@@ -1071,7 +844,16 @@ export default function InvestorDashboard() {
 
   // Find the section where project cards are rendered and modify it to include AI Analysis
   const renderProjectCards = () => {
-  return (
+    if (!projects || projects.length === 0 || projects.every(p => p.title && p.title.includes('2 Seasons'))) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16">
+          <h2 className="text-2xl font-bold mb-4 text-indigo-700">Welcome to Subx by Focal Point Prop.</h2>
+          <p className="text-lg text-gray-700 mb-2">We are building a billion dollar portfolio through group buying and co-ownership.</p>
+          <p className="text-lg text-indigo-700 font-semibold">Listings coming soon.</p>
+        </div>
+      );
+    }
+    return (
       <div className="grid grid-cols-1 gap-6 p-4">
         {projects.map((project) => (
         <motion.div 
@@ -1314,6 +1096,13 @@ export default function InvestorDashboard() {
 
   // Update the renderConnections function to show more details
   const renderConnections = () => {
+    if (!connections || connections.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500 dark:text-gray-400">No connections yet. Start by exploring investment opportunities.</p>
+        </div>
+      );
+    }
     return (
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">

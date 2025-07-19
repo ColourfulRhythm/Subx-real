@@ -957,6 +957,19 @@ app.post('/api/admin/profile/image', adminAuth, upload.single('image'), async (r
   }
 });
 
+// Investor profile endpoint (returns current investor by token)
+app.get('/api/investors/profile', investorAuth, async (req, res) => {
+  try {
+    const investor = await Investor.findById(req.investor._id).select('-password');
+    if (!investor) {
+      return res.status(404).json({ error: 'Investor not found' });
+    }
+    res.json(investor);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch investor profile' });
+  }
+});
+
 // Root path handler
 app.get('/', (req, res) => {
   res.json({

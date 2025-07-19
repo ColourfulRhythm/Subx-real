@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 
@@ -46,6 +46,20 @@ const AnimatedBackground = () => {
 
 export default function LandingPage() {
   const navigate = useNavigate()
+  const [spotsLeft, setSpotsLeft] = useState(10000);
+
+  useEffect(() => {
+    // Fetch user count from backend
+    fetch('/api/admin/users')
+      .then(res => res.json())
+      .then(data => {
+        if (data.developers && data.investors) {
+          const totalUsers = data.developers.length + data.investors.length;
+          setSpotsLeft(10000 - totalUsers);
+        }
+      })
+      .catch(() => setSpotsLeft(10000));
+  }, []);
 
   const fadeInUp = {
     initial: { opacity: 0, y: 20 },
@@ -135,24 +149,29 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8 }}
-              className="mt-8 flex justify-center gap-4"
+              className="mt-8 flex flex-col items-center justify-center gap-4"
             >
-              <Link to="/signup/investor">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-8 py-3 text-base font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:opacity-90 transition-opacity"
+              <div className="flex justify-center gap-4">
+                <Link to="/signup/investor">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="px-8 py-3 text-base font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:opacity-90 transition-opacity"
+                  >
+                    Get Started as Investor
+                  </motion.button>
+                </Link>
+                <button
+                  className="px-8 py-3 text-base font-medium text-white bg-gray-400 rounded-full cursor-not-allowed opacity-60"
+                  disabled
+                  title="Not available, coming soon"
                 >
-                  Get Started as Investor
-                </motion.button>
-              </Link>
-              <button
-                className="px-8 py-3 text-base font-medium text-white bg-gray-400 rounded-full cursor-not-allowed opacity-60"
-                disabled
-                title="Not available, coming soon"
-              >
-                Developer (Coming Soon)
-              </button>
+                  Developer (Coming Soon)
+                </button>
+              </div>
+              <div className="mt-4 text-lg font-semibold text-indigo-700 bg-indigo-50 rounded-full px-6 py-2 shadow inline-block">
+                Exclusive for 10,000 individuals — <span className="font-bold">{spotsLeft.toLocaleString()}</span> spots left!
+              </div>
             </motion.div>
           </div>
         </div>
