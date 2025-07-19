@@ -31,12 +31,28 @@ export default function DeveloperSignup() {
   const onSubmit = async (data) => {
     setIsLoading(true)
     try {
-      // TODO: Implement API call to create developer profile
-      console.log(data)
+      const response = await fetch('/api/developers/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          company: data.company,
+          email: data.email,
+          password: data.password,
+          phone: data.phone,
+          website: data.website,
+          bio: data.bio,
+          projectTypes: data.projectTypes,
+          experience: data.experience
+        })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Registration failed');
       // Redirect to dashboard after successful signup
       navigate('/dashboard/developer')
     } catch (error) {
-      console.error('Signup failed:', error)
+      alert('Signup failed: ' + error.message)
     } finally {
       setIsLoading(false)
     }

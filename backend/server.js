@@ -5,7 +5,7 @@ import bodyParser from 'body-parser';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { connectDB } from './config/db.js';
+import connectDB from './config/db.js';
 import { Developer } from './models/Developer.js';
 import { Project } from './models/Project.js';
 import { Admin } from './models/Admin.js';
@@ -16,8 +16,11 @@ import OpenAI from 'openai';
 import { adminRouter } from './routes/admin.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { verificationRouter } from './routes/verification.js';
+import { activitiesRouter } from './routes/activities.js';
 import axios from 'axios';
 import { documentsRouter } from './routes/documents.js';
+import { Investor } from './models/Investor.js';
+import { Connection } from './models/Connection.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -48,6 +51,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/admin', adminRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/verification', verificationRouter);
+app.use('/api/activities', activitiesRouter);
 app.use('/api/documents', documentsRouter);
 
 // Configure multer for image uploads
@@ -90,21 +94,46 @@ const adminAuth = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     if (!token) {
-      throw new Error();
+      return res.status(401).json({ error: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const admin = await Admin.findOne({ _id: decoded.id });
-    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const admin = await Admin.findById(decoded.id);
     if (!admin) {
-      throw new Error();
+      return res.status(401).json({ error: 'Invalid token' });
     }
 
     req.admin = admin;
-    req.token = token;
     next();
   } catch (error) {
-    res.status(401).json({ error: 'Please authenticate as admin' });
+    console.error('Admin auth middleware error:', error);
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+// Investor authentication middleware
+const investorAuth = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    if (decoded.type !== 'investor') {
+      return res.status(401).json({ error: 'Invalid token type' });
+    }
+
+    const investor = await Investor.findById(decoded.id);
+    if (!investor) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    req.investor = investor;
+    next();
+  } catch (error) {
+    console.error('Investor auth middleware error:', error);
+    res.status(401).json({ error: 'Invalid token' });
   }
 };
 
@@ -381,22 +410,29 @@ app.get('/api/projects/:developerId', async (req, res) => {
 });
 
 // Investor routes
-app.post('/api/investors', (req, res) => {
+app.post('/api/investors', async (req, res) => {
   try {
-  const { name, email, phone, bio, investmentInterests } = req.body;
+    const { name, email, password, phone, bio, investmentInterests } = req.body;
 
-  const investor = {
-    id: Date.now().toString(),
-    name,
-    email,
-    phone,
-    bio,
-    investmentInterests,
-    createdAt: new Date().toISOString(),
-  };
+    // Check if email already exists
+    const existing = await Investor.findOne({ email });
+    if (existing) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
 
-  investors.push(investor);
-    res.json({ message: 'Investor created successfully', investor });
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const investor = new Investor({
+      name,
+      email,
+      password: hashedPassword,
+      phone,
+      bio,
+      investmentInterests
+    });
+    await investor.save();
+    res.status(201).json({ message: 'Investor created successfully', investor: { ...investor.toObject(), password: undefined } });
   } catch (error) {
     console.error('Error creating investor:', error);
     res.status(500).json({ error: 'Failed to create investor' });
@@ -409,6 +445,48 @@ app.get('/api/investors', (req, res) => {
   } catch (error) {
     console.error('Error fetching investors:', error);
     res.status(500).json({ error: 'Failed to fetch investors' });
+  }
+});
+
+// Investor login
+app.post('/api/investors/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Find investor by email
+    const investor = await Investor.findOne({ email });
+    if (!investor) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, investor.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: investor._id, type: 'investor' }, 
+      process.env.JWT_SECRET || 'your-secret-key', 
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      token,
+      investor: {
+        id: investor._id,
+        name: investor.name,
+        email: investor.email,
+        phone: investor.phone,
+        bio: investor.bio,
+        investmentInterests: investor.investmentInterests,
+        isApproved: investor.isApproved
+      }
+    });
+  } catch (error) {
+    console.error('Investor login error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 

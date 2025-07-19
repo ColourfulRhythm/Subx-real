@@ -8,6 +8,7 @@ import Documents from './pages/Documents.jsx';
 import Messaging from './pages/Messaging.jsx';
 import Projects from './pages/Projects.jsx';
 import Analytics from './pages/Analytics.jsx';
+import Activities from './pages/Activities.jsx';
 import PaystackVerification from './pages/PaystackVerification.jsx';
 import Profile from './pages/Profile.jsx';
 import Layout from './components/Layout.jsx';
@@ -31,6 +32,7 @@ const App = () => (
       <Route path="messaging" element={<Messaging />} />
       <Route path="projects" element={<Projects />} />
       <Route path="analytics" element={<Analytics />} />
+      <Route path="activities" element={<Activities />} />
       <Route path="paystack-verification" element={<PaystackVerification />} />
       <Route path="profile" element={<Profile />} />
     </Route>

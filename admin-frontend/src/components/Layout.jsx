@@ -9,6 +9,7 @@ import {
   UsersIcon,
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../hooks/useAuth';
 
@@ -16,6 +17,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: HomeIcon },
   { name: 'Projects', href: '/projects', icon: BuildingOfficeIcon },
   { name: 'Users', href: '/users', icon: UsersIcon },
+  { name: 'Activities', href: '/activities', icon: ChartBarIcon },
   { name: 'Profile', href: '/profile', icon: UserCircleIcon },
 ];
 

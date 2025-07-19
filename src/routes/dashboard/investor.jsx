@@ -408,7 +408,6 @@ const mockMessages = {
     }
   ]
 };
-
 // Add Paystack script loader
 
 // Add Paystack payment handler

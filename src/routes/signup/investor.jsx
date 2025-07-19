@@ -28,12 +28,24 @@ export default function InvestorSignup() {
   const onSubmit = async (data) => {
     setIsLoading(true)
     try {
-      // TODO: Implement API call to create investor profile
-      console.log(data)
+      const response = await fetch('/api/investors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.firstName + ' ' + data.lastName,
+          email: data.email,
+          password: data.password,
+          phone: data.phone || '',
+          bio: data.experience,
+          investmentInterests: data.investmentFocus
+        })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Registration failed');
       // Redirect to dashboard after successful signup
       navigate('/dashboard/investor')
     } catch (error) {
-      console.error('Signup failed:', error)
+      alert('Signup failed: ' + error.message)
     } finally {
       setIsLoading(false)
     }
