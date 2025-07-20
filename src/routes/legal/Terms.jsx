@@ -15,7 +15,7 @@ export default function Terms() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <Link to="/" className="flex items-center">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Subx</h1>
+              <img src="/subx-logo/header-logo.png" alt="Subx Logo" className="h-20 w-auto" />
             </Link>
           </div>
         </div>
@@ -45,7 +45,7 @@ export default function Terms() {
             <ol className="list-decimal pl-6 space-y-4">
               <li>
                 <strong>Introduction</strong><br/>
-                Subx is a real estate co-ownership and digital land banking platform, operated and managed by Focal Point Property Development & Management Services Ltd. ("Focal Point", "we", "our", "us"). By subscribing to any Subx project, you agree to these Terms and Conditions.
+                Subx is a real estate Sub-ownership and digital land banking platform, operated and managed by Focal Point Property Development & Management Services Ltd. ("Focal Point", "we", "our", "us"). By subscribing to any Subx project, you agree to these Terms and Conditions.
               </li>
               <li>
                 <strong>Eligibility</strong><br/>
@@ -55,7 +55,7 @@ export default function Terms() {
                 <strong>Ownership Structure</strong><br/>
                 Subx allows users to subscribe to fractional units of land, starting from as low as one square meter.<br/>
                 Each subscription represents a proportional interest in a defined parcel of land under the Subx platform.<br/>
-                The full land parcel is held in trust by Focal Point on behalf of all verified co-owners until maturity or agreed resale.
+                The full land parcel is held in trust by Focal Point on behalf of all verified Sub-owners until maturity or agreed resale.
               </li>
               <li>
                 <strong>Minimum Holding Period</strong><br/>
@@ -73,7 +73,7 @@ export default function Terms() {
                 Upon successful subscription and full payment, users will receive:
                 <ul className="list-disc pl-6">
                   <li>A digital receipt of payment</li>
-                  <li>A co-ownership deed indicating their share</li>
+                  <li>A Sub-ownership deed indicating their share</li>
                   <li>A digital allocation confirmation (if applicable for that project)</li>
                 </ul>
                 Physical allocation or site access may be made available based on group agreement and project-specific guidelines.
@@ -84,7 +84,7 @@ export default function Terms() {
                 We reserve the right to:
                 <ul className="list-disc pl-6">
                   <li>Handle all legal, physical, and administrative management of the property</li>
-                  <li>Make operational decisions in the best interest of the co-owners</li>
+                  <li>Make operational decisions in the best interest of the Sub-owners</li>
                   <li>Deduct agreed management fees (disclosed before subscription)</li>
                 </ul>
               </li>
@@ -112,6 +112,11 @@ export default function Terms() {
               <li>
                 <strong>Governing Law</strong><br/>
                 These terms are governed by the laws of the Federal Republic of Nigeria. Disputes shall be resolved under Nigerian jurisdiction.
+              </li>
+              <li>
+                <strong>VAT (Value Added Tax)</strong><br/>
+                Subx’s platform service charge of 2% is subject to VAT as required by Nigerian tax law. The VAT is calculated on the service charge and is deducted from the developer’s payout, not the buyer’s payment.<br/>
+                Buyers will not be charged VAT directly on land purchases unless required by law.
               </li>
               <li>
                 <strong>Contact</strong><br/>

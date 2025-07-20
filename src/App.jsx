@@ -14,7 +14,7 @@ import AdminDashboard from './routes/dashboard/admin'
 import Messaging from './routes/messaging/Messaging'
 import ForumTopic from './routes/ForumTopic'
 import Features from './routes/Features'
-import Pricing from './routes/Pricing'
+import FAQ from './routes/FAQ'
 import Privacy from './routes/legal/Privacy'
 import Terms from './routes/legal/Terms'
 import CookiePolicy from './routes/legal/CookiePolicy'
@@ -136,9 +136,9 @@ const App = () => {
           <Route path="/signup/investor" element={<InvestorSignup />} />
           <Route path="/signup/developer" element={<DeveloperSignup />} />
           <Route path="/features" element={<Features />} />
-          <Route path="/pricing" element={
+          <Route path="/faq" element={
             <PageTransition>
-              <Pricing />
+              <FAQ />
             </PageTransition>
           } />
           <Route path="/about" element={

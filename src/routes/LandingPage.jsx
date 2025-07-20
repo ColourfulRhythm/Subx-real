@@ -94,7 +94,7 @@ export default function LandingPage() {
               transition={{ delay: 0.2 }}
               className="flex items-center"
             >
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Subx</h1>
+              <img src="/subx-logo/header-logo.png" alt="Subx Logo" className="h-20 w-auto" />
             </motion.div>
             <motion.div 
               initial={{ opacity: 0 }}
@@ -338,7 +338,7 @@ export default function LandingPage() {
               <ul className="mt-4 space-y-4">
                 {[
                   { name: 'Features', href: '/features' },
-                  { name: 'Pricing', href: '/pricing' },
+                  { name: 'FAQ', href: '/faq' },
                   { name: 'Security', href: '#' }
                 ].map((item) => (
                   <li key={item.name}>

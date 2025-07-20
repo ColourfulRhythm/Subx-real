@@ -14,7 +14,7 @@ export default function Privacy() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <Link to="/" className="flex items-center">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Subx</h1>
+              <img src="/subx-logo/header-logo.png" alt="Subx Logo" className="h-20 w-auto" />
             </Link>
           </div>
         </div>
@@ -90,8 +90,6 @@ export default function Privacy() {
                   If you have any questions about this Privacy Policy, please contact us at:
                   <br />
                   Email: privacy@subx.com
-                  <br />
-                  Address: 123 Real Estate Street, Lagos, Nigeria
                 </p>
               </section>
             </div>
