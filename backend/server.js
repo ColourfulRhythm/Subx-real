@@ -412,7 +412,7 @@ app.get('/api/projects/:developerId', async (req, res) => {
 // Investor routes
 app.post('/api/investors', async (req, res) => {
   try {
-    const { name, email, password, phone, bio, investmentInterests } = req.body;
+    const { name, email, password, phone, bio, investmentInterests, googleId } = req.body;
 
     // Check if email already exists
     const existing = await Investor.findOne({ email });
@@ -420,16 +420,20 @@ app.post('/api/investors', async (req, res) => {
       return res.status(400).json({ error: 'Email already registered' });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    let hashedPassword = undefined;
+    if (password) {
+      hashedPassword = await bcrypt.hash(password, 10);
+    }
 
+    // For Google signup, allow missing password, phone, bio, investmentInterests
     const investor = new Investor({
       name,
       email,
       password: hashedPassword,
       phone,
       bio,
-      investmentInterests
+      investmentInterests,
+      googleId
     });
     await investor.save();
     res.status(201).json({ message: 'Investor created successfully', investor: { ...investor.toObject(), password: undefined } });

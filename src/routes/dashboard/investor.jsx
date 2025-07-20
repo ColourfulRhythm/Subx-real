@@ -88,45 +88,7 @@ const mockConnections = [
   }
 ];
 
-// Add mock forum data
-const mockForums = {
-  general: {
-    topics: [
-      {
-        id: 1,
-        title: "Investment Strategies for Real Estate",
-        content: "What are some effective investment strategies for real estate in the current market?",
-        views: 156,
-        replies: [
-          {
-            author: "John Doe",
-            content: "I recommend focusing on emerging markets with strong growth potential.",
-            date: "2024-03-20 14:30"
-          },
-          {
-            author: "You",
-            content: "Thanks for the insight! What specific markets are you looking at?",
-            date: "2024-03-20 15:00"
-          }
-        ]
-      },
-      {
-        id: 2,
-        title: "ROI Expectations in 2024",
-        content: "What are your ROI expectations for real estate investments this year?",
-        views: 89,
-        replies: [
-          {
-            author: "Sarah Smith",
-            content: "I'm targeting 8-10% ROI on my residential properties.",
-            date: "2024-03-19 10:15"
-          }
-        ]
-      }
-    ]
-  },
-  projectForums: {}
-};
+// Forum data will be populated dynamically when users create topics
 
 // Add mock messages data
 const mockMessages = [
@@ -248,39 +210,7 @@ export default function InvestorDashboard() {
   const [forumTopics, setForumTopics] = useState([])
   const [forums, setForums] = useState({
     general: {
-      topics: [
-        {
-          id: 1,
-          title: "Investment Strategies for Real Estate",
-          content: "What are some effective investment strategies for real estate in the current market?",
-          views: 156,
-          replies: [
-            {
-              author: "John Doe",
-              content: "I recommend focusing on emerging markets with strong growth potential.",
-              date: "2024-03-20 14:30"
-            },
-            {
-              author: "You",
-              content: "Thanks for the insight! What specific markets are you looking at?",
-              date: "2024-03-20 15:00"
-            }
-          ]
-        },
-        {
-          id: 2,
-          title: "ROI Expectations in 2024",
-          content: "What are your ROI expectations for real estate investments this year?",
-          views: 89,
-          replies: [
-            {
-              author: "Sarah Smith",
-              content: "I'm targeting 8-10% ROI on my residential properties.",
-              date: "2024-03-19 10:15"
-            }
-          ]
-        }
-      ]
+      topics: []
     },
     projectForums: {}
   })
@@ -970,19 +900,19 @@ export default function InvestorDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Total Investments</h3>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">₦{analytics.totalInvestments.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">₦{(analytics.totalInvestments || 0).toLocaleString()}</p>
                             </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Active Investments</h3>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">₦{analytics.activeInvestments.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">₦{(analytics.activeInvestments || 0).toLocaleString()}</p>
                             </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Total Returns</h3>
-            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">₦{analytics.totalReturns.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">₦{(analytics.totalReturns || 0).toLocaleString()}</p>
                           </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Portfolio Value</h3>
-            <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">₦{analytics.portfolioValue.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">₦{(analytics.portfolioValue || 0).toLocaleString()}</p>
                         </div>
         </div>
 
@@ -1051,15 +981,15 @@ export default function InvestorDashboard() {
                         <div className="space-y-4">
               <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <span className="text-sm text-gray-600 dark:text-gray-400">3 Months</span>
-                <span className="font-medium text-green-600 dark:text-green-400">₦{analytics.expectedReturns.threeMonths.toLocaleString()}</span>
+                <span className="font-medium text-green-600 dark:text-green-400">₦{(analytics.expectedReturns?.threeMonths || 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <span className="text-sm text-gray-600 dark:text-gray-400">6 Months</span>
-                <span className="font-medium text-green-600 dark:text-green-400">₦{analytics.expectedReturns.sixMonths.toLocaleString()}</span>
+                <span className="font-medium text-green-600 dark:text-green-400">₦{(analytics.expectedReturns?.sixMonths || 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <span className="text-sm text-gray-600 dark:text-gray-400">1 Year</span>
-                <span className="font-medium text-green-600 dark:text-green-400">₦{analytics.expectedReturns.oneYear.toLocaleString()}</span>
+                <span className="font-medium text-green-600 dark:text-green-400">₦{(analytics.expectedReturns?.oneYear || 0).toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -1068,7 +998,7 @@ export default function InvestorDashboard() {
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Growth Rate</h3>
-            <span className="text-2xl font-bold text-green-600 dark:text-green-400">+{analytics.growthRate}%</span>
+            <span className="text-2xl font-bold text-green-600 dark:text-green-400">+{analytics.growthRate || 0}%</span>
           </div>
           <p className="text-sm text-gray-600 dark:text-gray-400">Year-over-Year portfolio growth</p>
         </div>
@@ -1083,7 +1013,7 @@ export default function InvestorDashboard() {
                   <p className="text-sm text-gray-500 dark:text-gray-400">{transaction.date}</p>
                               </div>
                 <div className="text-right">
-                  <p className="font-medium text-gray-700 dark:text-gray-300">₦{transaction.amount.toLocaleString()}</p>
+                  <p className="font-medium text-gray-700 dark:text-gray-300">₦{(transaction.amount || 0).toLocaleString()}</p>
                   <p className="text-sm text-green-500">{transaction.status}</p>
                 </div>
                             </div>
@@ -1228,6 +1158,25 @@ export default function InvestorDashboard() {
               </button>
             </div>
             
+            {forums.general.topics.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 dark:text-gray-500 mb-4">
+                  <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No topics yet</h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-4">
+                  Be the first to start a discussion! Topics will appear here once users begin creating them.
+                </p>
+                <button
+                  onClick={() => setShowNewTopicModal(true)}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Create First Topic
+                </button>
+              </div>
+            ) : (
                         <div className="space-y-4">
               {forums.general.topics.map((topic) => (
                 <div
@@ -1256,6 +1205,7 @@ export default function InvestorDashboard() {
                             </div>
                           ))}
                         </div>
+            )}
           </div>
         </div>
       </div>

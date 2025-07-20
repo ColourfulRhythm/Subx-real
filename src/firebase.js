@@ -3,6 +3,7 @@ import { getAnalytics } from 'firebase/analytics';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, getDocs, doc, getDoc } from 'firebase/firestore/lite';
 import { getStorage } from 'firebase/storage';
+import { GoogleAuthProvider } from 'firebase/auth';
 
 // Check for required environment variables
 const requiredEnvVars = [
@@ -101,4 +102,5 @@ const getDocument = async (collectionName, docId) => {
   }
 };
 
-export { app, analytics, auth, db, storage, getCollection, getDocument }; 
+const provider = new GoogleAuthProvider();
+export { app, analytics, auth, db, storage, getCollection, getDocument, provider };

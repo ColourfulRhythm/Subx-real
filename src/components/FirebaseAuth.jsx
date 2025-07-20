@@ -90,7 +90,7 @@ const FirebaseAuth = () => {
                   onClick={() => handleProfileSelect('investor')}
                   className="w-full flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
-                  Continue as Investor
+                  Continue as Sub-owner
                 </button>
                 <button
                   className="w-full flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gray-400 cursor-not-allowed opacity-60"
@@ -141,7 +141,7 @@ const FirebaseAuth = () => {
                 Welcome Back
               </h2>
               <p className="text-gray-600">
-                Sign in to continue as {selectedProfile === 'investor' ? 'Investor' : 'Developer'}
+                Sign in to continue as {selectedProfile === 'investor' ? 'Sub-owner' : 'Developer'}
               </p>
             </div>
 

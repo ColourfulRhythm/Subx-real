@@ -11,24 +11,13 @@ export default function ForumTopic() {
 
   useEffect(() => {
     // In a real app, fetch the topic data from the API
-    // For now, we'll use mock data
+    // For now, we'll use empty data until users start creating topics
     const mockTopic = {
       id: topicId,
-      title: "Investment Strategies for Real Estate",
-      content: "What are some effective investment strategies for real estate in the current market?",
-      views: 156,
-      replies: [
-        {
-          author: "John Doe",
-          content: "I recommend focusing on emerging markets with strong growth potential.",
-          date: "2024-03-20 14:30"
-        },
-        {
-          author: "You",
-          content: "Thanks for the insight! What specific markets are you looking at?",
-          date: "2024-03-20 15:00"
-        }
-      ]
+      title: "No topics available yet",
+      content: "Topics will appear here once users start creating discussions.",
+      views: 0,
+      replies: []
     };
 
     setTopic(mockTopic);

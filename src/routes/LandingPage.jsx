@@ -106,13 +106,13 @@ export default function LandingPage() {
                 onClick={() => navigate('/login')}
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors"
               >
-                Log in as Investor
+                Log in as Sub-owner
               </button>
               <button
                 onClick={() => navigate('/signup/investor')}
                 className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:opacity-90 transition-opacity"
               >
-                Sign up as Investor
+                Sign Up
               </button>
             </motion.div>
           </div>
@@ -143,7 +143,7 @@ export default function LandingPage() {
               transition={{ delay: 0.6 }}
               className="mt-4 text-xl text-gray-600 max-w-3xl mx-auto"
             >
-              Join Subx to discover your dream property, connect with trusted developers, and make your real estate ownership journey seamless and rewarding.
+              Join Subx the official digital land ownership and Sub-ownership platform of Focal Point Property Development & Management Services Ltd.
             </motion.p>
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
@@ -158,7 +158,7 @@ export default function LandingPage() {
                     whileTap={{ scale: 0.95 }}
                     className="px-8 py-3 text-base font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:opacity-90 transition-opacity"
                   >
-                    Get Started as Investor
+                    Start Owning
                   </motion.button>
                 </Link>
                 <button

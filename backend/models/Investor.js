@@ -12,19 +12,23 @@ const InvestorSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
+    required: function() { return !this.googleId; },
   },
   phone: {
     type: String,
-    required: true,
+    required: false,
   },
   bio: {
     type: String,
-    required: true,
+    required: false,
   },
   investmentInterests: {
     type: String,
-    required: true,
+    required: false,
+  },
+  googleId: {
+    type: String,
+    required: false,
   },
   isApproved: {
     type: Boolean,
