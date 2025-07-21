@@ -21,6 +21,7 @@ import axios from 'axios';
 import { documentsRouter } from './routes/documents.js';
 import { Investor } from './models/Investor.js';
 import { Connection } from './models/Connection.js';
+import nodemailer from 'nodemailer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,6 +30,78 @@ const __dirname = path.dirname(__filename);
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 }) : null;
+
+// Email transporter setup
+const transporter = nodemailer.createTransporter({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER || 'your-email@gmail.com',
+    pass: process.env.EMAIL_PASS || 'your-app-password'
+  }
+});
+
+// Send welcome email function
+const sendWelcomeEmail = async (user) => {
+  try {
+    const mailOptions = {
+      from: process.env.EMAIL_USER || 'noreply@subx.com',
+      to: user.email,
+      subject: 'Welcome to Subx - Start Your Property Investment Journey!',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; text-align: center; color: white;">
+            <h1 style="margin: 0; font-size: 28px;">Welcome to Subx!</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">Your property investment journey starts now</p>
+          </div>
+          
+          <div style="padding: 40px; background: #f8f9fa;">
+            <h2 style="color: #333; margin-bottom: 20px;">Hello ${user.name},</h2>
+            
+            <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+              Welcome to Subx! We're excited to have you join our community of property investors. 
+              You're now part of a platform that's revolutionizing how people invest in real estate.
+            </p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
+              <h3 style="color: #333; margin-top: 0;">What you can do now:</h3>
+              <ul style="color: #666; line-height: 1.8;">
+                <li>Browse available property investment opportunities</li>
+                <li>Connect with developers and other investors</li>
+                <li>Track your investment portfolio</li>
+                <li>Receive notifications about new listings</li>
+                <li>Join our community forum</li>
+              </ul>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="https://subx-825e9.web.app/dashboard/investor" 
+                 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; display: inline-block; font-weight: bold;">
+                Go to Your Dashboard
+              </a>
+            </div>
+            
+            <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+              We'll keep you updated with the latest investment opportunities and market insights. 
+              If you have any questions, feel free to reach out to our support team.
+            </p>
+            
+            <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px;">
+              <p style="color: #999; font-size: 14px; margin: 0;">
+                Best regards,<br>
+                The Subx Team
+              </p>
+            </div>
+          </div>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Welcome email sent to ${user.email}`);
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+  }
+};
 
 const app = express();
 const port = process.env.PORT || 30002;
@@ -249,6 +322,11 @@ app.post('/api/developers/register', upload.single('logo'), async (req, res) => 
 
     await developer.save();
 
+    // Send welcome email (in background, don't wait for it)
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      sendWelcomeEmail(developer).catch(err => console.error('Welcome email error:', err));
+    }
+
     // Generate token
     const token = jwt.sign({ id: developer._id }, JWT_SECRET);
 
@@ -414,6 +492,11 @@ app.post('/api/investors', async (req, res) => {
   try {
     const { name, email, password, phone, bio, investmentInterests, googleId } = req.body;
 
+    // Validate required fields
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Name, email, and password are required' });
+    }
+
     // Check if email already exists
     const existing = await Investor.findOne({ email });
     if (existing) {
@@ -435,8 +518,18 @@ app.post('/api/investors', async (req, res) => {
       investmentInterests,
       googleId
     });
+    
     await investor.save();
-    res.status(201).json({ message: 'Investor created successfully', investor: { ...investor.toObject(), password: undefined } });
+
+    // Send welcome email (in background, don't wait for it)
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      sendWelcomeEmail(investor).catch(err => console.error('Welcome email error:', err));
+    }
+
+    res.status(201).json({ 
+      message: 'Investor created successfully', 
+      investor: { ...investor.toObject(), password: undefined } 
+    });
   } catch (error) {
     console.error('Error creating investor:', error);
     res.status(500).json({ error: 'Failed to create investor' });
@@ -971,6 +1064,25 @@ app.get('/api/investors/profile', investorAuth, async (req, res) => {
     res.json(investor);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch investor profile' });
+  }
+});
+
+// Public user count endpoint (no authentication required)
+app.get('/api/users/count', async (req, res) => {
+  try {
+    const investorCount = await Investor.countDocuments();
+    const developerCount = await Developer.countDocuments();
+    const totalUsers = investorCount + developerCount;
+    
+    res.json({ 
+      totalUsers,
+      investors: investorCount,
+      developers: developerCount,
+      message: `Total registered users: ${totalUsers}`
+    });
+  } catch (error) {
+    console.error('Error getting user count:', error);
+    res.status(500).json({ error: 'Failed to get user count' });
   }
 });
 

@@ -50,11 +50,11 @@ export default function LandingPage() {
 
   useEffect(() => {
     // Fetch user count from backend
-    fetch('/api/admin/users')
+    fetch('/api/users/count')
       .then(res => res.json())
       .then(data => {
-        if (data.developers && data.investors) {
-          const totalUsers = data.developers.length + data.investors.length;
+        if (data.totalUsers !== undefined) {
+          const totalUsers = data.totalUsers;
           setSpotsLeft(10000 - totalUsers);
         }
       })
