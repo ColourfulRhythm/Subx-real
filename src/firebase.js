@@ -5,43 +5,15 @@ import { getFirestore, collection, getDocs, doc, getDoc } from 'firebase/firesto
 import { getStorage } from 'firebase/storage';
 import { GoogleAuthProvider } from 'firebase/auth';
 
-// Check for required environment variables
-const requiredEnvVars = [
-  'VITE_FIREBASE_API_KEY',
-  'VITE_FIREBASE_AUTH_DOMAIN',
-  'VITE_FIREBASE_PROJECT_ID',
-  'VITE_FIREBASE_STORAGE_BUCKET',
-  'VITE_FIREBASE_MESSAGING_SENDER_ID',
-  'VITE_FIREBASE_APP_ID',
-  'VITE_FIREBASE_MEASUREMENT_ID'
-];
-
-const missingEnvVars = requiredEnvVars.filter(varName => !import.meta.env[varName]);
-
-if (missingEnvVars.length > 0) {
-  console.error('Missing required environment variables:', missingEnvVars);
-  console.error('Please create a .env file in your project root with the following variables:');
-  console.error(`
-VITE_FIREBASE_API_KEY=your_api_key_here
-VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain_here
-VITE_FIREBASE_PROJECT_ID=your_project_id_here
-VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket_here
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id_here
-VITE_FIREBASE_APP_ID=your_app_id_here
-VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id_here
-  `);
-  throw new Error('Missing required Firebase configuration values');
-}
-
-// Your web app's Firebase configuration
+// Firebase configuration for production
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  apiKey: "AIzaSyC60bWkujXkpdB_jASgZhi7rb9njUXYiSc",
+  authDomain: "subx-825e9.firebaseapp.com",
+  projectId: "subx-825e9",
+  storageBucket: "subx-825e9.firebasestorage.app",
+  messagingSenderId: "853877174483",
+  appId: "1:853877174483:web:9001636a7cd1e9160ca426",
+  measurementId: "G-FNQZQRHBVL"
 };
 
 // Log configuration (without sensitive data)
