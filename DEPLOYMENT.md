@@ -5,7 +5,7 @@
 ### **🌐 Live URLs:**
 
 - **User Frontend**: https://subx-825e9.web.app
-- **Admin Dashboard**: https://subx-825e9-admin.web.app
+- **Admin Dashboard**: https://subx-825e9-admin-39f23.web.app
 - **Firebase Console**: https://console.firebase.google.com/project/subx-825e9/overview
 
 ### **📊 Deployment Summary:**
@@ -50,7 +50,7 @@ Subx-real/
 
 ### **🔐 Admin Access:**
 
-- **URL**: https://subx-825e9-admin.web.app
+- **URL**: https://subx-825e9-admin-39f23.web.app
 - **Email**: admin@subx.com
 - **Password**: admin123
 
