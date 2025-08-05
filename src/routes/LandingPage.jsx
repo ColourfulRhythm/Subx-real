@@ -51,7 +51,7 @@ export default function LandingPage() {
   useEffect(() => {
     // Get user count from localStorage or use a realistic starting number
     const totalUsers = parseInt(localStorage.getItem('totalUsers') || '0');
-    const baseUsers = 1500; // Starting with 1500 users for realism
+    const baseUsers = 0; // Start with 0 users for honesty
     const currentTotal = baseUsers + totalUsers;
     setSpotsLeft(Math.max(0, 10000 - currentTotal));
   }, []);

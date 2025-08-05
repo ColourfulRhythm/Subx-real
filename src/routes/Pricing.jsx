@@ -85,7 +85,7 @@ export default function Pricing() {
       "Featured property listings",
       "Property performance tracking",
       "Market trend analysis",
-      "Investment opportunity alerts",
+      "Ownership opportunity alerts",
       "Priority listing in search results"
     ]
   }
@@ -95,7 +95,7 @@ export default function Pricing() {
       "Basic investor profile",
       "Browse all properties",
       "Connect with developers",
-      "Join investment groups",
+      "Join ownership groups",
       "Basic market insights",
       "Community forum access",
       "Email support"
@@ -103,13 +103,13 @@ export default function Pricing() {
     pro: [
       "Everything in Free, plus:",
       "Priority property access",
-      "Advanced investment analytics",
-      "AI-powered investment recommendations",
-      "Exclusive investment opportunities",
+      "Advanced ownership analytics",
+      "AI-powered ownership recommendations",
+      "Exclusive ownership opportunities",
       "Early access to new listings",
       "Portfolio tracking tools",
       "Tax optimization insights",
-      "Investment performance reports",
+      "Ownership performance reports",
       "Priority support"
     ]
   }

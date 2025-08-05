@@ -23,7 +23,7 @@ const Signup = () => {
             <div className="px-6 py-8">
               <h3 className="text-2xl font-bold text-gray-900">Sub-owner</h3>
               <p className="mt-4 text-gray-500">
-                Access investment opportunities and manage your portfolio
+                Access ownership opportunities and manage your portfolio
               </p>
               <div className="mt-6">
                 <Link

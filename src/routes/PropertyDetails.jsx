@@ -99,14 +99,14 @@ const PropertyDetails = () => {
               </div>
               
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Investment Details</h3>
+                <h3 className="text-lg font-medium text-gray-900">Ownership Details</h3>
                 <dl className="mt-4 space-y-4">
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Total Investment</dt>
+                    <dt className="text-sm font-medium text-gray-500">Total Ownership Cost</dt>
                     <dd className="mt-1 text-sm text-gray-900">${property.totalInvestment}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Minimum Investment</dt>
+                    <dt className="text-sm font-medium text-gray-500">Minimum Ownership</dt>
                     <dd className="mt-1 text-sm text-gray-900">${property.minInvestment}</dd>
                   </div>
                   <div>
@@ -122,7 +122,7 @@ const PropertyDetails = () => {
                 type="button"
                 className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                Invest Now
+                Own Now
               </button>
               <button
                 type="button"
