@@ -76,15 +76,53 @@ const mockConnections = [
     id: 1,
     developer: 'Focal Point Property Development and Management Services Ltd.',
     developerId: 'focalpoint',
-    projectId: 76, // Example plot/project ID
+    projectId: 76,
     projectTitle: '2 Seasons - Plot 76',
-    units: 1,
+    units: 500,
     amount: '₦2,500,000',
     status: 'approved',
     createdAt: '2024-07-18T10:00:00Z',
     notes: 'Interested in long-term ownership',
     updatedAt: '2024-07-18T10:30:00Z',
-    documents: [] // Will be fetched from backend
+    documents: [
+      { id: 1, name: 'Ownership Certificate', type: 'certificate', status: 'available' },
+      { id: 2, name: 'Deed of Assignment', type: 'deed', status: 'pending_signature' },
+      { id: 3, name: 'Payment Receipt', type: 'receipt', status: 'available' },
+      { id: 4, name: 'Site Plan', type: 'plan', status: 'available' }
+    ]
+  },
+  {
+    id: 2,
+    developer: 'Focal Point Property Development and Management Services Ltd.',
+    developerId: 'focalpoint',
+    projectId: 77,
+    projectTitle: '2 Seasons - Plot 77',
+    units: 300,
+    amount: '₦1,500,000',
+    status: 'pending',
+    createdAt: '2024-08-01T14:20:00Z',
+    notes: 'Looking for residential development',
+    updatedAt: '2024-08-01T14:20:00Z',
+    documents: []
+  },
+  {
+    id: 3,
+    developer: 'Focal Point Property Development and Management Services Ltd.',
+    developerId: 'focalpoint',
+    projectId: 78,
+    projectTitle: '2 Seasons - Plot 78',
+    units: 750,
+    amount: '₦3,750,000',
+    status: 'approved',
+    createdAt: '2024-06-15T09:45:00Z',
+    notes: 'Commercial development opportunity',
+    updatedAt: '2024-06-15T09:45:00Z',
+    documents: [
+      { id: 1, name: 'Ownership Certificate', type: 'certificate', status: 'available' },
+      { id: 2, name: 'Deed of Assignment', type: 'deed', status: 'signed' },
+      { id: 3, name: 'Payment Receipt', type: 'receipt', status: 'available' },
+      { id: 4, name: 'Survey Plan', type: 'plan', status: 'available' }
+    ]
   }
 ];
 
@@ -380,24 +418,39 @@ export default function InvestorDashboard() {
     // Load analytics data immediately
     fetchAnalytics();
     
-    Promise.all([
-      fetch('/api/investors/profile', { headers: { Authorization: `Bearer ${token}` } })
-        .then(res => res.json()),
-      fetch('/api/projects').then(res => res.json()),
-      fetch('/api/connections/' + JSON.parse(atob(token.split('.')[1])).id).then(res => res.json()),
-      fetch('/api/admin/messages?userId=' + JSON.parse(atob(token.split('.')[1])).id, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json())
-    ])
-      .then(([profileData, projectsData, connectionsData, messagesData]) => {
-        setProfile(profileData);
-        setProjects(Array.isArray(projectsData) ? projectsData : []);
-        setConnections(Array.isArray(connectionsData) ? connectionsData : []);
-        setMessages(Array.isArray(messagesData) ? messagesData : []);
-        setIsLoading(false);
-      })
-      .catch(err => {
-        setError('Failed to load data');
-        setIsLoading(false);
-      });
+    // Use mock data for now since backend is not connected
+    const mockProfileData = {
+      name: 'John Doe',
+      email: 'john@example.com',
+      phone: '+2341234567890',
+      bio: 'Experienced real estate investor with a focus on residential properties.',
+      investmentExperience: 'Advanced',
+      preferredInvestmentAmount: 50000000,
+      riskTolerance: 'Moderate',
+      investmentInterests: ['Residential', 'Commercial'],
+      preferredLocations: ['Lagos', 'Abuja'],
+      investmentGoals: ['Long-term Growth', 'Portfolio Diversification']
+    };
+    
+    const mockProjectsData = [
+      {
+        id: 1,
+        title: '2 Seasons - Plot 76',
+        description: 'Premium residential development in Lagos',
+        location: 'Lagos',
+        type: 'Residential',
+        amount: '₦2,500,000',
+        roi: '15%',
+        status: 'Available',
+        images: ['/public/2-seasons/2seasons-logo.jpg']
+      }
+    ];
+    
+    setProfile(mockProfileData);
+    setProjects(mockProjectsData);
+    setConnections(mockConnections);
+    setMessages(mockMessages);
+    setIsLoading(false);
   }, []);
 
   // Load Paystack script on mount
@@ -1155,6 +1208,136 @@ export default function InvestorDashboard() {
     );
   };
 
+  // Add this function to render the documents section
+  const renderDocuments = () => {
+    const approvedConnections = connections.filter(c => c.status === 'approved');
+    
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Your Land Ownership Documents</h3>
+            <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full text-sm">
+              {approvedConnections.length} Approved Connections
+            </span>
+          </div>
+          
+          {approvedConnections.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500 dark:text-gray-400">No approved land connections yet. Complete a land purchase to access your documents.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {approvedConnections.map((connection) => (
+                <motion.div
+                  key={connection.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-white">
+                        {connection.projectTitle}
+                      </h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Developer: {connection.developer}
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Amount: {connection.amount} | Units: {connection.units} sqm
+                      </p>
+                    </div>
+                    <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full text-sm">
+                      Approved
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Ownership Certificate */}
+                    <div className="bg-white dark:bg-gray-600 rounded-lg p-4 border border-gray-200 dark:border-gray-500">
+                      <div className="flex items-center justify-between mb-2">
+                        <h5 className="font-medium text-gray-900 dark:text-white">Ownership Certificate</h5>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded text-xs">
+                          Available
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Official certificate of land ownership</p>
+                      <button
+                        onClick={handleDownloadCertificate}
+                        className="w-full px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                      >
+                        Download Certificate
+                      </button>
+                    </div>
+                    
+                    {/* Deed of Assignment */}
+                    <div className="bg-white dark:bg-gray-600 rounded-lg p-4 border border-gray-200 dark:border-gray-500">
+                      <div className="flex items-center justify-between mb-2">
+                        <h5 className="font-medium text-gray-900 dark:text-white">Deed of Assignment</h5>
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded text-xs">
+                          Sign Required
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Legal deed document for ownership</p>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={handleSignDeed}
+                          className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                        >
+                          Sign Deed
+                        </button>
+                        <button
+                          onClick={handleDownloadDeed}
+                          className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                        >
+                          Download
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* Payment Receipt */}
+                    <div className="bg-white dark:bg-gray-600 rounded-lg p-4 border border-gray-200 dark:border-gray-500">
+                      <div className="flex items-center justify-between mb-2">
+                        <h5 className="font-medium text-gray-900 dark:text-white">Payment Receipt</h5>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded text-xs">
+                          Available
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Payment confirmation document</p>
+                      <button
+                        onClick={handleDownloadReceipt}
+                        className="w-full px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                      >
+                        Download Receipt
+                      </button>
+                    </div>
+                    
+                    {/* Site Plans */}
+                    <div className="bg-white dark:bg-gray-600 rounded-lg p-4 border border-gray-200 dark:border-gray-500">
+                      <div className="flex items-center justify-between mb-2">
+                        <h5 className="font-medium text-gray-900 dark:text-white">Site Plans</h5>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded text-xs">
+                          Available
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Site layout and survey documents</p>
+                      <button
+                        onClick={() => handleViewDocuments(connection)}
+                        className="w-full px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+                      >
+                        View Plans
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // Add this function to render the forum section
   const renderForum = () => {
     return (
@@ -1234,6 +1417,8 @@ export default function InvestorDashboard() {
         return renderAnalytics();
       case 'connections':
         return renderConnections();
+      case 'documents':
+        return renderDocuments();
       case 'forum':
         return renderForum();
       case 'profile':
@@ -2471,6 +2656,7 @@ export default function InvestorDashboard() {
               { key: "discover", label: "Land Opportunities" },
               { key: "analytics", label: "Land Analytics" },
               { key: "connections", label: "Land Connections" },
+              { key: "documents", label: "Documents" },
               { key: "forum", label: "Community" }
             ].map((tab) => (
               <motion.button
