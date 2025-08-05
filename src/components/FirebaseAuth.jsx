@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, provider } from '../firebase';
-import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithRedirect } from 'firebase/auth';
 
 const FirebaseAuth = () => {
   const navigate = useNavigate();
@@ -16,7 +16,17 @@ const FirebaseAuth = () => {
     setIsLoading(true);
     setError('');
     try {
-      const result = await signInWithPopup(auth, provider);
+      // Try popup first, fallback to redirect if blocked
+      let result;
+      try {
+        result = await signInWithPopup(auth, provider);
+      } catch (popupError) {
+        console.log('Popup blocked, trying redirect...');
+        // Fallback to redirect method
+        await signInWithRedirect(auth, provider);
+        return; // Redirect will handle the rest
+      }
+      
       const user = result.user;
       
       // Set authentication status
@@ -37,7 +47,13 @@ const FirebaseAuth = () => {
       navigate(`/dashboard/${selectedProfile}`);
     } catch (error) {
       console.error('Google auth error:', error);
-      setError(error.message);
+      if (error.code === 'auth/popup-blocked') {
+        setError('Popup was blocked. Please allow popups for this site and try again, or use email/password login.');
+      } else if (error.code === 'auth/network-request-failed') {
+        setError('Network error. Please check your internet connection and try again.');
+    } else {
+        setError(error.message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -70,14 +86,14 @@ const FirebaseAuth = () => {
       
       const user = userCredential.user;
       
-      // Set authentication status
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('userType', selectedProfile);
+          // Set authentication status
+          localStorage.setItem('isAuthenticated', 'true');
+          localStorage.setItem('userType', selectedProfile);
       localStorage.setItem('userEmail', user.email);
       localStorage.setItem('userName', user.displayName || user.email);
-      
-      // Navigate to the appropriate dashboard
-      navigate(`/dashboard/${selectedProfile}`);
+          
+          // Navigate to the appropriate dashboard
+          navigate(`/dashboard/${selectedProfile}`);
     } catch (error) {
       console.error('Email auth error:', error);
       setError(error.message);
@@ -185,6 +201,26 @@ const FirebaseAuth = () => {
             >
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 mr-2" />
               Continue with Google
+            </button>
+            
+            {/* Alternative Google Auth Button (if popup fails) */}
+            <button
+              onClick={async () => {
+                setIsLoading(true);
+                setError('');
+                try {
+                  await signInWithRedirect(auth, provider);
+                } catch (error) {
+                  console.error('Redirect auth error:', error);
+                  setError('Authentication failed. Please try email/password login.');
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              disabled={isLoading}
+              className="w-full flex justify-center items-center py-2 px-4 mb-4 border border-gray-300 rounded-lg shadow-sm text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Alternative Google Sign-in (if popup fails)
             </button>
 
             <div className="flex items-center my-4">

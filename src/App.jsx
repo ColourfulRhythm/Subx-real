@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { motion, AnimatePresence } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
 import { auth } from './firebase'
-import { onAuthStateChanged } from 'firebase/auth'
+import { onAuthStateChanged, getRedirectResult } from 'firebase/auth'
 import LandingPage from './routes/LandingPage'
 import Login from './routes/login'
 import InvestorSignup from './routes/signup/investor'
@@ -100,6 +100,30 @@ const PageTransition = ({ children }) => {
 const App = () => {
   useEffect(() => {
     console.log('App component mounted')
+    
+    // Handle redirect result from Google auth
+    getRedirectResult(auth).then((result) => {
+      if (result) {
+        const user = result.user;
+        console.log('Redirect auth successful:', user.email);
+        
+        // Set authentication status
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('userType', 'investor'); // Default to investor
+        localStorage.setItem('userEmail', user.email);
+        localStorage.setItem('userName', user.displayName || user.email);
+        
+        // Increment user count
+        if (window.incrementSubxUserCount) {
+          window.incrementSubxUserCount();
+        }
+        
+        // Navigate to dashboard
+        window.location.href = '/dashboard/investor';
+      }
+    }).catch((error) => {
+      console.error('Redirect auth error:', error);
+    });
     
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       console.log('Auth state changed:', user ? 'User logged in' : 'No user')
