@@ -43,6 +43,9 @@ export default function InvestorSignup() {
         window.incrementSubxUserCount();
       }
       
+      // Show success message
+      alert(`Welcome ${data.name}! Your account has been created successfully. You can now access your investor dashboard.`)
+      
       navigate('/dashboard/investor')
     } catch (error) {
       console.error('Signup error:', error)
@@ -69,6 +72,9 @@ export default function InvestorSignup() {
       if (window.incrementSubxUserCount) {
         window.incrementSubxUserCount();
       }
+      
+      // Show success message
+      alert(`Welcome ${user.displayName || user.email}! Your account has been created successfully. You can now access your investor dashboard.`)
       
       navigate('/dashboard/investor')
     } catch (error) {

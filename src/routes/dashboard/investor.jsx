@@ -366,6 +366,10 @@ export default function InvestorDashboard() {
       return;
     }
     setIsLoading(true);
+    
+    // Load analytics data immediately
+    fetchAnalytics();
+    
     Promise.all([
       fetch('/api/investors/profile', { headers: { Authorization: `Bearer ${token}` } })
         .then(res => res.json()),
@@ -857,13 +861,13 @@ export default function InvestorDashboard() {
   // Add this function to fetch analytics data
   const fetchAnalytics = async () => {
     try {
-      // TODO: Replace with actual API call
+      // Realistic analytics data for demo
       const mockAnalytics = {
-        totalInvestments: 5,
-        activeInvestments: 3,
-        totalReturns: 15000000,
-        portfolioValue: 75000000,
-        growthRate: 12.5, // Year-over-Year growth rate
+        totalInvestments: 25000000, // ₦25M
+        activeInvestments: 15000000, // ₦15M
+        totalReturns: 3750000, // ₦3.75M
+        portfolioValue: 28750000, // ₦28.75M
+        growthRate: 15.2, // Year-over-Year growth rate
         investmentDistribution: {
           residential: 45,
           commercial: 30,
@@ -871,9 +875,9 @@ export default function InvestorDashboard() {
           land: 10
         },
         expectedReturns: {
-          threeMonths: 2500000,
-          sixMonths: 5500000,
-          oneYear: 12000000
+          threeMonths: 1875000, // ₦1.875M
+          sixMonths: 4125000, // ₦4.125M
+          oneYear: 9000000 // ₦9M
         },
         recentTransactions: [
           { id: 1, type: 'Investment', amount: 10000000, date: '2024-03-15', status: 'Completed' },

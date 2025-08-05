@@ -30,6 +30,9 @@ const FirebaseAuth = () => {
         window.incrementSubxUserCount();
       }
       
+      // Show success message
+      alert(`Welcome ${user.displayName || user.email}! You have been successfully ${authMode === 'signup' ? 'registered' : 'logged in'} as a ${selectedProfile}.`);
+      
       // Navigate to the appropriate dashboard
       navigate(`/dashboard/${selectedProfile}`);
     } catch (error) {
@@ -55,8 +58,14 @@ const FirebaseAuth = () => {
         if (window.incrementSubxUserCount) {
           window.incrementSubxUserCount();
         }
+        
+        // Show success message for new signup
+        alert(`Welcome! Your account has been created successfully. You can now access your ${selectedProfile} dashboard.`);
       } else {
         userCredential = await signInWithEmailAndPassword(auth, email, password);
+        
+        // Show success message for login
+        alert(`Welcome back! You have been successfully logged in as a ${selectedProfile}.`);
       }
       
       const user = userCredential.user;
