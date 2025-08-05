@@ -1,65 +1,71 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth } from '../firebase';
-import * as firebaseui from 'firebaseui';
-import { GoogleAuthProvider, EmailAuthProvider } from 'firebase/auth';
-import 'firebaseui/dist/firebaseui.css';
+import { auth, provider } from '../firebase';
+import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
 const FirebaseAuth = () => {
-  const elementRef = useRef(null);
   const navigate = useNavigate();
-  const uiRef = useRef(null);
   const [selectedProfile, setSelectedProfile] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [authMode, setAuthMode] = useState('signin'); // 'signin' or 'signup'
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (!selectedProfile) return;
-
-    // Check if FirebaseUI is already initialized
-    if (firebaseui.auth.AuthUI.getInstance()) {
-      // If it exists, get the instance
-      uiRef.current = firebaseui.auth.AuthUI.getInstance();
-    } else {
-      // If it doesn't exist, create a new instance
-      uiRef.current = new firebaseui.auth.AuthUI(auth);
+  const handleGoogleAuth = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      
+      // Set authentication status
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('userType', selectedProfile);
+      localStorage.setItem('userEmail', user.email);
+      localStorage.setItem('userName', user.displayName || user.email);
+      
+      // Navigate to the appropriate dashboard
+      navigate(`/dashboard/${selectedProfile}`);
+    } catch (error) {
+      console.error('Google auth error:', error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    const uiConfig = {
-      signInOptions: [
-        {
-          provider: GoogleAuthProvider.PROVIDER_ID,
-          requireDisplayName: false
-        },
-        {
-          provider: EmailAuthProvider.PROVIDER_ID,
-          requireDisplayName: false
-        }
-      ],
-      signInFlow: 'popup',
-      callbacks: {
-        signInSuccessWithAuthResult: (authResult) => {
-          // Set authentication status
-          localStorage.setItem('isAuthenticated', 'true');
-          
-          // Set the selected user type
-          localStorage.setItem('userType', selectedProfile);
-          
-          // Navigate to the appropriate dashboard
-          navigate(`/dashboard/${selectedProfile}`);
-          return false;
-        }
+  const handleEmailAuth = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      let userCredential;
+      
+      if (authMode === 'signup') {
+        userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        userCredential = await signInWithEmailAndPassword(auth, email, password);
       }
-    };
-
-    // Start the UI
-    uiRef.current.start(elementRef.current, uiConfig);
-
-    // Cleanup function
-    return () => {
-      if (uiRef.current) {
-        uiRef.current.reset();
-      }
-    };
-  }, [navigate, selectedProfile]);
+      
+      const user = userCredential.user;
+      
+      // Set authentication status
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('userType', selectedProfile);
+      localStorage.setItem('userEmail', user.email);
+      localStorage.setItem('userName', user.displayName || user.email);
+      
+      // Navigate to the appropriate dashboard
+      navigate(`/dashboard/${selectedProfile}`);
+    } catch (error) {
+      console.error('Email auth error:', error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleProfileSelect = (profileType) => {
     setSelectedProfile(profileType);
@@ -138,28 +144,86 @@ const FirebaseAuth = () => {
           <div className="p-8">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                Welcome Back
+                {authMode === 'signin' ? 'Welcome Back' : 'Create Account'}
               </h2>
               <p className="text-gray-600">
-                Sign in to continue as {selectedProfile === 'investor' ? 'Sub-owner' : 'Developer'}
+                {authMode === 'signin' ? 'Sign in to continue as' : 'Sign up as'} {selectedProfile === 'investor' ? 'Sub-owner' : 'Developer'}
               </p>
             </div>
 
-            {/* Auth UI Container */}
-            <div 
-              ref={elementRef} 
-              className="space-y-4"
-              style={{
-                '--firebaseui-primary-color': '#4F46E5',
-                '--firebaseui-primary-color-dark': '#4338CA',
-                '--firebaseui-primary-color-light': '#818CF8',
-                '--firebaseui-accent-color': '#4F46E5',
-                '--firebaseui-background-color': '#ffffff',
-                '--firebaseui-text-color': '#374151',
-                '--firebaseui-error-color': '#EF4444',
-                '--firebaseui-font-family': 'Inter, system-ui, -apple-system, sans-serif',
-              }}
-            ></div>
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
+            {/* Google Auth Button */}
+            <button
+              onClick={handleGoogleAuth}
+              disabled={isLoading}
+              className="w-full flex justify-center items-center py-3 px-4 mb-4 border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 mr-2" />
+              Continue with Google
+            </button>
+
+            <div className="flex items-center my-4">
+              <div className="flex-grow border-t border-gray-300"></div>
+              <span className="px-3 text-sm text-gray-500">or</span>
+              <div className="flex-grow border-t border-gray-300"></div>
+            </div>
+
+            {/* Email/Password Form */}
+            <form onSubmit={handleEmailAuth} className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Enter your email"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Enter your password"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Loading...' : (authMode === 'signin' ? 'Sign In' : 'Sign Up')}
+              </button>
+            </form>
+
+            {/* Toggle Auth Mode */}
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}
+                className="text-sm text-indigo-600 hover:text-indigo-500"
+              >
+                {authMode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+              </button>
+            </div>
 
             {/* Back button */}
             <div className="mt-4 text-center space-y-4">
