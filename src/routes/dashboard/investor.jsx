@@ -215,13 +215,22 @@ export default function InvestorDashboard() {
     projectForums: {}
   })
   const [analytics, setAnalytics] = useState({
-    totalInvestments: 0,
-    activeInvestments: 0,
-    totalReturns: 0,
+    totalLandOwned: 0,
+    activeLandUnits: 0,
+    totalLandValue: 0,
     portfolioValue: 0,
     growthRate: 0,
-    investmentDistribution: {},
-    expectedReturns: {},
+    landDistribution: {
+      residential: 0,
+      commercial: 0,
+      agricultural: 0,
+      mixed: 0
+    },
+    expectedReturns: {
+      threeMonths: 0,
+      sixMonths: 0,
+      oneYear: 0
+    },
     recentTransactions: [],
     performanceMetrics: {
       monthlyReturn: 0,
@@ -241,6 +250,7 @@ export default function InvestorDashboard() {
   })
   const [showConnectionDetails, setShowConnectionDetails] = useState(false)
   const [selectedConnection, setSelectedConnection] = useState(null)
+  const [showDocumentsModal, setShowDocumentsModal] = useState(false)
   const [activeForum, setActiveForum] = useState('general')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [newTopic, setNewTopic] = useState({
@@ -751,6 +761,11 @@ export default function InvestorDashboard() {
     setShowConnectionDetails(true)
   }
 
+  const handleViewDocuments = (connection) => {
+    setSelectedConnection(connection);
+    setShowDocumentsModal(true);
+  }
+
   // Toggle dark mode
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -1092,13 +1107,21 @@ export default function InvestorDashboard() {
                     )}
                     </div>
 
-                  <div className="mt-4 flex justify-end space-x-3">
+                                    <div className="mt-4 flex justify-end space-x-3">
                     <button
                       onClick={() => handleViewConnectionDetails(connection)}
                       className="px-4 py-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300"
                     >
                       View Details
                     </button>
+                    {connection.status === 'approved' && (
+                      <button
+                        onClick={() => handleViewDocuments(connection)}
+                        className="px-4 py-2 text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300"
+                      >
+                        View Documents
+                      </button>
+                    )}
                     {connection.status === 'pending' && (
                       <button
                         onClick={() => {
@@ -1110,7 +1133,7 @@ export default function InvestorDashboard() {
                         Cancel Request
                       </button>
                     )}
-                        </div>
+                  </div>
                       </motion.div>
               ))}
                     </div>
@@ -2613,6 +2636,109 @@ export default function InvestorDashboard() {
         onClose={() => setShowDeedModal(false)}
         onSubmit={handleDeedSubmit}
       />
+      
+      {/* Documents Modal */}
+      {showDocumentsModal && selectedConnection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Documents - {selectedConnection.projectTitle}
+              </h2>
+              <button
+                onClick={() => setShowDocumentsModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Ownership Certificate */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Ownership Certificate</h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Certificate of Land Ownership</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">Generated on approval</p>
+                  </div>
+                  <button
+                    onClick={handleDownloadCertificate}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Download Certificate
+                  </button>
+                </div>
+              </div>
+              
+              {/* Deed of Assignment */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Deed of Assignment</h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Legal Deed Document</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">Sign to complete ownership</p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleSignDeed}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Sign Deed
+                    </button>
+                    <button
+                      onClick={handleDownloadDeed}
+                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    >
+                      Download Deed
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Payment Receipt */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Payment Receipt</h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Payment Confirmation</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">Amount: {selectedConnection.amount}</p>
+                  </div>
+                  <button
+                    onClick={handleDownloadReceipt}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    Download Receipt
+                  </button>
+                </div>
+              </div>
+              
+              {/* Site Plans */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Site Plans & Documents</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">Site Plan</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Detailed site layout and measurements</p>
+                    <button className="px-3 py-1 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700">
+                      View Plan
+                    </button>
+                  </div>
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">Survey Plan</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Official survey document</p>
+                    <button className="px-3 py-1 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700">
+                      View Survey
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {showSqmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
