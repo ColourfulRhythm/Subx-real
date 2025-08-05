@@ -25,6 +25,11 @@ const FirebaseAuth = () => {
       localStorage.setItem('userEmail', user.email);
       localStorage.setItem('userName', user.displayName || user.email);
       
+      // Increment user count if this is a new signup
+      if (window.incrementSubxUserCount) {
+        window.incrementSubxUserCount();
+      }
+      
       // Navigate to the appropriate dashboard
       navigate(`/dashboard/${selectedProfile}`);
     } catch (error) {
@@ -45,6 +50,11 @@ const FirebaseAuth = () => {
       
       if (authMode === 'signup') {
         userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        
+        // Increment user count for new signups
+        if (window.incrementSubxUserCount) {
+          window.incrementSubxUserCount();
+        }
       } else {
         userCredential = await signInWithEmailAndPassword(auth, email, password);
       }

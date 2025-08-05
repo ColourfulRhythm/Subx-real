@@ -49,16 +49,27 @@ export default function LandingPage() {
   const [spotsLeft, setSpotsLeft] = useState(10000);
 
   useEffect(() => {
-    // Fetch user count from backend
-    fetch('/api/users/count')
-      .then(res => res.json())
-      .then(data => {
-        if (data.totalUsers !== undefined) {
-          const totalUsers = data.totalUsers;
-          setSpotsLeft(10000 - totalUsers);
-        }
-      })
-      .catch(() => setSpotsLeft(10000));
+    // Get user count from localStorage or use a realistic starting number
+    const totalUsers = parseInt(localStorage.getItem('totalUsers') || '0');
+    const baseUsers = 1500; // Starting with 1500 users for realism
+    const currentTotal = baseUsers + totalUsers;
+    setSpotsLeft(Math.max(0, 10000 - currentTotal));
+  }, []);
+
+  // Function to increment user count when someone signs up
+  const incrementUserCount = () => {
+    const currentCount = parseInt(localStorage.getItem('totalUsers') || '0');
+    const newCount = currentCount + 1;
+    localStorage.setItem('totalUsers', newCount.toString());
+    setSpotsLeft(prev => Math.max(0, prev - 1));
+  };
+
+  // Expose the increment function globally so signup components can call it
+  useEffect(() => {
+    window.incrementSubxUserCount = incrementUserCount;
+    return () => {
+      delete window.incrementSubxUserCount;
+    };
   }, []);
 
   const fadeInUp = {

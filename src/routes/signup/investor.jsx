@@ -38,6 +38,11 @@ export default function InvestorSignup() {
       localStorage.setItem('userName', data.name)
       localStorage.setItem('userPhone', data.phone)
       
+      // Increment user count
+      if (window.incrementSubxUserCount) {
+        window.incrementSubxUserCount();
+      }
+      
       navigate('/dashboard/investor')
     } catch (error) {
       console.error('Signup error:', error)
@@ -59,6 +64,11 @@ export default function InvestorSignup() {
       localStorage.setItem('userType', 'investor')
       localStorage.setItem('userEmail', user.email)
       localStorage.setItem('userName', user.displayName || user.email)
+      
+      // Increment user count
+      if (window.incrementSubxUserCount) {
+        window.incrementSubxUserCount();
+      }
       
       navigate('/dashboard/investor')
     } catch (error) {
