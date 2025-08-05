@@ -4,8 +4,8 @@ import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { motion } from 'framer-motion'
-import { auth, provider } from '../../firebase'
-import { signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth'
+import { auth } from '../../firebase'
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
 
 const schema = yup.object().shape({
   name: yup.string().required('Name is required'),
@@ -22,6 +22,11 @@ export default function InvestorSignup() {
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema)
   })
+
+  // Initialize Google Auth Provider
+  const provider = new GoogleAuthProvider()
+  provider.addScope('profile')
+  provider.addScope('email')
 
   const onSubmit = async (data) => {
     setIsLoading(true)
@@ -46,7 +51,7 @@ export default function InvestorSignup() {
       // Show success message
       alert(`Welcome ${data.name}! Your land sub-ownership account has been created successfully. You can now access your land sub-ownership dashboard.`)
       
-      navigate('/dashboard/investor')
+      navigate('/dashboard')
     } catch (error) {
       console.error('Signup error:', error)
       setError(error.message)
@@ -76,7 +81,7 @@ export default function InvestorSignup() {
       // Show success message
       alert(`Welcome ${user.displayName || user.email}! Your land sub-ownership account has been created successfully. You can now access your land sub-ownership dashboard.`)
       
-      navigate('/dashboard/investor')
+      navigate('/dashboard')
     } catch (error) {
       console.error('Google signup error:', error)
       setError(error.message)
@@ -123,20 +128,6 @@ export default function InvestorSignup() {
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
-
-          <button
-            onClick={handleGoogleSignup}
-            disabled={isLoading}
-            className="w-full flex justify-center items-center py-3 px-4 mb-4 border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 mr-2" />
-            Sign up with Google
-          </button>
-          <div className="flex items-center my-4">
-            <div className="flex-grow border-t border-gray-300"></div>
-            <span className="px-3 text-sm text-gray-500">or</span>
-            <div className="flex-grow border-t border-gray-300"></div>
-          </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
@@ -218,6 +209,21 @@ export default function InvestorSignup() {
               {isLoading ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
+
+          <div className="flex items-center my-6">
+            <div className="flex-grow border-t border-gray-300"></div>
+            <span className="px-3 text-sm text-gray-500">or</span>
+            <div className="flex-grow border-t border-gray-300"></div>
+          </div>
+
+          <button
+            onClick={handleGoogleSignup}
+            disabled={isLoading}
+            className="w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 mr-2" />
+            Sign up with Google
+          </button>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">

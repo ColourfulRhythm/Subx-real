@@ -6,6 +6,7 @@ import * as yup from 'yup';
 import { apiCall } from '../../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { auth } from '../../firebase';
 
 // Validation schema for developer profile
 const developerSchema = yup.object().shape({
@@ -404,11 +405,32 @@ export default function DeveloperDashboard() {
   };
 
   // Handle logout
-  const handleLogout = () => {
-    localStorage.removeItem('userType');
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userId');
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      // Sign out from Firebase Auth
+      await auth.signOut()
+      
+      // Clear localStorage
+      localStorage.removeItem('userType');
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userPhone');
+      
+      // Navigate to home
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Still clear localStorage and navigate even if Firebase signOut fails
+      localStorage.removeItem('userType');
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userPhone');
+      navigate('/');
+    }
   };
 
   // Toggle dark mode

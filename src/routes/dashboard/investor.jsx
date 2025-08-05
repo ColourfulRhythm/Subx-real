@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
@@ -11,6 +11,7 @@ import { auth, db } from '../../firebase'
 import PaymentSuccessModal from '../../components/PaymentSuccessModal'
 import DeedSignatureModal from '../../components/DeedSignatureModal'
 import { generateReceipt, generateOwnershipCertificate, generateDeedPDF } from '../../components/ReceiptDownload'
+import jsPDF from 'jspdf'
 
 // API endpoints (to be implemented)
 const API_ENDPOINTS = {
@@ -24,11 +25,11 @@ const API_ENDPOINTS = {
 const profileSchema = yup.object().shape({
   name: yup.string().required('Name is required'),
   email: yup.string().email('Invalid email').required('Email is required'),
-  phone: yup.string().matches(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number'),
+  phone: yup.string().matches(/^\+?[\d\s-()]{10,}$/, 'Invalid phone number'),
   bio: yup.string().max(500, 'Bio must be less than 500 characters'),
   investmentInterests: yup.array().min(1, 'Select at least one interest'),
   investmentExperience: yup.string().required('Investment experience is required'),
-  preferredInvestmentAmount: yup.number().min(10000, 'Minimum investment amount is $10,000').required('Preferred investment amount is required'),
+
   preferredLocations: yup.array().min(1, 'Select at least one preferred location'),
   riskTolerance: yup.string().required('Risk tolerance is required'),
   investmentGoals: yup.array().min(1, 'Select at least one investment goal')
@@ -70,103 +71,13 @@ const mockDevelopers = {
 const locationOptions = ['All', 'Lagos', 'Abuja', 'Port Harcourt', 'Kano', 'Calabar']
 const typeOptions = ['All', 'Residential', 'Commercial', 'Industrial', 'Mixed-Use']
 
-// Add mock connections data
-const mockConnections = [
-  {
-    id: 1,
-    developer: 'Focal Point Property Development and Management Services Ltd.',
-    developerId: 'focalpoint',
-    projectId: 76,
-    projectTitle: '2 Seasons - Plot 76',
-    units: 500,
-    amount: '₦2,500,000',
-    status: 'approved',
-    createdAt: '2024-07-18T10:00:00Z',
-    notes: 'Interested in long-term ownership',
-    updatedAt: '2024-07-18T10:30:00Z',
-    documents: [
-      { id: 1, name: 'Ownership Certificate', type: 'certificate', status: 'available' },
-      { id: 2, name: 'Deed of Assignment', type: 'deed', status: 'pending_signature' },
-      { id: 3, name: 'Payment Receipt', type: 'receipt', status: 'available' },
-      { id: 4, name: 'Site Plan', type: 'plan', status: 'available' }
-    ]
-  },
-  {
-    id: 2,
-    developer: 'Focal Point Property Development and Management Services Ltd.',
-    developerId: 'focalpoint',
-    projectId: 77,
-    projectTitle: '2 Seasons - Plot 77',
-    units: 300,
-    amount: '₦1,500,000',
-    status: 'pending',
-    createdAt: '2024-08-01T14:20:00Z',
-    notes: 'Looking for residential development',
-    updatedAt: '2024-08-01T14:20:00Z',
-    documents: []
-  },
-  {
-    id: 3,
-    developer: 'Focal Point Property Development and Management Services Ltd.',
-    developerId: 'focalpoint',
-    projectId: 78,
-    projectTitle: '2 Seasons - Plot 78',
-    units: 750,
-    amount: '₦3,750,000',
-    status: 'approved',
-    createdAt: '2024-06-15T09:45:00Z',
-    notes: 'Commercial development opportunity',
-    updatedAt: '2024-06-15T09:45:00Z',
-    documents: [
-      { id: 1, name: 'Ownership Certificate', type: 'certificate', status: 'available' },
-      { id: 2, name: 'Deed of Assignment', type: 'deed', status: 'signed' },
-      { id: 3, name: 'Payment Receipt', type: 'receipt', status: 'available' },
-      { id: 4, name: 'Survey Plan', type: 'plan', status: 'available' }
-    ]
-  }
-];
+// Initialize empty connections for new users
+const initialConnections = [];
 
 // Forum data will be populated dynamically when users create topics
 
-// Add mock messages data
-const mockMessages = [
-  {
-    id: 1,
-    type: 'investor',
-    author: 'John Doe',
-    avatar: 'https://ui-avatars.com/api/?name=John+Doe&background=random',
-    content: "What are the current market trends in Lagos? I'm particularly interested in the Lekki area.",
-    timestamp: '2024-03-20T10:30:00Z',
-    likes: 5
-  },
-  {
-    id: 2,
-    type: 'developer',
-    author: 'Lagos Properties Ltd',
-    avatar: 'https://ui-avatars.com/api/?name=Lagos+Properties&background=random',
-    content: "The Lekki area is experiencing significant growth, with property values increasing by 15% year-over-year. We're seeing strong demand for both residential and commercial properties.",
-    timestamp: '2024-03-20T10:35:00Z',
-    likes: 8
-  },
-  {
-    id: 3,
-    type: 'update',
-    author: 'Lagos Properties Ltd',
-    avatar: 'https://ui-avatars.com/api/?name=Lagos+Properties&background=random',
-    content: "📢 Construction Update: Phase 1 of the Lekki Luxury Apartments is now 75% complete. We're on track for the Q3 2024 completion date.",
-    timestamp: '2024-03-20T11:00:00Z',
-    isUpdate: true
-  },
-  {
-    id: 4,
-    type: 'investor',
-    author: 'Jane Smith',
-    avatar: 'https://ui-avatars.com/api/?name=Jane+Smith&background=random',
-    content: "That's great news! What about the amenities? Will there be a swimming pool and gym?",
-    timestamp: '2024-03-20T11:05:00Z',
-    likes: 3
-  }
-];
+// Initialize empty messages for new users
+const initialMessages = [];
 // Add Paystack script loader
 
 // Add Paystack payment handler
@@ -207,6 +118,431 @@ const payWithPaystack = (amount, email, name) => {
 };
 
 export default function InvestorDashboard() {
+  // Check authentication
+  const isAuthenticated = localStorage.getItem('isAuthenticated');
+  const userType = localStorage.getItem('userType');
+  
+  if (!isAuthenticated || userType !== 'investor') {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // Get user data from localStorage
+  const userName = localStorage.getItem('userName') || 'User';
+  const userEmail = localStorage.getItem('userEmail') || '';
+  const userPhone = localStorage.getItem('userPhone') || '';
+  
+  // Create user profile data
+  const userProfileData = {
+    name: userName,
+    email: userEmail,
+    phone: userPhone,
+    bio: 'Welcome to your land sub-ownership dashboard!',
+    investmentExperience: 'Beginner',
+    riskTolerance: 'Moderate',
+    investmentInterests: ['Residential'],
+    preferredLocations: ['Ogun State'],
+    investmentGoals: ['Long-term Growth']
+  };
+  
+  // Mock projects data - these are the actual listings
+  const mockProjectsData = [
+          {
+        id: 1,
+        title: '2 Seasons - Plot 77',
+        description: 'Premium residential plot in 2 Seasons Estate. 500 sqm total plot size. Minimum purchase: 1 sqm at ₦5,000 per sqm.',
+        location: 'Ogun State',
+        type: 'Residential',
+        amount: '₦2,500,000',
+        roi: 'Capital gain',
+        status: 'Available',
+        images: ['/2-seasons/2seasons-logo.jpg', '/2-seasons/drone-image.jpg', '/2-seasons/map-2seasons.jpg'],
+      totalSqm: 500,
+      pricePerSqm: 5000,
+      minSqm: 1,
+      developer: 'Focal Point Property Development and Management Services Ltd.',
+      fullDescription: `2 Seasons
+A regenerative, mixed-use lifestyle village in Ogun State — where wellness, tourism, creativity, and modern living converge.
+
+🏡 Zones & Amenities
+1. Residential (35 acres)
+• Gated homes with jogging & cycling lanes
+• Landscaped streets, play areas
+• Daycare/school & mini shopping mall
+
+2. Villas & Lakefront (15 acres)
+• Short-stay villas & pods
+• 4-acre artificial lake & waterfall
+• Designed for tourism, Airbnb, and influencer retreats
+
+3. Wellness Village (12 acres)
+• 5-acre farm + fruit forest
+• Spa, massage rooms, yoga pavilion
+• Sports zone (football, tennis, outdoor gym)
+• Juice bars, tea house, plant-based restaurant
+
+4. Hygge Town
+• Modular studios & outdoor film sets
+• Sports Academy
+• Content & Streaming Village
+• Creator residencies, masterclass arenas
+• Startup and tech zone
+
+5. Green Infrastructure
+• Perimeter walking loop
+• Eco-conscious, regenerative systems
+• Ogun's first sustainable tourism + content hub`,
+      amenities: [
+        'Gated homes with jogging & cycling lanes',
+        'Landscaped streets & play areas',
+        'Daycare/school & mini shopping mall',
+        '4-acre artificial lake & waterfall',
+        'Spa, massage rooms, yoga pavilion',
+        'Sports zone (football, tennis, outdoor gym)',
+        'Juice bars, tea house, plant-based restaurant',
+        'Modular studios & outdoor film sets',
+        'Sports Academy',
+        'Content & Streaming Village',
+        'Creator residencies & masterclass arenas',
+        'Startup and tech zone',
+        'Perimeter walking loop',
+        'Eco-conscious, regenerative systems'
+      ],
+      documents: [
+        {
+          name: 'Group Purchase Agreement',
+          url: '#',
+          type: 'pdf'
+        },
+        {
+          name: 'Deed of Sale (per owner)',
+          url: '#',
+          type: 'pdf'
+        },
+        {
+          name: 'Co-ownership Certificate',
+          url: '#',
+          type: 'pdf'
+        }
+      ]
+    },
+          {
+        id: 2,
+        title: '2 Seasons - Plot 79',
+        description: 'Exclusive residential plot in 2 Seasons Estate. 500 sqm total plot size. Minimum purchase: 1 sqm at ₦5,000 per sqm.',
+        location: 'Ogun State',
+        type: 'Residential',
+        amount: '₦2,500,000',
+        roi: 'Capital gain',
+        status: 'Available',
+        images: ['/2-seasons/2seasons-logo.jpg', '/2-seasons/plot-cornerpiece.jpg', '/2-seasons/site-plans.jpg'],
+      totalSqm: 500,
+      pricePerSqm: 5000,
+      minSqm: 1,
+      developer: 'Focal Point Property Development and Management Services Ltd.',
+      fullDescription: `2 Seasons
+A regenerative, mixed-use lifestyle village in Ogun State — where wellness, tourism, creativity, and modern living converge.
+
+🏡 Zones & Amenities
+1. Residential (35 acres)
+• Gated homes with jogging & cycling lanes
+• Landscaped streets, play areas
+• Daycare/school & mini shopping mall
+
+2. Villas & Lakefront (15 acres)
+• Short-stay villas & pods
+• 4-acre artificial lake & waterfall
+• Designed for tourism, Airbnb, and influencer retreats
+
+3. Wellness Village (12 acres)
+• 5-acre farm + fruit forest
+• Spa, massage rooms, yoga pavilion
+• Sports zone (football, tennis, outdoor gym)
+• Juice bars, tea house, plant-based restaurant
+
+4. Hygge Town
+• Modular studios & outdoor film sets
+• Sports Academy
+• Content & Streaming Village
+• Creator residencies, masterclass arenas
+• Startup and tech zone
+
+5. Green Infrastructure
+• Perimeter walking loop
+• Eco-conscious, regenerative systems
+• Ogun's first sustainable tourism + content hub`,
+      amenities: [
+        'Gated homes with jogging & cycling lanes',
+        'Landscaped streets & play areas',
+        'Daycare/school & mini shopping mall',
+        '4-acre artificial lake & waterfall',
+        'Spa, massage rooms, yoga pavilion',
+        'Sports zone (football, tennis, outdoor gym)',
+        'Juice bars, tea house, plant-based restaurant',
+        'Modular studios & outdoor film sets',
+        'Sports Academy',
+        'Content & Streaming Village',
+        'Creator residencies & masterclass arenas',
+        'Startup and tech zone',
+        'Perimeter walking loop',
+        'Eco-conscious, regenerative systems'
+      ],
+      documents: [
+        {
+          name: 'Group Purchase Agreement',
+          url: '#',
+          type: 'pdf'
+        },
+        {
+          name: 'Deed of Sale (per owner)',
+          url: '#',
+          type: 'pdf'
+        },
+        {
+          name: 'Co-ownership Certificate',
+          url: '#',
+          type: 'pdf'
+        }
+      ]
+    },
+          {
+        id: 3,
+        title: '2 Seasons - Plot 81',
+        description: 'Premium residential plot in 2 Seasons Estate. 500 sqm total plot size. Minimum purchase: 1 sqm at ₦5,000 per sqm.',
+        location: 'Ogun State',
+        type: 'Residential',
+        amount: '₦2,500,000',
+        roi: 'Capital gain',
+        status: 'Available',
+        images: ['/2-seasons/2seasons-logo.jpg', '/2-seasons/welness-hub.JPG', '/2-seasons/2-seasonsflag.JPG'],
+      totalSqm: 500,
+      pricePerSqm: 5000,
+      minSqm: 1,
+      developer: 'Focal Point Property Development and Management Services Ltd.',
+      fullDescription: `2 Seasons
+A regenerative, mixed-use lifestyle village in Ogun State — where wellness, tourism, creativity, and modern living converge.
+
+🏡 Zones & Amenities
+1. Residential (35 acres)
+• Gated homes with jogging & cycling lanes
+• Landscaped streets, play areas
+• Daycare/school & mini shopping mall
+
+2. Villas & Lakefront (15 acres)
+• Short-stay villas & pods
+• 4-acre artificial lake & waterfall
+• Designed for tourism, Airbnb, and influencer retreats
+
+3. Wellness Village (12 acres)
+• 5-acre farm + fruit forest
+• Spa, massage rooms, yoga pavilion
+• Sports zone (football, tennis, outdoor gym)
+• Juice bars, tea house, plant-based restaurant
+
+4. Hygge Town
+• Modular studios & outdoor film sets
+• Sports Academy
+• Content & Streaming Village
+• Creator residencies, masterclass arenas
+• Startup and tech zone
+
+5. Green Infrastructure
+• Perimeter walking loop
+• Eco-conscious, regenerative systems
+• Ogun's first sustainable tourism + content hub`,
+      amenities: [
+        'Gated homes with jogging & cycling lanes',
+        'Landscaped streets & play areas',
+        'Daycare/school & mini shopping mall',
+        '4-acre artificial lake & waterfall',
+        'Spa, massage rooms, yoga pavilion',
+        'Sports zone (football, tennis, outdoor gym)',
+        'Juice bars, tea house, plant-based restaurant',
+        'Modular studios & outdoor film sets',
+        'Sports Academy',
+        'Content & Streaming Village',
+        'Creator residencies & masterclass arenas',
+        'Startup and tech zone',
+        'Perimeter walking loop',
+        'Eco-conscious, regenerative systems'
+      ],
+      documents: [
+        {
+          name: 'Group Purchase Agreement',
+          url: '#',
+          type: 'pdf'
+        },
+        {
+          name: 'Deed of Sale (per owner)',
+          url: '#',
+          type: 'pdf'
+        },
+        {
+          name: 'Co-ownership Certificate',
+          url: '#',
+          type: 'pdf'
+        }
+      ]
+    },
+          {
+        id: 4,
+        title: '2 Seasons - Plot 84',
+        description: 'Exclusive residential plot in 2 Seasons Estate. 500 sqm total plot size. Minimum purchase: 1 sqm at ₦5,000 per sqm.',
+        location: 'Ogun State',
+        type: 'Residential',
+        amount: '₦2,500,000',
+        roi: 'Capital gain',
+        status: 'Available',
+        images: ['/2-seasons/2seasons-logo.jpg', '/2-seasons/2-seasons-map.JPG', '/2-seasons/map-2seasons.jpg'],
+      totalSqm: 500,
+      pricePerSqm: 5000,
+      minSqm: 1,
+      developer: 'Focal Point Property Development and Management Services Ltd.',
+      fullDescription: `2 Seasons
+A regenerative, mixed-use lifestyle village in Ogun State — where wellness, tourism, creativity, and modern living converge.
+
+🏡 Zones & Amenities
+1. Residential (35 acres)
+• Gated homes with jogging & cycling lanes
+• Landscaped streets, play areas
+• Daycare/school & mini shopping mall
+
+2. Villas & Lakefront (15 acres)
+• Short-stay villas & pods
+• 4-acre artificial lake & waterfall
+• Designed for tourism, Airbnb, and influencer retreats
+
+3. Wellness Village (12 acres)
+• 5-acre farm + fruit forest
+• Spa, massage rooms, yoga pavilion
+• Sports zone (football, tennis, outdoor gym)
+• Juice bars, tea house, plant-based restaurant
+
+4. Hygge Town
+• Modular studios & outdoor film sets
+• Sports Academy
+• Content & Streaming Village
+• Creator residencies, masterclass arenas
+• Startup and tech zone
+
+5. Green Infrastructure
+• Perimeter walking loop
+• Eco-conscious, regenerative systems
+• Ogun's first sustainable tourism + content hub`,
+      amenities: [
+        'Gated homes with jogging & cycling lanes',
+        'Landscaped streets & play areas',
+        'Daycare/school & mini shopping mall',
+        '4-acre artificial lake & waterfall',
+        'Spa, massage rooms, yoga pavilion',
+        'Sports zone (football, tennis, outdoor gym)',
+        'Juice bars, tea house, plant-based restaurant',
+        'Modular studios & outdoor film sets',
+        'Sports Academy',
+        'Content & Streaming Village',
+        'Creator residencies & masterclass arenas',
+        'Startup and tech zone',
+        'Perimeter walking loop',
+        'Eco-conscious, regenerative systems'
+      ],
+      documents: [
+        {
+          name: 'Group Purchase Agreement',
+          url: '#',
+          type: 'pdf'
+        },
+        {
+          name: 'Deed of Sale (per owner)',
+          url: '#',
+          type: 'pdf'
+        },
+        {
+          name: 'Co-ownership Certificate',
+          url: '#',
+          type: 'pdf'
+        }
+      ]
+    },
+          {
+        id: 5,
+        title: '2 Seasons - Plot 87',
+        description: 'Premium residential plot in 2 Seasons Estate. 500 sqm total plot size. Minimum purchase: 1 sqm at ₦5,000 per sqm.',
+        location: 'Ogun State',
+        type: 'Residential',
+        amount: '₦2,500,000',
+        roi: 'Capital gain',
+        status: 'Available',
+        images: ['/2-seasons/2seasons-logo.jpg', '/2-seasons/drone-image.jpg', '/2-seasons/plot-cornerpiece.jpg'],
+      totalSqm: 500,
+      pricePerSqm: 5000,
+      minSqm: 1,
+      developer: 'Focal Point Property Development and Management Services Ltd.',
+      fullDescription: `2 Seasons
+A regenerative, mixed-use lifestyle village in Ogun State — where wellness, tourism, creativity, and modern living converge.
+
+🏡 Zones & Amenities
+1. Residential (35 acres)
+• Gated homes with jogging & cycling lanes
+• Landscaped streets, play areas
+• Daycare/school & mini shopping mall
+
+2. Villas & Lakefront (15 acres)
+• Short-stay villas & pods
+• 4-acre artificial lake & waterfall
+• Designed for tourism, Airbnb, and influencer retreats
+
+3. Wellness Village (12 acres)
+• 5-acre farm + fruit forest
+• Spa, massage rooms, yoga pavilion
+• Sports zone (football, tennis, outdoor gym)
+• Juice bars, tea house, plant-based restaurant
+
+4. Hygge Town
+• Modular studios & outdoor film sets
+• Sports Academy
+• Content & Streaming Village
+• Creator residencies, masterclass arenas
+• Startup and tech zone
+
+5. Green Infrastructure
+• Perimeter walking loop
+• Eco-conscious, regenerative systems
+• Ogun's first sustainable tourism + content hub`,
+      amenities: [
+        'Gated homes with jogging & cycling lanes',
+        'Landscaped streets & play areas',
+        'Daycare/school & mini shopping mall',
+        '4-acre artificial lake & waterfall',
+        'Spa, massage rooms, yoga pavilion',
+        'Sports zone (football, tennis, outdoor gym)',
+        'Juice bars, tea house, plant-based restaurant',
+        'Modular studios & outdoor film sets',
+        'Sports Academy',
+        'Content & Streaming Village',
+        'Creator residencies & masterclass arenas',
+        'Startup and tech zone',
+        'Perimeter walking loop',
+        'Eco-conscious, regenerative systems'
+      ],
+      documents: [
+        {
+          name: 'Group Purchase Agreement',
+          url: '#',
+          type: 'pdf'
+        },
+        {
+          name: 'Deed of Sale (per owner)',
+          url: '#',
+          type: 'pdf'
+        },
+        {
+          name: 'Co-ownership Certificate',
+          url: '#',
+          type: 'pdf'
+        }
+      ]
+    }
+  ];
+  
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('discover');
   const [isEditingProfile, setIsEditingProfile] = useState(false)
@@ -407,49 +743,24 @@ export default function InvestorDashboard() {
 
   // Fetch profile and analytics data on component mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setError('Not authenticated');
-      setIsLoading(false);
-      return;
-    }
     setIsLoading(true);
     
     // Load analytics data immediately
     fetchAnalytics();
     
-    // Use mock data for now since backend is not connected
-    const mockProfileData = {
-      name: 'John Doe',
-      email: 'john@example.com',
-      phone: '+2341234567890',
-      bio: 'Experienced real estate investor with a focus on residential properties.',
-      investmentExperience: 'Advanced',
-      preferredInvestmentAmount: 50000000,
-      riskTolerance: 'Moderate',
-      investmentInterests: ['Residential', 'Commercial'],
-      preferredLocations: ['Lagos', 'Abuja'],
-      investmentGoals: ['Long-term Growth', 'Portfolio Diversification']
-    };
+    // Fetch profile data
+    fetchProfile();
     
-    const mockProjectsData = [
-      {
-        id: 1,
-        title: '2 Seasons - Plot 76',
-        description: 'Premium residential development in Lagos',
-        location: 'Lagos',
-        type: 'Residential',
-        amount: '₦2,500,000',
-        roi: '15%',
-        status: 'Available',
-        images: ['/public/2-seasons/2seasons-logo.jpg']
-      }
-    ];
-    
-    setProfile(mockProfileData);
+    // Set projects (these are the actual listings)
     setProjects(mockProjectsData);
-    setConnections(mockConnections);
-    setMessages(mockMessages);
+    
+    // Initialize empty connections and messages for new users
+    setConnections(initialConnections);
+    setMessages(initialMessages);
+    
+    // Fetch real user data from backend
+    fetchUserData();
+    
     setIsLoading(false);
   }, []);
 
@@ -463,27 +774,64 @@ export default function InvestorDashboard() {
     }
   }, []);
 
+  // Fetch real user data from localStorage
+  const fetchUserData = async () => {
+    try {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+
+      // Load user connections from localStorage
+      const userConnections = JSON.parse(localStorage.getItem('userConnections') || '[]');
+      setConnections(userConnections);
+
+      // Load user messages from localStorage
+      const userMessages = JSON.parse(localStorage.getItem('userMessages') || '[]');
+      setMessages(userMessages);
+
+      // Load user analytics from localStorage
+      const userAnalytics = JSON.parse(localStorage.getItem('userAnalytics') || 'null');
+      if (userAnalytics) {
+        setAnalytics(userAnalytics);
+      }
+
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      // Continue with empty data if localStorage is not available
+    }
+  };
+
   // API integration functions
   const fetchProfile = async () => {
     try {
-      // For now, use mock data since backend is not connected
-      const mockProfileData = {
-        name: 'John Doe',
-        email: 'john@example.com',
-        phone: '+2341234567890',
-        bio: 'Experienced real estate investor with a focus on residential properties.',
-        investmentExperience: 'Advanced',
-        preferredInvestmentAmount: 50000000,
-        riskTolerance: 'Moderate',
-        investmentInterests: ['Residential', 'Commercial'],
-        preferredLocations: ['Lagos', 'Abuja'],
-        investmentGoals: ['Long-term Growth', 'Portfolio Diversification']
+      // Load profile data from localStorage
+      const savedName = localStorage.getItem('userName');
+      const savedEmail = localStorage.getItem('userEmail');
+      const savedPhone = localStorage.getItem('userPhone');
+      const savedBio = localStorage.getItem('userBio');
+      const savedInvestmentExperience = localStorage.getItem('userInvestmentExperience');
+      const savedRiskTolerance = localStorage.getItem('userRiskTolerance');
+      const savedInvestmentInterests = JSON.parse(localStorage.getItem('userInvestmentInterests') || '[]');
+      const savedPreferredLocations = JSON.parse(localStorage.getItem('userPreferredLocations') || '[]');
+      const savedInvestmentGoals = JSON.parse(localStorage.getItem('userInvestmentGoals') || '[]');
+
+      // Use saved data if available, otherwise use default userProfileData
+      const profileData = {
+        name: savedName || userProfileData.name,
+        email: savedEmail || userProfileData.email,
+        phone: savedPhone || userProfileData.phone,
+        bio: savedBio || userProfileData.bio,
+        investmentExperience: savedInvestmentExperience || userProfileData.investmentExperience,
+        riskTolerance: savedRiskTolerance || userProfileData.riskTolerance,
+        investmentInterests: savedInvestmentInterests.length > 0 ? savedInvestmentInterests : userProfileData.investmentInterests,
+        preferredLocations: savedPreferredLocations.length > 0 ? savedPreferredLocations : userProfileData.preferredLocations,
+        investmentGoals: savedInvestmentGoals.length > 0 ? savedInvestmentGoals : userProfileData.investmentGoals
       };
-      
-      setProfile(mockProfileData);
+
+      setProfile(profileData);
     } catch (error) {
       console.error('Error fetching profile:', error);
-      handleToast('Failed to load profile data', 'error');
+      // Fallback to default profile data
+      setProfile(userProfileData);
     }
   };
 
@@ -511,18 +859,16 @@ export default function InvestorDashboard() {
         throw new Error('Please enter a valid investment amount');
       }
 
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/investor/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save profile');
-      }
+      // Save to localStorage
+      localStorage.setItem('userName', data.name);
+      localStorage.setItem('userEmail', data.email);
+      localStorage.setItem('userPhone', data.phone);
+      localStorage.setItem('userBio', data.bio);
+      localStorage.setItem('userInvestmentExperience', data.investmentExperience);
+      localStorage.setItem('userRiskTolerance', data.riskTolerance);
+      localStorage.setItem('userInvestmentInterests', JSON.stringify(data.investmentInterests || []));
+      localStorage.setItem('userPreferredLocations', JSON.stringify(data.preferredLocations || []));
+      localStorage.setItem('userInvestmentGoals', JSON.stringify(data.investmentGoals || []));
       
       // Update profile completion
       const completion = calculateProfileCompletion(data);
@@ -540,10 +886,30 @@ export default function InvestorDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('userType')
-    localStorage.removeItem('isAuthenticated')
-    navigate('/')
+  const handleLogout = async () => {
+    try {
+      // Sign out from Firebase Auth
+      await auth.signOut()
+      
+      // Clear localStorage
+      localStorage.removeItem('userType')
+      localStorage.removeItem('isAuthenticated')
+      localStorage.removeItem('userEmail')
+      localStorage.removeItem('userName')
+      localStorage.removeItem('userPhone')
+      
+      // Navigate to home
+      navigate('/')
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Still clear localStorage and navigate even if Firebase signOut fails
+      localStorage.removeItem('userType')
+      localStorage.removeItem('isAuthenticated')
+      localStorage.removeItem('userEmail')
+      localStorage.removeItem('userName')
+      localStorage.removeItem('userPhone')
+      navigate('/')
+    }
   }
 
   const handleShare = (project) => {
@@ -726,43 +1092,10 @@ export default function InvestorDashboard() {
 
       setIsSendingRequest(true);
       
-      // Get Firebase ID token
-      const user = auth.currentUser;
-      if (!user) {
-        handleToast('Please log in to submit investment requests', 'error');
-        return;
-      }
-
-      const token = await user.getIdToken();
-      
-      // Prepare request data
-      const requestData = {
-        projectId: selectedProject.id,
-        units: parseInt(selectedUnits),
-        notes: investmentNotes
-      };
-
-      // Send request to backend
-      const response = await fetch('http://localhost:30001/api/investments/request', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(requestData)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to submit investment request');
-      }
-
-      const data = await response.json();
-
       // Create new connection object
       const newConnection = {
-        id: data.investment._id,
-        developerId: selectedProject.developerId,
+        id: Date.now(), // Temporary ID
+        developerId: 'focalpoint',
         developer: selectedProject.developer,
         projectId: selectedProject.id,
         projectTitle: selectedProject.title,
@@ -777,9 +1110,17 @@ export default function InvestorDashboard() {
       // Update connections list
       setConnections(prev => [newConnection, ...prev]);
       
+      // Save to localStorage for persistence
+      const userId = localStorage.getItem('userId') || 'user_' + Date.now();
+      localStorage.setItem('userId', userId);
+      
+      const userConnections = JSON.parse(localStorage.getItem('userConnections') || '[]');
+      userConnections.push(newConnection);
+      localStorage.setItem('userConnections', JSON.stringify(userConnections));
+      
       // Show success message
       handleToast(
-        `Investment request sent successfully! We've notified ${selectedProject.developer} about your interest in ${selectedUnits} unit(s) (${investmentAmount}).`
+        `Land purchase request submitted successfully! You've requested ${selectedUnits} sqm in ${selectedProject.title}.`
       );
 
       // Switch to connections tab
@@ -797,6 +1138,9 @@ export default function InvestorDashboard() {
       // Close modals
       setShowConnectionModal(false);
       setShowConfirmation(false);
+      
+      // Refresh analytics
+      fetchAnalytics();
       
     } catch (error) {
       console.error('Error in submitConnectionRequest:', error);
@@ -831,27 +1175,28 @@ export default function InvestorDashboard() {
 
   // Add this function to handle project selection
   const handleProjectSelect = (project) => {
+    console.log('Project selected:', project)
     setSelectedProject(project)
     setShowProjectModal(true)
     setSelectedImage(0)
   }
 
-  // Update handleInvestNow to trigger Paystack
+  // Update handleOwnNow to trigger Paystack
   const handleOwnNow = (project) => {
     setSelectedProject(project);
-    setDesiredSqm(project.minUnits || 2); // default to minimum
+    setDesiredSqm(project.minSqm || 1); // default to minimum
     setSqmError('');
     setShowSqmModal(true);
   };
 
   // Find the section where project cards are rendered and modify it to include AI Analysis
   const renderProjectCards = () => {
-    if (!projects || projects.length === 0 || projects.every(p => p.title && p.title.includes('2 Seasons'))) {
+    if (!projects || projects.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-16">
           <h2 className="text-2xl font-bold mb-4 text-indigo-700">Welcome to Subx by Focal Point Prop.</h2>
           <p className="text-lg text-gray-700 mb-2">We are building a billion dollar portfolio through group buying and co-ownership.</p>
-          <p className="text-lg text-indigo-700 font-semibold">Listings coming soon.</p>
+          <p className="text-lg text-indigo-700 font-semibold">Loading listings...</p>
         </div>
       );
     }
@@ -869,9 +1214,12 @@ export default function InvestorDashboard() {
             <div className="flex flex-col md:flex-row">
               <div className="relative w-full md:w-1/2 aspect-video md:aspect-square">
                 <img
-                  src={project.images[0]}
+                  src={project.images && project.images[0] ? project.images[0] : '/2-seasons/2seasons-logo.jpg'}
                   alt={project.title}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = '/2-seasons/2seasons-logo.jpg';
+                  }}
                 />
                 <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
                   {project.status}
@@ -929,36 +1277,48 @@ export default function InvestorDashboard() {
   // Add this function to fetch analytics data
   const fetchAnalytics = async () => {
     try {
-      // Realistic land sub-ownership analytics data
-      const mockAnalytics = {
-        totalLandOwned: 250, // 250 square meters
-        activeLandUnits: 150, // 150 square meters
-        totalLandValue: 1250000, // ₦1.25M (₦5,000 per sqm)
-        portfolioValue: 750000, // ₦750K (current market value)
-        growthRate: 8.5, // Year-over-Year land value growth
+      // Calculate real analytics based on user connections
+      const totalLandOwned = connections.reduce((total, conn) => total + (conn.units || 0), 0);
+      const activeLandUnits = connections.filter(conn => conn.status === 'approved').reduce((total, conn) => total + (conn.units || 0), 0);
+      const totalLandValue = totalLandOwned * 5000; // ₦5,000 per sqm
+      const portfolioValue = totalLandValue * 1.15; // Capital appreciation
+      
+      const realAnalytics = {
+        totalLandOwned: totalLandOwned,
+        activeLandUnits: activeLandUnits,
+        totalLandValue: totalLandValue,
+        portfolioValue: portfolioValue,
+        growthRate: 15.0, // 15% growth rate
         landDistribution: {
-          residential: 60, // 60% residential land
-          commercial: 25, // 25% commercial land
-          agricultural: 10, // 10% agricultural land
-          mixed: 5 // 5% mixed-use land
+          residential: 100, // 100% residential (2 Seasons Estate)
+          commercial: 0,
+          agricultural: 0,
+          mixed: 0
         },
         expectedReturns: {
-          threeMonths: 62500, // ₦62.5K (5% appreciation)
-          sixMonths: 125000, // ₦125K (10% appreciation)
-          oneYear: 250000 // ₦250K (20% appreciation)
+          threeMonths: totalLandValue * 0.05, // 5% appreciation
+          sixMonths: totalLandValue * 0.10, // 10% appreciation
+          oneYear: totalLandValue * 0.20 // 20% appreciation
         },
-        recentTransactions: [
-          { id: 1, type: 'Land Purchase', amount: 50000, date: '2024-03-15', status: 'Completed', units: '10 sqm' },
-          { id: 2, type: 'Land Appreciation', amount: 25000, date: '2024-03-10', status: 'Completed', units: '5 sqm' },
-          { id: 3, type: 'Land Purchase', amount: 75000, date: '2024-03-01', status: 'Completed', units: '15 sqm' }
-        ],
+        recentTransactions: connections.map(conn => ({
+          id: conn.id,
+          type: 'Land Purchase',
+          amount: (conn.units || 0) * 5000,
+          date: conn.createdAt,
+          status: conn.status,
+          units: `${conn.units || 0} sqm`
+        })),
         performanceMetrics: {
-          monthlyReturn: 1.2, // 1.2% monthly land appreciation
-          yearlyReturn: 15.5, // 15.5% yearly land appreciation
-          riskScore: 35 // Low risk for land ownership
+          monthlyReturn: 1.2,
+          yearlyReturn: 15.5,
+          riskScore: 35
         }
       }
-      setAnalytics(mockAnalytics)
+      setAnalytics(realAnalytics)
+      
+      // Save analytics to localStorage
+      localStorage.setItem('userAnalytics', JSON.stringify(realAnalytics));
+      
     } catch (error) {
       console.error('Error fetching analytics:', error)
       setError('Failed to load analytics data')
@@ -993,7 +1353,7 @@ export default function InvestorDashboard() {
             <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Performance Metrics</h3>
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">Monthly Appreciation</label>
+                <label className="text-sm text-gray-600 dark:text-gray-400">Monthly Capital Gain</label>
                 <div className="flex items-center">
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
                     <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${analytics.performanceMetrics.monthlyReturn * 4}%` }}></div>
@@ -1002,7 +1362,7 @@ export default function InvestorDashboard() {
                 </div>
               </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">Yearly Appreciation</label>
+                <label className="text-sm text-gray-600 dark:text-gray-400">Yearly Capital Gain</label>
                 <div className="flex items-center">
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
                     <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${analytics.performanceMetrics.yearlyReturn / 2}%` }}></div>
@@ -1093,6 +1453,8 @@ export default function InvestorDashboard() {
     }
     
     const approvedConnections = connections.filter(c => c.status === 'approved');
+    console.log('Connections:', connections);
+    console.log('Approved Connections:', approvedConnections);
     return (
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
@@ -1195,123 +1557,7 @@ export default function InvestorDashboard() {
           )}
         </div>
 
-        {/* Documents Section for Approved Connections */}
-        {approvedConnections.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Land Ownership Documents</h3>
-              <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full text-sm">
-                {approvedConnections.length} Approved Connections
-              </span>
-            </div>
-            
-            <div className="space-y-4">
-              {approvedConnections.map((connection) => (
-                <motion.div
-                  key={connection.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h4 className="text-lg font-medium text-gray-900 dark:text-white">
-                        {connection.projectTitle}
-                      </h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Developer: {connection.developer}
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Amount: {connection.amount} | Units: {connection.units} sqm
-                      </p>
-                    </div>
-                    <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full text-sm">
-                      Approved
-                    </span>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* Ownership Certificate */}
-                    <div className="bg-white dark:bg-gray-600 rounded-lg p-4 border border-gray-200 dark:border-gray-500">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium text-gray-900 dark:text-white">Ownership Certificate</h5>
-                        <span className="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded text-xs">
-                          Available
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Official certificate of land ownership</p>
-                      <button
-                        onClick={handleDownloadCertificate}
-                        className="w-full px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-                      >
-                        Download Certificate
-                      </button>
-                    </div>
-                    
-                    {/* Deed of Assignment */}
-                    <div className="bg-white dark:bg-gray-600 rounded-lg p-4 border border-gray-200 dark:border-gray-500">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium text-gray-900 dark:text-white">Deed of Assignment</h5>
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded text-xs">
-                          Sign Required
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Legal deed document for ownership</p>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={handleSignDeed}
-                          className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                        >
-                          Sign Deed
-                        </button>
-                        <button
-                          onClick={handleDownloadDeed}
-                          className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
-                        >
-                          Download
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* Payment Receipt */}
-                    <div className="bg-white dark:bg-gray-600 rounded-lg p-4 border border-gray-200 dark:border-gray-500">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium text-gray-900 dark:text-white">Payment Receipt</h5>
-                        <span className="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded text-xs">
-                          Available
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Payment confirmation document</p>
-                      <button
-                        onClick={handleDownloadReceipt}
-                        className="w-full px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
-                      >
-                        Download Receipt
-                      </button>
-                    </div>
-                    
-                    {/* Site Plans */}
-                    <div className="bg-white dark:bg-gray-600 rounded-lg p-4 border border-gray-200 dark:border-gray-500">
-                      <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium text-gray-900 dark:text-white">Site Plans</h5>
-                        <span className="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded text-xs">
-                          Available
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Site layout and survey documents</p>
-                      <button
-                        onClick={() => handleViewDocuments(connection)}
-                        className="w-full px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
-                      >
-                        View Plans
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        )}
+
       </div>
     )
   }
@@ -1420,14 +1666,19 @@ export default function InvestorDashboard() {
 
   // Add this before the final return statement
   const renderProjectModal = () => {
+    console.log('Rendering modal, selectedProject:', selectedProject, 'showProjectModal:', showProjectModal)
     if (!selectedProject) return null
+
+    // Ensure images array exists and has at least one image
+    const images = selectedProject.images || ['/public/2-seasons/2seasons-logo.jpg']
+    const currentImage = images[selectedImage] || images[0]
 
     const handleSwipe = (event, info) => {
       const swipeThreshold = 50
       if (Math.abs(info.offset.x) > swipeThreshold) {
         if (info.offset.x > 0 && selectedImage > 0) {
           setSelectedImage(selectedImage - 1)
-        } else if (info.offset.x < 0 && selectedImage < selectedProject.images.length - 1) {
+        } else if (info.offset.x < 0 && selectedImage < images.length - 1) {
           setSelectedImage(selectedImage + 1)
         }
       }
@@ -1462,7 +1713,7 @@ export default function InvestorDashboard() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.3 }}
-                    src={selectedProject.images[selectedImage]}
+                    src={currentImage}
                     alt={selectedProject.title}
                     className="w-full h-full object-cover"
                   />
@@ -1479,7 +1730,7 @@ export default function InvestorDashboard() {
                         </svg>
                       </motion.button>
                     )}
-                    {selectedImage < selectedProject.images.length - 1 && (
+                    {selectedImage < images.length - 1 && (
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
@@ -1493,7 +1744,7 @@ export default function InvestorDashboard() {
                     )}
                             </div>
                   <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                    {selectedProject.images.map((_, index) => (
+                    {images.map((_, index) => (
                       <button
                         key={index}
                         onClick={() => setSelectedImage(index)}
@@ -1519,8 +1770,20 @@ export default function InvestorDashboard() {
                   {selectedProject.title}
                 </h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
-                  {selectedProject.detailedDescription}
+                  {selectedProject.description}
                 </p>
+                
+                {/* Full Description */}
+                {selectedProject.fullDescription && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">About 2 Seasons Estate</h3>
+                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                      <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 font-sans">
+                        {selectedProject.fullDescription}
+                      </pre>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                   <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
@@ -1545,7 +1808,7 @@ export default function InvestorDashboard() {
                         <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Amenities</h3>
                     <ul className="grid grid-cols-2 gap-2">
-                      {selectedProject.amenities.map((amenity, index) => (
+                      {(selectedProject.amenities || []).map((amenity, index) => (
                         <li key={index} className="flex items-center text-gray-600 dark:text-gray-300">
                           <svg className="w-5 h-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -1559,17 +1822,17 @@ export default function InvestorDashboard() {
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Documents</h3>
                     <ul className="space-y-2">
-                      {selectedProject.documents.map((doc, index) => (
+                      {(selectedProject.documents || []).map((doc, index) => (
                         <li key={index}>
-                          <a
-                            href={doc.url}
-                            className="flex items-center text-blue-600 dark:text-blue-400 hover:underline"
+                          <button
+                            onClick={() => handleDocumentClick(doc)}
+                            className="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors w-full text-left"
                           >
                             <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                             </svg>
                             {doc.name}
-                          </a>
+                          </button>
                         </li>
                       ))}
                     </ul>
@@ -2019,7 +2282,7 @@ export default function InvestorDashboard() {
                 <input
                   type="text"
                   {...register('name')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-gray-900 dark:text-white"
                 />
                 {errors.name && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name.message}</p>
@@ -2073,19 +2336,7 @@ export default function InvestorDashboard() {
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Preferred Investment Amount
-                </label>
-                <input
-                  type="number"
-                  {...register('preferredInvestmentAmount')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-                {errors.preferredInvestmentAmount && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.preferredInvestmentAmount.message}</p>
-                )}
-              </div>
+
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -2151,12 +2402,7 @@ export default function InvestorDashboard() {
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Experience</h3>
                 <p className="mt-1 text-gray-900 dark:text-white">{profile.investmentExperience || 'Not specified'}</p>
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Preferred Investment Amount</h3>
-                <p className="mt-1 text-gray-900 dark:text-white">
-                  {profile.preferredInvestmentAmount ? `₦${profile.preferredInvestmentAmount.toLocaleString()}` : 'Not specified'}
-                </p>
-              </div>
+
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Risk Tolerance</h3>
                 <p className="mt-1 text-gray-900 dark:text-white">{profile.riskTolerance || 'Not specified'}</p>
@@ -2458,49 +2704,143 @@ export default function InvestorDashboard() {
 
   // Receipt download handler
   const handleDownloadReceipt = () => {
-    const lastReceipt = receipts[receipts.length - 1];
-    if (!lastReceipt) return;
+    // Use the first approved connection for demo purposes
+    const approvedConnection = connections.find(conn => conn.status === 'Approved');
+    if (!approvedConnection || !profile) {
+      alert('No approved connections found for receipt generation.');
+      return;
+    }
+    
     generateReceipt({
       user: profile,
-      project: selectedProject,
-      amount: investmentAmount,
-      date: lastReceipt.date,
-      reference: lastReceipt.reference,
+      project: {
+        title: approvedConnection.projectTitle,
+        location: approvedConnection.location,
+        developer: approvedConnection.developer
+      },
+      amount: approvedConnection.amount,
+      date: new Date().toLocaleDateString(),
+      reference: `SUBX-${Date.now()}`,
     });
   };
 
   // Deed signature handlers
   const handleSignDeed = () => {
     setShowDeedModal(true);
+    setShowDocumentsModal(false); // Close documents modal when opening deed modal
   };
   const handleDeedSubmit = (signatureDataUrl) => {
     setDeeds(prev => [...prev, { date: new Date().toLocaleString(), signatureDataUrl }]);
     setShowDeedModal(false);
   };
 
-  // Example usage after a successful purchase (replace with your actual purchase handler):
+  const renderIcon = (iconName) => {
+    const iconClass = "w-5 h-5";
+    switch (iconName) {
+      case "home":
+        return (
+          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+        );
+      case "chart":
+        return (
+          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        );
+      case "link":
+        return (
+          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+        );
+      case "users":
+        return (
+          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Certificate download handler
   const handleDownloadCertificate = () => {
-    if (!profile || !selectedProject) return;
+    // Use the first approved connection for demo purposes
+    const approvedConnection = connections.find(conn => conn.status === 'Approved');
+    if (!approvedConnection || !profile) {
+      alert('No approved connections found for certificate generation.');
+      return;
+    }
+    
     generateOwnershipCertificate({
       user: profile,
-      project: selectedProject,
-      sqm: selectedUnits,
+      project: {
+        title: approvedConnection.projectTitle,
+        location: approvedConnection.location,
+        developer: approvedConnection.developer
+      },
+      sqm: approvedConnection.units,
       date: new Date().toLocaleDateString(),
-      certificateId: `${selectedProject.id}-${profile.email}-${Date.now()}`
+      certificateId: `${approvedConnection.projectId}-${profile.email}-${Date.now()}`
     });
   };
 
-  // Example usage after deed signing (replace with your actual deed signing handler):
+  // Deed download handler
   const handleDownloadDeed = () => {
-    if (!profile || !selectedProject) return;
+    // Use the first approved connection for demo purposes
+    const approvedConnection = connections.find(conn => conn.status === 'Approved');
+    if (!approvedConnection || !profile) {
+      alert('No approved connections found for deed generation.');
+      return;
+    }
+    
     generateDeedPDF({
       user: profile,
-      project: selectedProject,
-      sqm: selectedUnits,
+      project: {
+        title: approvedConnection.projectTitle,
+        location: approvedConnection.location,
+        developer: approvedConnection.developer
+      },
+      sqm: approvedConnection.units,
       date: new Date().toLocaleDateString(),
-      deedId: `${selectedProject.id}-${profile.email}-${Date.now()}`,
+      deedId: `${approvedConnection.projectId}-${profile.email}-${Date.now()}`,
       signatureDataUrl: deeds.length > 0 ? deeds[deeds.length - 1].signatureDataUrl : null
     });
+  };
+
+  // Document click handler for project modal
+  const handleDocumentClick = (document) => {
+    if (document.url === '#') {
+      // Generate a sample document based on the document name
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text(document.name, 20, 30);
+      doc.setFontSize(12);
+      doc.text(`Project: ${selectedProject?.title || '2 Seasons Estate'}`, 20, 50);
+      doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 60);
+      doc.text(`Generated for: ${profile?.name || 'User'}`, 20, 70);
+      
+      // Add some sample content based on document type
+      if (document.name.includes('Agreement')) {
+        doc.text('This is a sample Group Purchase Agreement document.', 20, 90);
+        doc.text('Terms and conditions apply as per standard agreement.', 20, 100);
+      } else if (document.name.includes('Deed')) {
+        doc.text('This is a sample Deed of Sale document.', 20, 90);
+        doc.text('Legal ownership transfer document.', 20, 100);
+      } else if (document.name.includes('Certificate')) {
+        doc.text('This is a sample Co-ownership Certificate.', 20, 90);
+        doc.text('Proof of ownership in the development.', 20, 100);
+      }
+      
+      doc.save(`${document.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+      handleToast(`${document.name} downloaded successfully!`, 'success');
+    } else {
+      // If there's a real URL, open it
+      window.open(document.url, '_blank');
+    }
   };
 
   // Only show Focal Point connections
@@ -2524,9 +2864,9 @@ export default function InvestorDashboard() {
     fetchDocuments();
   }, [showConnectionModal, selectedConnection, profile]);
 
-  return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    return (
+    <div className={`min-h-screen w-full ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Navigation */}
           <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -2541,99 +2881,101 @@ export default function InvestorDashboard() {
               Subx
             </motion.h1>
                 </div>
-          <div className="flex items-center space-x-4">
-                <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="flex items-center space-x-4"
-            >
-                <div className="relative">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleProfileClick}
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    <img
-                      src={profileImage || 'https://via.placeholder.com/32'}
-                      alt="Profile"
-                      className="h-8 w-8 rounded-full mr-2"
-                    />
-                    <span>{profile?.name || 'Profile'}</span>
-                    <motion.svg
-                      className="ml-2 h-5 w-5"
-                      animate={{ rotate: isProfileDropdownOpen ? 180 : 0 }}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </motion.svg>
-                  </motion.button>
-
-                  <AnimatePresence>
-                    {isProfileDropdownOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50"
-                      >
-                        <div className="py-1" role="menu" aria-orientation="vertical">
-                          <button
-                            onClick={() => handleProfileOptionClick('view')}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            role="menuitem"
-                          >
-                            View Profile
-                          </button>
-                          <button
-                            onClick={() => handleProfileOptionClick('settings')}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            role="menuitem"
-                          >
-                            Settings
-                          </button>
-                          <button
-                            onClick={() => handleProfileOptionClick('logout')}
-                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            role="menuitem"
-                          >
-                            Logout
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                {isDarkMode ? (
-                  <svg className="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                    ) : (
-                  <svg className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                    )}
-                  </motion.button>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="flex items-center space-x-3"
+          >
+            <div className="relative">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={handleLogout}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                onClick={handleProfileClick}
+                className="inline-flex items-center px-3 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                Logout
+                                    <img
+                      src={profileImage || '/2-seasons/2seasons-logo.jpg'}
+                      alt="Profile"
+                      className="h-6 w-6 rounded-full mr-1"
+                      onError={(e) => {
+                        e.target.src = '/2-seasons/2seasons-logo.jpg';
+                      }}
+                    />
+                <span className="truncate max-w-20">{profile?.name || 'Profile'}</span>
+                <motion.svg
+                  className="ml-1 h-4 w-4"
+                  animate={{ rotate: isProfileDropdownOpen ? 180 : 0 }}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </motion.svg>
               </motion.button>
-            </motion.div>
-              </div>
-            </motion.div>
+
+              <AnimatePresence>
+                {isProfileDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50"
+                  >
+                    <div className="py-1" role="menu" aria-orientation="vertical">
+                      <button
+                        onClick={() => handleProfileOptionClick('view')}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        role="menuitem"
+                      >
+                        View Profile
+                      </button>
+                      <button
+                        onClick={() => handleProfileOptionClick('settings')}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        role="menuitem"
+                      >
+                        Settings
+                      </button>
+                      <button
+                        onClick={() => handleProfileOptionClick('logout')}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        role="menuitem"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              {isDarkMode ? (
+                <svg className="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleLogout}
+              className="inline-flex items-center px-3 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            >
+              Logout
+            </motion.button>
+          </motion.div>
 
         {/* Tabs */}
         <motion.div 
@@ -2641,12 +2983,12 @@ export default function InvestorDashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="border-b border-gray-200 dark:border-gray-700 mb-8"
         >
-          <nav className="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto" aria-label="Tabs">
+                      <nav className="-mb-px flex justify-center space-x-4 sm:space-x-8 overflow-x-auto" aria-label="Tabs">
             {[
-              { key: "discover", label: "Land Opportunities" },
-              { key: "analytics", label: "Land Analytics" },
-              { key: "connections", label: "Land Connections" },
-              { key: "forum", label: "Community" }
+              { key: "discover", label: "Land Opportunities", icon: "home" },
+              { key: "analytics", label: "Land Analytics", icon: "chart" },
+              { key: "connections", label: "Land Connections", icon: "link" },
+              { key: "forum", label: "Community", icon: "users" }
             ].map((tab) => (
               <motion.button
                 key={tab.key}
@@ -2657,16 +2999,17 @@ export default function InvestorDashboard() {
                   activeTab === tab.key
                     ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                } whitespace-nowrap py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex-shrink-0`}
+                } whitespace-nowrap py-4 px-3 sm:px-4 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 flex-shrink-0 flex items-center justify-center min-w-[60px] sm:min-w-0`}
               >
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden flex items-center justify-center w-full">{renderIcon(tab.icon)}</span>
               </motion.button>
             ))}
           </nav>
         </motion.div>
 
         {/* Main Content */}
-        <main>
+        <main className="w-full">
           {isLoading ? (
                     <motion.div 
               initial={{ opacity: 0 }}
@@ -2674,6 +3017,7 @@ export default function InvestorDashboard() {
               className="flex items-center justify-center h-64"
             >
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+              <p className="mt-4 text-gray-600">Loading dashboard...</p>
                     </motion.div>
           ) : (
             <AnimatePresence mode="wait">
@@ -2683,14 +3027,13 @@ export default function InvestorDashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.2 }}
-                className="space-y-6"
+                className="w-full space-y-6"
               >
                 {renderContent()}
                     </motion.div>
       </AnimatePresence>
           )}
         </main>
-                </div>
 
       {renderConnectionDetails()}
 
@@ -2965,6 +3308,8 @@ export default function InvestorDashboard() {
           </div>
         </div>
       )}
+    </motion.div>
+      </div>
     </div>
   )
 }

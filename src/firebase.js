@@ -3,12 +3,11 @@ import { getAnalytics } from 'firebase/analytics';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, getDocs, doc, getDoc } from 'firebase/firestore/lite';
 import { getStorage } from 'firebase/storage';
-import { GoogleAuthProvider } from 'firebase/auth';
 
 // Firebase configuration for production
 const firebaseConfig = {
   apiKey: "AIzaSyC60bWkujXkpdB_jASgZhi7rb9njUXYiSc",
-  authDomain: "subx-825e9.firebaseapp.com",
+  authDomain: "subx-825e9.web.app",
   projectId: "subx-825e9",
   storageBucket: "subx-825e9.firebasestorage.app",
   messagingSenderId: "853877174483",
@@ -21,6 +20,27 @@ console.log('Firebase Config:', {
   authDomain: firebaseConfig.authDomain,
   projectId: firebaseConfig.projectId,
   storageBucket: firebaseConfig.storageBucket
+});
+
+// Network connectivity check
+const checkNetworkConnectivity = async () => {
+  try {
+    const response = await fetch('https://www.google.com/favicon.ico', { 
+      method: 'HEAD',
+      mode: 'no-cors'
+    });
+    return true;
+  } catch (error) {
+    console.warn('Network connectivity issue detected');
+    return false;
+  }
+};
+
+// Check network on load
+checkNetworkConnectivity().then(isConnected => {
+  if (!isConnected) {
+    console.warn('Network connectivity issues detected. Some features may not work properly.');
+  }
 });
 
 let app;
@@ -39,7 +59,8 @@ try {
   console.log('Firebase initialized successfully');
 } catch (error) {
   console.error('Error initializing Firebase:', error);
-  throw error;
+  // Don't throw error, allow app to continue with limited functionality
+  console.warn('Firebase initialization failed, some features may not work');
 }
 
 // Utility functions for Firestore
@@ -74,5 +95,4 @@ const getDocument = async (collectionName, docId) => {
   }
 };
 
-const provider = new GoogleAuthProvider();
-export { app, analytics, auth, db, storage, getCollection, getDocument, provider };
+export { app, analytics, auth, db, storage, getCollection, getDocument };

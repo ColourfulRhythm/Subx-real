@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth, provider } from '../firebase';
-import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithRedirect } from 'firebase/auth';
+import { auth } from '../firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
 const FirebaseAuth = () => {
   const navigate = useNavigate();
@@ -9,66 +9,76 @@ const FirebaseAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [authMode, setAuthMode] = useState('signin'); // 'signin' or 'signup'
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [networkStatus, setNetworkStatus] = useState('checking');
+  const [passwordRequirements, setPasswordRequirements] = useState({
+    length: false,
+    nonAlphanumeric: false,
+    number: false,
+    uppercase: false
+  });
+  const [authMethod, setAuthMethod] = useState('email'); // 'email' or 'phone'
 
-  const handleGoogleAuth = async () => {
-    setIsLoading(true);
-    setError('');
-    try {
-      // Try popup first, fallback to redirect if blocked
-      let result;
-      try {
-        result = await signInWithPopup(auth, provider);
-      } catch (popupError) {
-        console.log('Popup blocked, trying redirect...');
-        // Fallback to redirect method
-        await signInWithRedirect(auth, provider);
-        return; // Redirect will handle the rest
-      }
-      
-      const user = result.user;
-      
-      // Set authentication status
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('userType', selectedProfile);
-      localStorage.setItem('userEmail', user.email);
-      localStorage.setItem('userName', user.displayName || user.email);
-      
-      // Increment user count if this is a new signup
-      if (window.incrementSubxUserCount) {
-        window.incrementSubxUserCount();
-      }
-      
-      // Show success message
-      alert(`Welcome ${user.displayName || user.email}! You have been successfully ${authMode === 'signup' ? 'registered' : 'logged in'} as a ${selectedProfile}. You can now access your land sub-ownership dashboard.`);
-      
-      // Navigate to the appropriate dashboard
-      navigate(`/dashboard/${selectedProfile}`);
-    } catch (error) {
-      console.error('Google auth error:', error);
-      if (error.code === 'auth/popup-blocked') {
-        setError('Popup was blocked. Please allow popups for this site and try again, or use email/password login.');
-      } else if (error.code === 'auth/network-request-failed') {
-        setError('Network error. Please check your internet connection and try again.');
-    } else {
-        setError(error.message);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
 
   const handleEmailAuth = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    console.log('Starting email auth...', { authMode, email: email.substring(0, 3) + '***' });
+    
+    // Validate form fields for signup
+    if (authMode === 'signup') {
+      if (!name.trim()) {
+        setError('Please enter your full name');
+        setIsLoading(false);
+        return;
+      }
+      if (authMethod === 'email' && !email.trim()) {
+        setError('Please enter your email address');
+        setIsLoading(false);
+        return;
+      }
+      if (authMethod === 'phone' && !phone.trim()) {
+        setError('Please enter your phone number');
+        setIsLoading(false);
+        return;
+      }
+      if (!validatePassword(password)) {
+        setError('Password does not meet the requirements. Please check the requirements below.');
+        setIsLoading(false);
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError('Passwords do not match');
+        setIsLoading(false);
+        return;
+      }
+    }
     
     try {
       let userCredential;
+      const identifier = authMethod === 'email' ? email : phone;
       
       if (authMode === 'signup') {
-        userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        // For signup, we'll use email as the primary identifier but store phone if provided
+        const signupEmail = authMethod === 'email' ? email : `${phone.replace(/\D/g, '')}@subx.local`;
+        
+        userCredential = await createUserWithEmailAndPassword(auth, signupEmail, password);
+        
+        // Update user profile with name (handle potential errors)
+        try {
+          await userCredential.user.updateProfile({
+            displayName: name
+          });
+        } catch (profileError) {
+          console.warn('Could not update profile display name:', profileError);
+          // Continue anyway - the account was created successfully
+        }
         
         // Increment user count for new signups
         if (window.incrementSubxUserCount) {
@@ -76,9 +86,15 @@ const FirebaseAuth = () => {
         }
         
         // Show success message for new signup
-        alert(`Welcome! Your land sub-ownership account has been created successfully. You can now access your ${selectedProfile} dashboard.`);
+        alert(`Welcome ${name}! Your land sub-ownership account has been created successfully. You can now access your ${selectedProfile} dashboard.`);
       } else {
-        userCredential = await signInWithEmailAndPassword(auth, email, password);
+        // For signin, try both email and phone formats
+        let signinEmail = identifier;
+        if (authMethod === 'phone') {
+          signinEmail = `${phone.replace(/\D/g, '')}@subx.local`;
+        }
+        
+        userCredential = await signInWithEmailAndPassword(auth, signinEmail, password);
         
         // Show success message for login
         alert(`Welcome back! You have been successfully logged in as a ${selectedProfile}. You can now access your land sub-ownership dashboard.`);
@@ -86,17 +102,36 @@ const FirebaseAuth = () => {
       
       const user = userCredential.user;
       
-          // Set authentication status
-          localStorage.setItem('isAuthenticated', 'true');
-          localStorage.setItem('userType', selectedProfile);
+      // Set authentication status with actual user data
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('userType', selectedProfile);
       localStorage.setItem('userEmail', user.email);
-      localStorage.setItem('userName', user.displayName || user.email);
-          
-          // Navigate to the appropriate dashboard
-          navigate(`/dashboard/${selectedProfile}`);
+      localStorage.setItem('userName', name || user.displayName || user.email);
+      if (authMethod === 'phone') {
+        localStorage.setItem('userPhone', phone);
+      }
+      
+      // Navigate to the new unified dashboard
+      navigate('/dashboard');
     } catch (error) {
       console.error('Email auth error:', error);
-      setError(error.message);
+      if (error.code === 'auth/email-already-in-use') {
+        setError('An account with this email already exists. Please sign in instead.');
+      } else if (error.code === 'auth/user-not-found') {
+        setError('No account found with this email. Please sign up instead.');
+      } else if (error.code === 'auth/wrong-password') {
+        setError('Incorrect password. Please try again.');
+      } else if (error.code === 'auth/weak-password') {
+        setError('Password is too weak. Please choose a stronger password.');
+      } else if (error.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
+      } else if (error.code === 'auth/password-does-not-meet-requirements') {
+        setError('Password does not meet the requirements. Please check the requirements below.');
+      } else {
+        // Remove "Firebase:" prefix from error messages
+        const cleanMessage = error.message.replace(/^Firebase:\s*/, '');
+        setError(cleanMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -105,6 +140,40 @@ const FirebaseAuth = () => {
   const handleProfileSelect = (profileType) => {
     setSelectedProfile(profileType);
   };
+
+
+
+  // Password validation function
+  const validatePassword = (password) => {
+    const requirements = {
+      length: password.length >= 8,
+      nonAlphanumeric: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+      number: /\d/.test(password),
+      uppercase: /[A-Z]/.test(password)
+    };
+    setPasswordRequirements(requirements);
+    return Object.values(requirements).every(Boolean);
+  };
+
+  // Check network status on component mount
+  useEffect(() => {
+    const checkNetwork = async () => {
+      try {
+        await fetch('https://www.google.com/favicon.ico', { 
+          method: 'HEAD',
+          mode: 'no-cors'
+        });
+        setNetworkStatus('connected');
+      } catch (error) {
+        setNetworkStatus('disconnected');
+        console.warn('Network connectivity issue detected');
+      }
+    };
+    
+    checkNetwork();
+  }, []);
+
+
 
   if (!selectedProfile) {
     return (
@@ -186,6 +255,16 @@ const FirebaseAuth = () => {
               </p>
             </div>
 
+            {/* Network Status */}
+            {networkStatus === 'disconnected' && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-sm text-yellow-700">
+                  ⚠️ Network connectivity issues detected. Some features may not work properly. 
+                  If you're having trouble accessing the site, try using a VPN or check your internet connection.
+                </p>
+              </div>
+            )}
+
             {/* Error Message */}
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
@@ -193,58 +272,86 @@ const FirebaseAuth = () => {
               </div>
             )}
 
-            {/* Google Auth Button */}
-            <button
-              onClick={handleGoogleAuth}
-              disabled={isLoading}
-              className="w-full flex justify-center items-center py-3 px-4 mb-4 border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 mr-2" />
-              Continue with Google
-            </button>
-            
-            {/* Alternative Google Auth Button (if popup fails) */}
-            <button
-              onClick={async () => {
-                setIsLoading(true);
-                setError('');
-                try {
-                  await signInWithRedirect(auth, provider);
-                } catch (error) {
-                  console.error('Redirect auth error:', error);
-                  setError('Authentication failed. Please try email/password login.');
-                } finally {
-                  setIsLoading(false);
-                }
-              }}
-              disabled={isLoading}
-              className="w-full flex justify-center items-center py-2 px-4 mb-4 border border-gray-300 rounded-lg shadow-sm text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Alternative Google Sign-in (if popup fails)
-            </button>
 
-            <div className="flex items-center my-4">
-              <div className="flex-grow border-t border-gray-300"></div>
-              <span className="px-3 text-sm text-gray-500">or</span>
-              <div className="flex-grow border-t border-gray-300"></div>
+
+            {/* Authentication Method Toggle */}
+            <div className="mb-4">
+              <div className="flex rounded-lg border border-gray-300 p-1">
+                <button
+                  type="button"
+                  onClick={() => setAuthMethod('email')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+                    authMethod === 'email'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMethod('phone')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+                    authMethod === 'phone'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  Phone Number
+                </button>
+              </div>
             </div>
 
             {/* Email/Password Form */}
             <form onSubmit={handleEmailAuth} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Enter your email"
-                />
-              </div>
+              {authMode === 'signup' && (
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required={authMode === 'signup'}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Enter your full name"
+                  />
+                </div>
+              )}
+              
+              {authMethod === 'email' ? (
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Enter your email"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="+234 123 456 7890"
+                  />
+                </div>
+              )}
               
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
@@ -254,12 +361,57 @@ const FirebaseAuth = () => {
                   type="password"
                   id="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (authMode === 'signup') {
+                      validatePassword(e.target.value);
+                    }
+                  }}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder="Enter your password"
                 />
+                {authMode === 'signup' && password && (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-xs font-medium text-gray-600">Password requirements:</p>
+                    <div className="space-y-1">
+                      <div className={`flex items-center text-xs ${passwordRequirements.length ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className="mr-1">{passwordRequirements.length ? '✓' : '✗'}</span>
+                        At least 8 characters
+                      </div>
+                      <div className={`flex items-center text-xs ${passwordRequirements.uppercase ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className="mr-1">{passwordRequirements.uppercase ? '✓' : '✗'}</span>
+                        At least one uppercase letter
+                      </div>
+                      <div className={`flex items-center text-xs ${passwordRequirements.number ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className="mr-1">{passwordRequirements.number ? '✓' : '✗'}</span>
+                        At least one number
+                      </div>
+                      <div className={`flex items-center text-xs ${passwordRequirements.nonAlphanumeric ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className="mr-1">{passwordRequirements.nonAlphanumeric ? '✓' : '✗'}</span>
+                        At least one special character (!@#$%^&*)
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
+              
+              {authMode === 'signup' && (
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                    Confirm Password
+                  </label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required={authMode === 'signup'}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Confirm your password"
+                  />
+                </div>
+              )}
 
               <button
                 type="submit"

@@ -2,16 +2,16 @@
 
 ## **✅ Successfully Deployed to Firebase!**
 
-### **🌐 Live URLs:**
+### **�� Live URLs:**
 
-- **User Frontend**: https://subx-825e9.web.app
+- **Main Application**: https://subx-825e9.web.app
 - **Admin Dashboard**: https://subx-825e9-admin-39f23.web.app
 - **Firebase Console**: https://console.firebase.google.com/project/subx-825e9/overview
 
 ### **📊 Deployment Summary:**
 
 #### **✅ Frontend Applications:**
-- **User Frontend**: Deployed successfully (18 files)
+- **Main App**: Deployed successfully (33 files)
 - **Admin Dashboard**: Deployed successfully (4 files)
 - **Build Status**: All builds completed without errors
 
@@ -40,7 +40,7 @@ firebase deploy --only firestore:rules
 
 ```
 Subx-real/
-├── dist/                    # User frontend build
+├── dist/                    # Main app build
 ├── admin-frontend/dist/     # Admin frontend build
 ├── firebase.json           # Firebase configuration
 ├── .firebaserc            # Firebase project settings
@@ -94,9 +94,9 @@ Subx-real/
 
 ### **📈 Performance Notes:**
 
-- **User Frontend**: 1.2MB main bundle (consider code splitting)
-- **Admin Frontend**: 646KB main bundle
-- **Build Time**: ~15 seconds total
+- **Main App**: 1.2MB main bundle (consider code splitting)
+- **Admin Frontend**: 937KB main bundle
+- **Build Time**: ~18 seconds total
 - **Deployment Time**: ~30 seconds
 
 ### **🔒 Security:**
@@ -118,4 +118,4 @@ For deployment issues:
 
 **Deployment completed successfully! 🎉**
 
-Both frontend applications are now live and accessible via the provided URLs. 
+Both applications are now live and accessible via the provided URLs. The deployment is now clean and consolidated to a single Firebase project. 

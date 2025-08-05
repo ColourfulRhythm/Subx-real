@@ -120,7 +120,7 @@ export default function LandingPage() {
                 Log in as Sub-owner
               </button>
               <button
-                onClick={() => navigate('/signup/investor')}
+                onClick={() => navigate('/login')}
                 className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:opacity-90 transition-opacity"
               >
                 Sign Up
@@ -163,7 +163,7 @@ export default function LandingPage() {
               className="mt-8 flex flex-col items-center justify-center gap-4"
             >
               <div className="flex justify-center gap-4">
-                <Link to="/signup/investor">
+                <Link to="/login">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -328,7 +328,7 @@ export default function LandingPage() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/signup/investor')}
+              onClick={() => navigate('/login')}
               className="px-8 py-3 text-base font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:opacity-90 transition-opacity"
             >
               Get Started Now

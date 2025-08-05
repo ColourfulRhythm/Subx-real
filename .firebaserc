@@ -5,14 +5,11 @@
   "targets": {
     "subx-825e9": {
       "hosting": {
-        "user": [
+        "main": [
           "subx-825e9"
         ],
         "admin": [
           "subx-825e9-admin-39f23"
-        ],
-        "subxhq": [
-          "subxhq"
         ]
       }
     }

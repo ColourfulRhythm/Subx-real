@@ -50,7 +50,7 @@ export default function DeveloperSignup() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Registration failed');
       // Redirect to dashboard after successful signup
-      navigate('/dashboard/developer')
+      navigate('/dashboard')
     } catch (error) {
       alert('Signup failed: ' + error.message)
     } finally {

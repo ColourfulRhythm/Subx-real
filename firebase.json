@@ -1,7 +1,7 @@
 {
   "hosting": [
     {
-      "target": "user",
+      "target": "main",
       "public": "dist",
       "ignore": [
         "firebase.json",
@@ -15,18 +15,6 @@
     {
       "target": "admin",
       "public": "admin-frontend/dist",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
-      "rewrites": [
-        { "source": "**", "destination": "/index.html" }
-      ]
-    },
-    {
-      "target": "subxhq",
-      "public": "dist",
       "ignore": [
         "firebase.json",
         "**/.*",

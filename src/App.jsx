@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { motion, AnimatePresence } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
 import { auth } from './firebase'
-import { onAuthStateChanged, getRedirectResult } from 'firebase/auth'
+import { onAuthStateChanged } from 'firebase/auth'
 import LandingPage from './routes/LandingPage'
 import Login from './routes/login'
 import InvestorSignup from './routes/signup/investor'
@@ -11,6 +11,7 @@ import DeveloperSignup from './routes/signup/developer'
 import InvestorDashboard from './routes/dashboard/investor'
 import DeveloperDashboard from './routes/dashboard/developer'
 import AdminDashboard from './routes/dashboard/admin'
+import UserDashboard from './routes/dashboard/UserDashboard'
 import Messaging from './routes/messaging/Messaging'
 import ForumTopic from './routes/ForumTopic'
 import Features from './routes/Features'
@@ -101,30 +102,6 @@ const App = () => {
   useEffect(() => {
     console.log('App component mounted')
     
-    // Handle redirect result from Google auth
-    getRedirectResult(auth).then((result) => {
-      if (result) {
-        const user = result.user;
-        console.log('Redirect auth successful:', user.email);
-        
-        // Set authentication status
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('userType', 'investor'); // Default to investor
-        localStorage.setItem('userEmail', user.email);
-        localStorage.setItem('userName', user.displayName || user.email);
-        
-        // Increment user count
-        if (window.incrementSubxUserCount) {
-          window.incrementSubxUserCount();
-        }
-        
-        // Navigate to dashboard
-        window.location.href = '/dashboard/investor';
-      }
-    }).catch((error) => {
-      console.error('Redirect auth error:', error);
-    });
-    
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       console.log('Auth state changed:', user ? 'User logged in' : 'No user')
     })
@@ -186,18 +163,26 @@ const App = () => {
             </PageTransition>
           } />
           <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <UserDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/dashboard/investor"
             element={
-              <ProtectedRoute requiredUserType="investor">
-                <InvestorDashboard />
+              <ProtectedRoute>
+                <UserDashboard />
               </ProtectedRoute>
             }
           />
           <Route
             path="/dashboard/developer"
             element={
-              <ProtectedRoute requiredUserType="developer">
-                <DeveloperDashboard />
+              <ProtectedRoute>
+                <UserDashboard />
               </ProtectedRoute>
             }
           />
