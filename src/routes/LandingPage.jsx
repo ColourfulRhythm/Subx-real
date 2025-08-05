@@ -183,6 +183,9 @@ export default function LandingPage() {
               <div className="mt-4 text-lg font-semibold text-indigo-700 bg-indigo-50 rounded-full px-6 py-2 shadow inline-block">
                 Exclusive for 10,000 individuals — <span className="font-bold">{spotsLeft.toLocaleString()}</span> spots left!
               </div>
+              <div className="mt-4 text-sm text-gray-600">
+                <p>✨ After signing up, access your <strong>Connections</strong> and <strong>Analytics</strong> in your dashboard!</p>
+              </div>
             </motion.div>
           </div>
         </div>

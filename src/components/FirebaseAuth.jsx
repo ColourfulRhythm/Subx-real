@@ -265,6 +265,9 @@ const FirebaseAuth = () => {
                   Privacy Policy
                 </a>
               </p>
+              <p className="mt-2 text-xs text-gray-500">
+                💡 After login, access your <strong>Connections</strong> and <strong>Analytics</strong> in your dashboard!
+              </p>
             </div>
           </div>
         </div>
