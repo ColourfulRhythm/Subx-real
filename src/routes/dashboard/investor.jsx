@@ -1091,6 +1091,8 @@ export default function InvestorDashboard() {
         </div>
       );
     }
+    
+    const approvedConnections = connections.filter(c => c.status === 'approved');
     return (
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
@@ -1192,41 +1194,17 @@ export default function InvestorDashboard() {
                     </div>
           )}
         </div>
-      </div>
-    )
-  }
 
-  // Add this function to filter topics based on search query
-  const filterTopics = (topics) => {
-    if (!forumSearchQuery.trim()) return topics;
-    
-    const query = forumSearchQuery.toLowerCase();
-    return topics.filter(topic => 
-      topic.title.toLowerCase().includes(query) ||
-      topic.tags.some(tag => tag.toLowerCase().includes(query)) ||
-      topic.author.toLowerCase().includes(query)
-    );
-  };
-
-  // Add this function to render the documents section
-  const renderDocuments = () => {
-    const approvedConnections = connections.filter(c => c.status === 'approved');
-    
-    return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Your Land Ownership Documents</h3>
-            <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full text-sm">
-              {approvedConnections.length} Approved Connections
-            </span>
-          </div>
-          
-          {approvedConnections.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500 dark:text-gray-400">No approved land connections yet. Complete a land purchase to access your documents.</p>
+        {/* Documents Section for Approved Connections */}
+        {approvedConnections.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Land Ownership Documents</h3>
+              <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full text-sm">
+                {approvedConnections.length} Approved Connections
+              </span>
             </div>
-          ) : (
+            
             <div className="space-y-4">
               {approvedConnections.map((connection) => (
                 <motion.div
@@ -1332,11 +1310,25 @@ export default function InvestorDashboard() {
                 </motion.div>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+    )
+  }
+
+  // Add this function to filter topics based on search query
+  const filterTopics = (topics) => {
+    if (!forumSearchQuery.trim()) return topics;
+    
+    const query = forumSearchQuery.toLowerCase();
+    return topics.filter(topic => 
+      topic.title.toLowerCase().includes(query) ||
+      topic.tags.some(tag => tag.toLowerCase().includes(query)) ||
+      topic.author.toLowerCase().includes(query)
     );
   };
+
+
 
   // Add this function to render the forum section
   const renderForum = () => {
@@ -1417,8 +1409,6 @@ export default function InvestorDashboard() {
         return renderAnalytics();
       case 'connections':
         return renderConnections();
-      case 'documents':
-        return renderDocuments();
       case 'forum':
         return renderForum();
       case 'profile':
@@ -2656,7 +2646,6 @@ export default function InvestorDashboard() {
               { key: "discover", label: "Land Opportunities" },
               { key: "analytics", label: "Land Analytics" },
               { key: "connections", label: "Land Connections" },
-              { key: "documents", label: "Documents" },
               { key: "forum", label: "Community" }
             ].map((tab) => (
               <motion.button
