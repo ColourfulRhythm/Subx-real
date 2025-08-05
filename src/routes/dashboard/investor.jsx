@@ -861,33 +861,33 @@ export default function InvestorDashboard() {
   // Add this function to fetch analytics data
   const fetchAnalytics = async () => {
     try {
-      // Realistic analytics data for demo
+      // Realistic land sub-ownership analytics data
       const mockAnalytics = {
-        totalInvestments: 25000000, // ₦25M
-        activeInvestments: 15000000, // ₦15M
-        totalReturns: 3750000, // ₦3.75M
-        portfolioValue: 28750000, // ₦28.75M
-        growthRate: 15.2, // Year-over-Year growth rate
-        investmentDistribution: {
-          residential: 45,
-          commercial: 30,
-          industrial: 15,
-          land: 10
+        totalLandOwned: 250, // 250 square meters
+        activeLandUnits: 150, // 150 square meters
+        totalLandValue: 1250000, // ₦1.25M (₦5,000 per sqm)
+        portfolioValue: 750000, // ₦750K (current market value)
+        growthRate: 8.5, // Year-over-Year land value growth
+        landDistribution: {
+          residential: 60, // 60% residential land
+          commercial: 25, // 25% commercial land
+          agricultural: 10, // 10% agricultural land
+          mixed: 5 // 5% mixed-use land
         },
         expectedReturns: {
-          threeMonths: 1875000, // ₦1.875M
-          sixMonths: 4125000, // ₦4.125M
-          oneYear: 9000000 // ₦9M
+          threeMonths: 62500, // ₦62.5K (5% appreciation)
+          sixMonths: 125000, // ₦125K (10% appreciation)
+          oneYear: 250000 // ₦250K (20% appreciation)
         },
         recentTransactions: [
-          { id: 1, type: 'Investment', amount: 10000000, date: '2024-03-15', status: 'Completed' },
-          { id: 2, type: 'Return', amount: 2500000, date: '2024-03-10', status: 'Completed' },
-          { id: 3, type: 'Investment', amount: 15000000, date: '2024-03-01', status: 'Completed' }
+          { id: 1, type: 'Land Purchase', amount: 50000, date: '2024-03-15', status: 'Completed', units: '10 sqm' },
+          { id: 2, type: 'Land Appreciation', amount: 25000, date: '2024-03-10', status: 'Completed', units: '5 sqm' },
+          { id: 3, type: 'Land Purchase', amount: 75000, date: '2024-03-01', status: 'Completed', units: '15 sqm' }
         ],
         performanceMetrics: {
-          monthlyReturn: 2.5,
-          yearlyReturn: 18.5,
-          riskScore: 65
+          monthlyReturn: 1.2, // 1.2% monthly land appreciation
+          yearlyReturn: 15.5, // 15.5% yearly land appreciation
+          riskScore: 35 // Low risk for land ownership
         }
       }
       setAnalytics(mockAnalytics)
@@ -900,24 +900,24 @@ export default function InvestorDashboard() {
   // Add this function to render analytics section
   const renderAnalytics = () => {
     return (
-                  <div className="space-y-6">
+      <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Total Investments</h3>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">₦{(analytics.totalInvestments || 0).toLocaleString()}</p>
-                            </div>
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Total Land Owned</h3>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{(analytics.totalLandOwned || 0).toLocaleString()} sqm</p>
+          </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Active Investments</h3>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">₦{(analytics.activeInvestments || 0).toLocaleString()}</p>
-                            </div>
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Active Land Units</h3>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{(analytics.activeLandUnits || 0).toLocaleString()} sqm</p>
+          </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Total Returns</h3>
-            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">₦{(analytics.totalReturns || 0).toLocaleString()}</p>
-                          </div>
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Total Land Value</h3>
+            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">₦{(analytics.totalLandValue || 0).toLocaleString()}</p>
+          </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Portfolio Value</h3>
             <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">₦{(analytics.portfolioValue || 0).toLocaleString()}</p>
-                        </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -925,73 +925,59 @@ export default function InvestorDashboard() {
             <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Performance Metrics</h3>
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">Monthly Return</label>
-                          <div className="flex items-center">
+                <label className="text-sm text-gray-600 dark:text-gray-400">Monthly Appreciation</label>
+                <div className="flex items-center">
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
                     <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${analytics.performanceMetrics.monthlyReturn * 4}%` }}></div>
-                            </div>
+                  </div>
                   <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">{analytics.performanceMetrics.monthlyReturn}%</span>
-                            </div>
-                          </div>
+                </div>
+              </div>
               <div>
-                <label className="text-sm text-gray-600 dark:text-gray-400">Yearly Return</label>
+                <label className="text-sm text-gray-600 dark:text-gray-400">Yearly Appreciation</label>
                 <div className="flex items-center">
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
                     <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${analytics.performanceMetrics.yearlyReturn / 2}%` }}></div>
-                        </div>
+                  </div>
                   <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">{analytics.performanceMetrics.yearlyReturn}%</span>
                 </div>
               </div>
               <div>
                 <label className="text-sm text-gray-600 dark:text-gray-400">Risk Score</label>
-                          <div className="flex items-center">
+                <div className="flex items-center">
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
                     <div className="bg-yellow-600 h-2.5 rounded-full" style={{ width: `${analytics.performanceMetrics.riskScore}%` }}></div>
-                            </div>
+                  </div>
                   <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">{analytics.performanceMetrics.riskScore}/100</span>
-                            </div>
-                          </div>
-                        </div>
-                    </div>
-
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Investment Distribution</h3>
-                        <div className="space-y-4">
-              {Object.entries(analytics.investmentDistribution).map(([type, percentage]) => (
-                <div key={type}>
-                  <div className="flex justify-between mb-1">
-                    <label className="text-sm text-gray-600 dark:text-gray-400 capitalize">{type}</label>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{percentage}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div 
-                      className="h-2.5 rounded-full" 
-                      style={{ 
-                        width: `${percentage}%`,
-                        backgroundColor: type === 'residential' ? '#3B82F6' :
-                                       type === 'commercial' ? '#10B981' :
-                                       type === 'industrial' ? '#F59E0B' :
-                                       '#8B5CF6'
-                      }}
-                    ></div>
-                  </div>
-                            </div>
-                          ))}
-                        </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Expected Returns</h3>
-                        <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Land Distribution</h3>
+            <div className="space-y-3">
+              {Object.entries(analytics.landDistribution).map(([type, percentage]) => (
+                <div key={type} className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">{type}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{percentage}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Expected Appreciation</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600 dark:text-gray-400">3 Months</span>
                 <span className="font-medium text-green-600 dark:text-green-400">₦{(analytics.expectedReturns?.threeMonths || 0).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600 dark:text-gray-400">6 Months</span>
                 <span className="font-medium text-green-600 dark:text-green-400">₦{(analytics.expectedReturns?.sixMonths || 0).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600 dark:text-gray-400">1 Year</span>
                 <span className="font-medium text-green-600 dark:text-green-400">₦{(analytics.expectedReturns?.oneYear || 0).toLocaleString()}</span>
               </div>
@@ -1004,26 +990,26 @@ export default function InvestorDashboard() {
             <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Growth Rate</h3>
             <span className="text-2xl font-bold text-green-600 dark:text-green-400">+{analytics.growthRate || 0}%</span>
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Year-over-Year portfolio growth</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Year-over-Year land value growth</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Recent Transactions</h3>
-          <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Recent Land Transactions</h3>
+          <div className="space-y-3">
             {analytics.recentTransactions.map((transaction) => (
-              <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                              <div>
-                  <p className="font-medium text-gray-700 dark:text-gray-300">{transaction.type}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{transaction.date}</p>
-                              </div>
-                <div className="text-right">
-                  <p className="font-medium text-gray-700 dark:text-gray-300">₦{(transaction.amount || 0).toLocaleString()}</p>
-                  <p className="text-sm text-green-500">{transaction.status}</p>
+              <div key={transaction.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">{transaction.type}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{transaction.units} • {new Date(transaction.date).toLocaleDateString()}</p>
                 </div>
-                            </div>
-                          ))}
-                        </div>
-                    </div>
+                <div className="text-right">
+                  <p className="font-medium text-green-600 dark:text-green-400">₦{transaction.amount.toLocaleString()}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{transaction.status}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   };
@@ -1033,7 +1019,7 @@ export default function InvestorDashboard() {
     if (!connections || connections.length === 0) {
       return (
         <div className="text-center py-8">
-          <p className="text-gray-500 dark:text-gray-400">No connections yet. Start by exploring investment opportunities.</p>
+          <p className="text-gray-500 dark:text-gray-400">No land connections yet. Start by exploring land ownership opportunities.</p>
         </div>
       );
     }
@@ -1041,23 +1027,23 @@ export default function InvestorDashboard() {
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Your Connections</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Your Land Connections</h3>
             <div className="flex space-x-2">
               <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full text-sm">
                 {connections.filter(c => c.status === 'approved').length} Approved
-                              </span>
+              </span>
               <span className="px-3 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded-full text-sm">
                 {connections.filter(c => c.status === 'pending').length} Pending
               </span>
               <span className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-full text-sm">
                 {connections.filter(c => c.status === 'rejected').length} Rejected
-                              </span>
-                            </div>
-                        </div>
+              </span>
+            </div>
+          </div>
           
           {connections.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500 dark:text-gray-400">No connections yet. Start by exploring investment opportunities.</p>
+              <p className="text-gray-500 dark:text-gray-400">No land connections yet. Start by exploring land ownership opportunities.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -2458,19 +2444,24 @@ export default function InvestorDashboard() {
           className="border-b border-gray-200 dark:border-gray-700 mb-8"
         >
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            {["discover", "analytics", "connections", "forum"].map((tab) => (
+            {[
+              { key: "discover", label: "Land Opportunities" },
+              { key: "analytics", label: "Land Analytics" },
+              { key: "connections", label: "Land Connections" },
+              { key: "forum", label: "Community" }
+            ].map((tab) => (
               <motion.button
-                key={tab}
+                key={tab.key}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => handleTabChange(tab)}
+                onClick={() => handleTabChange(tab.key)}
                 className={`${
-                  activeTab === tab
+                  activeTab === tab.key
                     ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors duration-200`}
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200`}
               >
-                {tab}
+                {tab.label}
               </motion.button>
             ))}
           </nav>

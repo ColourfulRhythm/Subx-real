@@ -44,7 +44,7 @@ export default function InvestorSignup() {
       }
       
       // Show success message
-      alert(`Welcome ${data.name}! Your account has been created successfully. You can now access your investor dashboard.`)
+      alert(`Welcome ${data.name}! Your land sub-ownership account has been created successfully. You can now access your land sub-ownership dashboard.`)
       
       navigate('/dashboard/investor')
     } catch (error) {
@@ -74,7 +74,7 @@ export default function InvestorSignup() {
       }
       
       // Show success message
-      alert(`Welcome ${user.displayName || user.email}! Your account has been created successfully. You can now access your investor dashboard.`)
+      alert(`Welcome ${user.displayName || user.email}! Your land sub-ownership account has been created successfully. You can now access your land sub-ownership dashboard.`)
       
       navigate('/dashboard/investor')
     } catch (error) {

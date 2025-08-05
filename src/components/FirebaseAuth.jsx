@@ -31,7 +31,7 @@ const FirebaseAuth = () => {
       }
       
       // Show success message
-      alert(`Welcome ${user.displayName || user.email}! You have been successfully ${authMode === 'signup' ? 'registered' : 'logged in'} as a ${selectedProfile}.`);
+      alert(`Welcome ${user.displayName || user.email}! You have been successfully ${authMode === 'signup' ? 'registered' : 'logged in'} as a ${selectedProfile}. You can now access your land sub-ownership dashboard.`);
       
       // Navigate to the appropriate dashboard
       navigate(`/dashboard/${selectedProfile}`);
@@ -60,12 +60,12 @@ const FirebaseAuth = () => {
         }
         
         // Show success message for new signup
-        alert(`Welcome! Your account has been created successfully. You can now access your ${selectedProfile} dashboard.`);
+        alert(`Welcome! Your land sub-ownership account has been created successfully. You can now access your ${selectedProfile} dashboard.`);
       } else {
         userCredential = await signInWithEmailAndPassword(auth, email, password);
         
         // Show success message for login
-        alert(`Welcome back! You have been successfully logged in as a ${selectedProfile}.`);
+        alert(`Welcome back! You have been successfully logged in as a ${selectedProfile}. You can now access your land sub-ownership dashboard.`);
       }
       
       const user = userCredential.user;
@@ -275,7 +275,7 @@ const FirebaseAuth = () => {
                 </a>
               </p>
               <p className="mt-2 text-xs text-gray-500">
-                💡 After login, access your <strong>Connections</strong> and <strong>Analytics</strong> in your dashboard!
+                💡 After login, access your <strong>Land Sub-ownership</strong> dashboard with <strong>Connections</strong> and <strong>Analytics</strong>!
               </p>
             </div>
           </div>

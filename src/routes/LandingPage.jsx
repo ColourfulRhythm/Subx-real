@@ -184,7 +184,7 @@ export default function LandingPage() {
                 Exclusive for 10,000 individuals — <span className="font-bold">{spotsLeft.toLocaleString()}</span> spots left!
               </div>
               <div className="mt-4 text-sm text-gray-600">
-                <p>✨ After signing up, access your <strong>Connections</strong> and <strong>Analytics</strong> in your dashboard!</p>
+                <p>✨ After signing up, access your <strong>Land Sub-ownership</strong> dashboard with <strong>Connections</strong> and <strong>Analytics</strong>!</p>
               </div>
             </motion.div>
           </div>
