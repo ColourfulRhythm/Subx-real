@@ -1,7 +1,7 @@
 // Use production URL when deployed, localhost for development
 const API_BASE_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost:30001/api' 
-  : 'https://subx-real-3pi9p9cyx-colourfulrhythms-projects.vercel.app/api';
+  : 'https://subxbackend-production.up.railway.app/api';
 
 export const createInvestor = async (investorData: {
   name: string;

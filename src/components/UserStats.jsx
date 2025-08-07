@@ -11,7 +11,7 @@ const UserStats = () => {
 
   const API_BASE_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:30001/api' 
-    : 'https://subx-real-bm3l6a3z9-colourfulrhythms-projects.vercel.app/api';
+    : 'https://subxbackend-production.up.railway.app/api';
 
   useEffect(() => {
     fetchUserStats();

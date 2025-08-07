@@ -12,6 +12,13 @@
           "subx-825e9-admin-39f23"
         ]
       }
+    },
+    "subxhq-8bd9e": {
+      "hosting": {
+        "main": [
+          "subxhq-8bd9e"
+        ]
+      }
     }
   },
   "etags": {}

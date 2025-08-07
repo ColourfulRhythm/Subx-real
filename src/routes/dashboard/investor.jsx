@@ -12,6 +12,7 @@ import PaymentSuccessModal from '../../components/PaymentSuccessModal'
 import DeedSignatureModal from '../../components/DeedSignatureModal'
 import { generateReceipt, generateOwnershipCertificate, generateDeedPDF } from '../../components/ReceiptDownload'
 import jsPDF from 'jspdf'
+// import { BadgeDisplay, Leaderboard, checkBadgeEligibility, checkAchievementMilestones } from '../../components/BadgeSystem'
 
 // API endpoints (to be implemented)
 const API_ENDPOINTS = {
@@ -80,6 +81,75 @@ const initialConnections = [];
 const initialMessages = [];
 // Add Paystack script loader
 
+// Helper function to generate PDF blob
+const generateReceiptBlob = async (paymentData) => {
+  return new Promise((resolve) => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Payment Receipt', 20, 20);
+    doc.setFontSize(12);
+    doc.text(`Date: ${paymentData.date}`, 20, 35);
+    doc.text(`Reference: ${paymentData.reference}`, 20, 45);
+    doc.text(`Name: ${paymentData.user.name}`, 20, 55);
+    doc.text(`Email: ${paymentData.user.email}`, 20, 65);
+    doc.text(`Project: ${paymentData.project.title}`, 20, 75);
+    doc.text(`Amount: ₦${paymentData.amount.toLocaleString()}`, 20, 85);
+    doc.text(`Land Area: ${paymentData.sqm} sqm`, 20, 95);
+    doc.text('Thank you for your payment!', 20, 115);
+    
+    const pdfBlob = doc.output('blob');
+    resolve(pdfBlob);
+  });
+};
+
+// Helper function to generate certificate blob
+const generateCertificateBlob = async (paymentData) => {
+  return new Promise((resolve) => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Certificate of Ownership', 20, 20);
+    doc.setFontSize(12);
+    doc.text(`Certificate ID: ${paymentData.reference}`, 20, 30);
+    doc.text(`Date Issued: ${paymentData.date}`, 20, 40);
+    doc.text(`Owner: ${paymentData.user.name}`, 20, 50);
+    doc.text(`Email: ${paymentData.user.email}`, 20, 60);
+    doc.text(`Plot: ${paymentData.project.title}`, 20, 70);
+    doc.text(`Location: ${paymentData.project.location}`, 20, 80);
+    doc.text(`Size: ${paymentData.sqm} sqm (of 500 sqm)`, 20, 90);
+    doc.text('This certifies that the above-named individual is a co-owner of the specified plot in the 2 Seasons development.', 20, 110, { maxWidth: 170 });
+    doc.text('Focal Point Property Development and Management Services Ltd.', 20, 130);
+    
+    const pdfBlob = doc.output('blob');
+    resolve(pdfBlob);
+  });
+};
+
+// Helper function to upload document to backend
+const uploadDocument = async (pdfBlob, type, reference) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', pdfBlob, `${type}_${reference}.pdf`);
+    formData.append('userId', userId);
+    formData.append('userEmail', userEmail);
+    formData.append('plotId', selectedProject.id);
+    formData.append('type', type);
+    formData.append('date', new Date().toISOString());
+    
+    const response = await fetch('http://localhost:30002/api/documents/upload', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to upload document');
+    }
+    
+    console.log(`${type} uploaded successfully`);
+  } catch (error) {
+    console.error(`Error uploading ${type}:`, error);
+  }
+};
+
 // Add Paystack payment handler
 const payWithPaystack = (amount, email, name) => {
   if (!window.PaystackPop) {
@@ -98,16 +168,53 @@ const payWithPaystack = (amount, email, name) => {
       // Show a loading spinner or message
       fetch(`http://localhost:30002/api/verify-paystack/${response.reference}`)
         .then(res => res.json())
-        .then(data => {
+        .then(async (data) => {
           if (data.success) {
-            // Payment is verified!
-            // Show receipt, update user profile, etc.
+            // Payment is verified! Generate and store documents
+            const paymentData = {
+              user: { name: name, email: email },
+              project: selectedProject,
+              amount: amount,
+              date: new Date().toLocaleDateString(),
+              reference: response.reference,
+              sqm: desiredSqm
+            };
+            
+            // Generate receipt
+            const receiptBlob = await generateReceiptBlob(paymentData);
+            await uploadDocument(receiptBlob, 'receipt', response.reference);
+            
+            // Generate certificate
+            const certificateBlob = await generateCertificateBlob(paymentData);
+            await uploadDocument(certificateBlob, 'certificate', response.reference);
+            
+            // Update user investments
+            const newInvestment = {
+              id: response.reference,
+              propertyTitle: selectedProject.title,
+              location: selectedProject.location,
+              sqmOwned: desiredSqm,
+              amountInvested: amount,
+              dateInvested: new Date().toISOString(),
+              status: 'approved',
+              projectId: selectedProject.id
+            };
+            
+            const userInvestments = JSON.parse(localStorage.getItem(getUserStorageKey('userInvestments')) || '[]');
+            userInvestments.push(newInvestment);
+            localStorage.setItem(getUserStorageKey('userInvestments'), JSON.stringify(userInvestments));
+            setUserInvestments(userInvestments);
+            
+            // Show success modal
+            setShowPaymentSuccess(true);
+            handleToast('Payment successful! Documents generated.', 'success');
           } else {
-            // Show error
+            handleToast('Payment verification failed', 'error');
           }
         })
-        .catch(() => {
-          // Network or server error, show error
+        .catch((error) => {
+          console.error('Payment verification error:', error);
+          handleToast('Payment verification failed', 'error');
         });
     },
     onClose: function() {
@@ -126,10 +233,14 @@ export default function InvestorDashboard() {
     return <Navigate to="/login" replace />;
   }
   
-  // Get user data from localStorage
+  // Get user data from localStorage with Firebase UID for proper isolation
   const userName = localStorage.getItem('userName') || 'User';
   const userEmail = localStorage.getItem('userEmail') || '';
   const userPhone = localStorage.getItem('userPhone') || '';
+  const userId = auth.currentUser?.uid || localStorage.getItem('userId') || '';
+  
+  // Helper function to create user-specific localStorage keys
+  const getUserStorageKey = (key) => userId ? `${key}_${userId}` : key;
   
   // Create user profile data
   const userProfileData = {
@@ -544,7 +655,7 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
   ];
   
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState('discover');
+  const [activeTab, setActiveTab] = useState('investments');
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -588,6 +699,7 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
     },
     projectForums: {}
   })
+  const [userInvestments, setUserInvestments] = useState([])
   const [analytics, setAnalytics] = useState({
     totalLandOwned: 0,
     activeLandUnits: 0,
@@ -645,6 +757,11 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
   // Add state for fetched documents
   const [connectionDocuments, setConnectionDocuments] = useState([]);
   const [messages, setMessages] = useState([]);
+  // Badge and achievement system state
+  const [userBadges, setUserBadges] = useState([]);
+  const [userAchievements, setUserAchievements] = useState([]);
+  const [showBadgeNotification, setShowBadgeNotification] = useState(false);
+  const [leaderboardUsers, setLeaderboardUsers] = useState([]);
 
   // Add profileImage state
   const handleImageChange = async (event) => {
@@ -745,8 +862,8 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
   useEffect(() => {
     setIsLoading(true);
     
-    // Load analytics data immediately
-    fetchAnalytics();
+    // Fetch real user data from backend first
+    fetchUserData();
     
     // Fetch profile data
     fetchProfile();
@@ -758,8 +875,8 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
     setConnections(initialConnections);
     setMessages(initialMessages);
     
-    // Fetch real user data from backend
-    fetchUserData();
+    // Load analytics data after user data is loaded
+    fetchAnalytics();
     
     setIsLoading(false);
   }, []);
@@ -774,25 +891,156 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
     }
   }, []);
 
-  // Fetch real user data from localStorage
+  // Migrate existing user data to new UID-based system
+  const migrateExistingUserData = () => {
+    if (!userId) return;
+
+    // Check if user has old data (non-UID keys) but no new data (UID keys)
+    const hasOldConnections = localStorage.getItem('userConnections');
+    const hasNewConnections = localStorage.getItem(getUserStorageKey('userConnections'));
+    
+    if (hasOldConnections && !hasNewConnections) {
+      console.log('🔄 Migrating existing user data to new UID-based system...');
+      
+      // Migrate connections
+      const oldConnections = localStorage.getItem('userConnections');
+      if (oldConnections) {
+        localStorage.setItem(getUserStorageKey('userConnections'), oldConnections);
+        console.log('✅ Migrated user connections');
+      }
+      
+      // Migrate messages
+      const oldMessages = localStorage.getItem('userMessages');
+      if (oldMessages) {
+        localStorage.setItem(getUserStorageKey('userMessages'), oldMessages);
+        console.log('✅ Migrated user messages');
+      }
+      
+      // Migrate analytics
+      const oldAnalytics = localStorage.getItem('userAnalytics');
+      if (oldAnalytics) {
+        localStorage.setItem(getUserStorageKey('userAnalytics'), oldAnalytics);
+        console.log('✅ Migrated user analytics');
+      }
+
+      // Migrate profile data
+      const oldPhone = localStorage.getItem('userPhone');
+      if (oldPhone) {
+        localStorage.setItem(getUserStorageKey('userPhone'), oldPhone);
+        console.log('✅ Migrated user phone');
+      }
+
+      const oldBio = localStorage.getItem('userBio');
+      if (oldBio) {
+        localStorage.setItem(getUserStorageKey('userBio'), oldBio);
+        console.log('✅ Migrated user bio');
+      }
+
+      const oldInvestmentExperience = localStorage.getItem('userInvestmentExperience');
+      if (oldInvestmentExperience) {
+        localStorage.setItem(getUserStorageKey('userInvestmentExperience'), oldInvestmentExperience);
+        console.log('✅ Migrated investment experience');
+      }
+
+      const oldRiskTolerance = localStorage.getItem('userRiskTolerance');
+      if (oldRiskTolerance) {
+        localStorage.setItem(getUserStorageKey('userRiskTolerance'), oldRiskTolerance);
+        console.log('✅ Migrated risk tolerance');
+      }
+
+      const oldInvestmentInterests = localStorage.getItem('userInvestmentInterests');
+      if (oldInvestmentInterests) {
+        localStorage.setItem(getUserStorageKey('userInvestmentInterests'), oldInvestmentInterests);
+        console.log('✅ Migrated investment interests');
+      }
+
+      const oldPreferredLocations = localStorage.getItem('userPreferredLocations');
+      if (oldPreferredLocations) {
+        localStorage.setItem(getUserStorageKey('userPreferredLocations'), oldPreferredLocations);
+        console.log('✅ Migrated preferred locations');
+      }
+
+      const oldInvestmentGoals = localStorage.getItem('userInvestmentGoals');
+      if (oldInvestmentGoals) {
+        localStorage.setItem(getUserStorageKey('userInvestmentGoals'), oldInvestmentGoals);
+        console.log('✅ Migrated investment goals');
+      }
+
+      // Create user investments from connections if they don't exist
+      const connections = JSON.parse(oldConnections || '[]');
+      if (connections.length > 0) {
+        const investments = connections.map(conn => ({
+          id: conn.id,
+          propertyTitle: conn.projectTitle,
+          location: 'Ogun State', // Default for existing connections
+          sqmOwned: conn.units,
+          amountInvested: parseFloat(conn.amount) || 0,
+          dateInvested: conn.createdAt,
+          status: conn.status || 'pending',
+          projectId: conn.projectId
+        }));
+        localStorage.setItem(getUserStorageKey('userInvestments'), JSON.stringify(investments));
+        console.log('✅ Created user investments from connections');
+      }
+
+      console.log('🎉 Migration completed successfully!');
+    }
+  };
+
+  // Fetch real user data from localStorage with proper user isolation
   const fetchUserData = async () => {
     try {
-      const userId = localStorage.getItem('userId');
       if (!userId) return;
 
-      // Load user connections from localStorage
-      const userConnections = JSON.parse(localStorage.getItem('userConnections') || '[]');
+      // First, migrate existing user data if needed
+      migrateExistingUserData();
+
+      // Load user connections from user-specific localStorage
+      const userConnections = JSON.parse(localStorage.getItem(getUserStorageKey('userConnections')) || '[]');
       setConnections(userConnections);
 
-      // Load user messages from localStorage
-      const userMessages = JSON.parse(localStorage.getItem('userMessages') || '[]');
+      // Load user messages from user-specific localStorage
+      const userMessages = JSON.parse(localStorage.getItem(getUserStorageKey('userMessages')) || '[]');
       setMessages(userMessages);
 
-      // Load user analytics from localStorage
-      const userAnalytics = JSON.parse(localStorage.getItem('userAnalytics') || 'null');
+      // Load user investments/properties from user-specific localStorage
+      const userInvestments = JSON.parse(localStorage.getItem(getUserStorageKey('userInvestments')) || '[]');
+      setUserInvestments(userInvestments);
+
+      // Load user analytics from user-specific localStorage
+      const userAnalytics = JSON.parse(localStorage.getItem(getUserStorageKey('userAnalytics')) || 'null');
       if (userAnalytics) {
         setAnalytics(userAnalytics);
+      } else {
+        // Set fresh analytics for new user - completely empty
+        setAnalytics({
+          totalLandOwned: 0,
+          activeLandUnits: 0,
+          totalLandValue: 0,
+          portfolioValue: 0,
+          growthRate: 0,
+          landDistribution: {
+            residential: 0,
+            commercial: 0,
+            agricultural: 0,
+            mixed: 0
+          },
+          expectedReturns: {
+            threeMonths: 0,
+            sixMonths: 0,
+            oneYear: 0
+          },
+          recentTransactions: [],
+          performanceMetrics: {
+            monthlyReturn: 0,
+            yearlyReturn: 0,
+            riskScore: 0
+          }
+        });
       }
+      
+      // Load badges and achievements
+      loadUserBadgesAndAchievements();
 
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -803,16 +1051,16 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
   // API integration functions
   const fetchProfile = async () => {
     try {
-      // Load profile data from localStorage
-      const savedName = localStorage.getItem('userName');
-      const savedEmail = localStorage.getItem('userEmail');
-      const savedPhone = localStorage.getItem('userPhone');
-      const savedBio = localStorage.getItem('userBio');
-      const savedInvestmentExperience = localStorage.getItem('userInvestmentExperience');
-      const savedRiskTolerance = localStorage.getItem('userRiskTolerance');
-      const savedInvestmentInterests = JSON.parse(localStorage.getItem('userInvestmentInterests') || '[]');
-      const savedPreferredLocations = JSON.parse(localStorage.getItem('userPreferredLocations') || '[]');
-      const savedInvestmentGoals = JSON.parse(localStorage.getItem('userInvestmentGoals') || '[]');
+      // Load profile data from user-specific localStorage
+      const savedName = localStorage.getItem('userName'); // Global for session
+      const savedEmail = localStorage.getItem('userEmail'); // Global for session
+      const savedPhone = localStorage.getItem(getUserStorageKey('userPhone'));
+      const savedBio = localStorage.getItem(getUserStorageKey('userBio'));
+      const savedInvestmentExperience = localStorage.getItem(getUserStorageKey('userInvestmentExperience'));
+      const savedRiskTolerance = localStorage.getItem(getUserStorageKey('userRiskTolerance'));
+      const savedInvestmentInterests = JSON.parse(localStorage.getItem(getUserStorageKey('userInvestmentInterests')) || '[]');
+      const savedPreferredLocations = JSON.parse(localStorage.getItem(getUserStorageKey('userPreferredLocations')) || '[]');
+      const savedInvestmentGoals = JSON.parse(localStorage.getItem(getUserStorageKey('userInvestmentGoals')) || '[]');
 
       // Use saved data if available, otherwise use default userProfileData
       const profileData = {
@@ -859,16 +1107,16 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
         throw new Error('Please enter a valid investment amount');
       }
 
-      // Save to localStorage
-      localStorage.setItem('userName', data.name);
-      localStorage.setItem('userEmail', data.email);
-      localStorage.setItem('userPhone', data.phone);
-      localStorage.setItem('userBio', data.bio);
-      localStorage.setItem('userInvestmentExperience', data.investmentExperience);
-      localStorage.setItem('userRiskTolerance', data.riskTolerance);
-      localStorage.setItem('userInvestmentInterests', JSON.stringify(data.investmentInterests || []));
-      localStorage.setItem('userPreferredLocations', JSON.stringify(data.preferredLocations || []));
-      localStorage.setItem('userInvestmentGoals', JSON.stringify(data.investmentGoals || []));
+      // Save to user-specific localStorage
+      localStorage.setItem('userName', data.name); // Global for session
+      localStorage.setItem('userEmail', data.email); // Global for session  
+      localStorage.setItem(getUserStorageKey('userPhone'), data.phone);
+      localStorage.setItem(getUserStorageKey('userBio'), data.bio);
+      localStorage.setItem(getUserStorageKey('userInvestmentExperience'), data.investmentExperience);
+      localStorage.setItem(getUserStorageKey('userRiskTolerance'), data.riskTolerance);
+      localStorage.setItem(getUserStorageKey('userInvestmentInterests'), JSON.stringify(data.investmentInterests || []));
+      localStorage.setItem(getUserStorageKey('userPreferredLocations'), JSON.stringify(data.preferredLocations || []));
+      localStorage.setItem(getUserStorageKey('userInvestmentGoals'), JSON.stringify(data.investmentGoals || []));
       
       // Update profile completion
       const completion = calculateProfileCompletion(data);
@@ -1110,13 +1358,31 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
       // Update connections list
       setConnections(prev => [newConnection, ...prev]);
       
-      // Save to localStorage for persistence
-      const userId = localStorage.getItem('userId') || 'user_' + Date.now();
-      localStorage.setItem('userId', userId);
+      // Save to user-specific localStorage for persistence
+      if (!userId) {
+        throw new Error('User not properly authenticated');
+      }
       
-      const userConnections = JSON.parse(localStorage.getItem('userConnections') || '[]');
+      const userConnections = JSON.parse(localStorage.getItem(getUserStorageKey('userConnections')) || '[]');
       userConnections.push(newConnection);
-      localStorage.setItem('userConnections', JSON.stringify(userConnections));
+      localStorage.setItem(getUserStorageKey('userConnections'), JSON.stringify(userConnections));
+
+      // Also add to user investments (for My Investments tab)
+      const newInvestment = {
+        id: newConnection.id,
+        propertyTitle: newConnection.projectTitle,
+        location: selectedProject.location,
+        sqmOwned: newConnection.units,
+        amountInvested: parseFloat(investmentAmount),
+        dateInvested: new Date().toISOString(),
+        status: 'pending',
+        projectId: newConnection.projectId
+      };
+      
+      const userInvestments = JSON.parse(localStorage.getItem(getUserStorageKey('userInvestments')) || '[]');
+      userInvestments.push(newInvestment);
+      localStorage.setItem(getUserStorageKey('userInvestments'), JSON.stringify(userInvestments));
+      setUserInvestments(userInvestments);
       
       // Show success message
       handleToast(
@@ -1141,6 +1407,11 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
       
       // Refresh analytics
       fetchAnalytics();
+      
+      // Check for new badges and achievements after investment
+      setTimeout(() => {
+        checkUserBadgesAndAchievements();
+      }, 1000);
       
     } catch (error) {
       console.error('Error in submitConnectionRequest:', error);
@@ -1274,6 +1545,26 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
     );
   };
 
+  // Badge and achievement checking functions
+  const checkUserBadgesAndAchievements = () => {
+    try {
+      // Temporarily disabled badge system
+      console.log('Badge system temporarily disabled');
+    } catch (error) {
+      console.error('Error checking badges and achievements:', error);
+    }
+  };
+
+  // Load badges and achievements from localStorage
+  const loadUserBadgesAndAchievements = () => {
+    try {
+      // Temporarily disabled badge system
+      console.log('Badge system loading temporarily disabled');
+    } catch (error) {
+      console.error('Error loading badges and achievements:', error);
+    }
+  };
+
   // Add this function to fetch analytics data
   const fetchAnalytics = async () => {
     try {
@@ -1283,14 +1574,15 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
       const totalLandValue = totalLandOwned * 5000; // ₦5,000 per sqm
       const portfolioValue = totalLandValue * 1.15; // Capital appreciation
       
+      // For new users with no investments, show zero values
       const realAnalytics = {
         totalLandOwned: totalLandOwned,
         activeLandUnits: activeLandUnits,
         totalLandValue: totalLandValue,
         portfolioValue: portfolioValue,
-        growthRate: 15.0, // 15% growth rate
+        growthRate: totalLandOwned > 0 ? 15.0 : 0, // Only show growth rate if user has investments
         landDistribution: {
-          residential: 100, // 100% residential (2 Seasons Estate)
+          residential: totalLandOwned > 0 ? 100 : 0, // Only show distribution if user has investments
           commercial: 0,
           agricultural: 0,
           mixed: 0
@@ -1309,15 +1601,15 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
           units: `${conn.units || 0} sqm`
         })),
         performanceMetrics: {
-          monthlyReturn: 1.2,
-          yearlyReturn: 15.5,
-          riskScore: 35
+          monthlyReturn: totalLandOwned > 0 ? 1.2 : 0,
+          yearlyReturn: totalLandOwned > 0 ? 15.5 : 0,
+          riskScore: totalLandOwned > 0 ? 35 : 0
         }
       }
       setAnalytics(realAnalytics)
       
       // Save analytics to localStorage
-      localStorage.setItem('userAnalytics', JSON.stringify(realAnalytics));
+      localStorage.setItem(getUserStorageKey('userAnalytics'), JSON.stringify(realAnalytics));
       
     } catch (error) {
       console.error('Error fetching analytics:', error)
@@ -1576,6 +1868,32 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
 
 
 
+  // Add this function to render badges and achievements section
+  const renderBadges = () => {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">🏆 Badges & Achievements</h2>
+          <p className="text-gray-600 dark:text-gray-400">Coming Soon!</p>
+        </div>
+        
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          <div className="text-center py-12">
+            <div className="text-gray-400 dark:text-gray-500 mb-4">
+              <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 3.143L13 21l-2.286-6.857L5 12l5.714-3.143L13 3z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Badge System Coming Soon</h3>
+            <p className="text-gray-500 dark:text-gray-400">
+              The badge and achievement system is being prepared. Check back soon!
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Add this function to render the forum section
   const renderForum = () => {
     return (
@@ -1646,11 +1964,92 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
     );
   };
 
+  // Render My Investments tab - shows user's owned properties
+  const renderMyInvestments = () => {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">My Property Investments</h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            {userInvestments.length} {userInvestments.length === 1 ? 'property' : 'properties'} owned
+          </p>
+        </div>
+
+        {userInvestments.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg"
+          >
+            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Property Investments Yet</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Start building your portfolio by exploring land opportunities and making your first investment.
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setActiveTab('discover')}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Explore Land Opportunities
+            </motion.button>
+          </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {userInvestments.map((investment, index) => (
+              <motion.div
+                key={investment.id || index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-shadow"
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {investment.propertyTitle}
+                    </h3>
+                    <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                      Owned
+                    </span>
+                  </div>
+                  <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    <p><span className="font-medium">Land Owned:</span> {investment.sqmOwned} sqm</p>
+                    <p><span className="font-medium">Investment:</span> ₦{investment.amountInvested?.toLocaleString()}</p>
+                    <p><span className="font-medium">Date:</span> {new Date(investment.dateInvested).toLocaleDateString()}</p>
+                    <p><span className="font-medium">Location:</span> {investment.location}</p>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Current Value</span>
+                      <span className="text-lg font-bold text-green-600">
+                        ₦{(investment.amountInvested * 1.05)?.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Modify the renderContent function to include analytics, connections, and forum
   const renderContent = () => {
     switch (activeTab) {
       case 'discover':
         return renderProjectCards();
+      case 'investments':
+        return renderMyInvestments();
+      case 'badges':
+        return renderBadges();
       case 'analytics':
         return renderAnalytics();
       case 'connections':
@@ -2761,6 +3160,12 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
           </svg>
         );
+      case "trophy":
+        return (
+          <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 3.143L13 21l-2.286-6.857L5 12l5.714-3.143L13 3z" />
+          </svg>
+        );
       default:
         return null;
     }
@@ -2986,6 +3391,8 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
                       <nav className="-mb-px flex justify-center space-x-4 sm:space-x-8 overflow-x-auto" aria-label="Tabs">
             {[
               { key: "discover", label: "Land Opportunities", icon: "home" },
+              { key: "investments", label: "My Investments", icon: "briefcase" },
+              { key: "badges", label: "Badges & Achievements", icon: "trophy" },
               { key: "analytics", label: "Land Analytics", icon: "chart" },
               { key: "connections", label: "Land Connections", icon: "link" },
               { key: "forum", label: "Community", icon: "users" }
@@ -3147,6 +3554,7 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
         open={showPaymentSuccess}
         onClose={() => setShowPaymentSuccess(false)}
         onDownloadReceipt={handleDownloadReceipt}
+        onDownloadCertificate={handleDownloadCertificate}
         onSignDeed={handleSignDeed}
       />
       <DeedSignatureModal

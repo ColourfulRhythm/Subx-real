@@ -34,12 +34,21 @@ export const getBackendUrl = async () => {
   if (cachedBackendUrl) {
     return cachedBackendUrl;
   }
+  
+  // Use Railway URL for production
+  if (import.meta.env.PROD) {
+    cachedBackendUrl = 'https://subxbackend-production.up.railway.app';
+    return cachedBackendUrl;
+  }
+  
   const port = await findBackendPort();
   cachedBackendUrl = `http://localhost:${port}`;
   return cachedBackendUrl;
 };
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.PROD 
+  ? 'https://subxbackend-production.up.railway.app/api'
+  : (import.meta.env.VITE_API_URL || 'http://localhost:30001/api');
 
 // Utility function to make API calls
 export const apiCall = async (endpoint, options = {}) => {

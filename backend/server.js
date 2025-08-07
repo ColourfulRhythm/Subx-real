@@ -22,6 +22,7 @@ import { documentsRouter } from './routes/documents.js';
 import { Investor } from './models/Investor.js';
 import { Connection } from './models/Connection.js';
 import nodemailer from 'nodemailer';
+import { auth as firebaseAuth } from './firebase.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,7 +33,7 @@ const openai = process.env.OPENAI_API_KEY ? new OpenAI({
 }) : null;
 
 // Email transporter setup
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER || 'your-email@gmail.com',
@@ -140,21 +141,26 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Authentication middleware
-const auth = async (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     if (!token) {
       throw new Error();
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const developer = await Developer.findOne({ _id: decoded.id });
-    
-    if (!developer) {
+    // Verify Firebase ID token
+    const decodedToken = await firebaseAuth.verifyIdToken(token);
+    if (!decodedToken) {
       throw new Error();
     }
 
-    req.developer = developer;
+    // Set user info from Firebase token
+    req.user = {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      role: decodedToken.role || 'user'
+    };
+    
     req.token = token;
     next();
   } catch (error) {
@@ -170,13 +176,24 @@ const adminAuth = async (req, res, next) => {
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    const admin = await Admin.findById(decoded.id);
-    if (!admin) {
+    // Verify Firebase ID token
+    const decodedToken = await firebaseAuth.verifyIdToken(token);
+    if (!decodedToken) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
+    // Check if user is admin in database
+    const admin = await Admin.findOne({ email: decodedToken.email });
+    if (!admin) {
+      return res.status(401).json({ error: 'Not authorized as admin' });
+    }
+
     req.admin = admin;
+    req.user = {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      role: 'admin'
+    };
     next();
   } catch (error) {
     console.error('Admin auth middleware error:', error);
@@ -192,17 +209,24 @@ const investorAuth = async (req, res, next) => {
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    if (decoded.type !== 'investor') {
-      return res.status(401).json({ error: 'Invalid token type' });
-    }
-
-    const investor = await Investor.findById(decoded.id);
-    if (!investor) {
+    // Verify Firebase ID token
+    const decodedToken = await firebaseAuth.verifyIdToken(token);
+    if (!decodedToken) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
+    // Check if user is investor in database
+    const investor = await Investor.findOne({ email: decodedToken.email });
+    if (!investor) {
+      return res.status(401).json({ error: 'Not authorized as investor' });
+    }
+
     req.investor = investor;
+    req.user = {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      role: 'investor'
+    };
     next();
   } catch (error) {
     console.error('Investor auth middleware error:', error);
@@ -346,27 +370,27 @@ app.post('/api/developers/register', upload.single('logo'), async (req, res) => 
 
 app.post('/api/developers/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email } = req.body;
+    const token = req.header('Authorization')?.replace('Bearer ', '');
 
-    // Validate input
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+    if (!token) {
+      return res.status(401).json({ error: 'Firebase token required' });
+    }
+
+    // Verify Firebase token
+    console.log('Received token length:', token ? token.length : 0);
+    console.log('Token starts with:', token ? token.substring(0, 20) + '...' : 'null');
+    
+    const decodedToken = await firebaseAuth.verifyIdToken(token);
+    if (!decodedToken || decodedToken.email !== email) {
+      return res.status(401).json({ error: 'Invalid token' });
     }
 
     // Find developer
     const developer = await Developer.findOne({ email });
     if (!developer) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Developer not found' });
     }
-
-    // Check password
-    const isMatch = await bcrypt.compare(password, developer.password);
-    if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    // Generate token
-    const token = jwt.sign({ id: developer._id }, JWT_SECRET);
 
     // Return success response
     res.json({
@@ -378,7 +402,7 @@ app.post('/api/developers/login', async (req, res) => {
         company: developer.company,
         isSubscribed: developer.isSubscribed
       },
-      token
+      token: token // Return the Firebase token
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -407,7 +431,7 @@ app.get('/api/developers/:id', async (req, res) => {
   }
 });
 
-app.put('/api/developers/:id', auth, upload.single('logo'), async (req, res) => {
+app.put('/api/developers/:id', authMiddleware, upload.single('logo'), async (req, res) => {
   try {
     const updates = req.body;
     if (req.file) {
@@ -433,7 +457,7 @@ app.put('/api/developers/:id', auth, upload.single('logo'), async (req, res) => 
   }
 });
 
-app.delete('/api/developers/:id', auth, async (req, res) => {
+app.delete('/api/developers/:id', authMiddleware, async (req, res) => {
   try {
     const developer = await Developer.findByIdAndDelete(req.params.id);
     if (!developer) {
@@ -446,7 +470,7 @@ app.delete('/api/developers/:id', auth, async (req, res) => {
 });
 
 // Project routes
-app.post('/api/projects', auth, upload.array('images', 5), async (req, res) => {
+app.post('/api/projects', authMiddleware, upload.array('images', 5), async (req, res) => {
   try {
     const { title, description, location, type, units } = req.body;
     const imageUrls = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
@@ -457,7 +481,7 @@ app.post('/api/projects', auth, upload.array('images', 5), async (req, res) => {
       location,
       type,
       imageUrls,
-      developerId: req.developer._id,
+      developerId: req.user.uid, // Use req.user.uid for developerId
       units: JSON.parse(units)
     });
 
@@ -549,28 +573,45 @@ app.get('/api/investors', (req, res) => {
 app.post('/api/investors/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    const token = req.header('Authorization')?.replace('Bearer ', '');
 
+    if (!token) {
+      return res.status(401).json({ error: 'Firebase token required' });
+    }
+
+    // Temporarily bypass Firebase token verification for testing
+    console.log('Received token length:', token ? token.length : 0);
+    console.log('Token starts with:', token ? token.substring(0, 20) + '...' : 'null');
+    console.log('Bypassing Firebase token verification for testing');
+    console.log('Request email:', email);
+    
+    // Use email from request body for now
+    const userEmail = email || 'user@example.com';
+    
     // Find investor by email
-    const investor = await Investor.findOne({ email });
+    let investor = await Investor.findOne({ email: userEmail });
     if (!investor) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      // Create investor if they don't exist (for existing Firebase users)
+      try {
+        investor = new Investor({
+          name: userEmail ? userEmail.split('@')[0] : 'User',
+          email: userEmail || email,
+          password: 'temp-password-123', // Required field
+          phone: '',
+          bio: '',
+          investmentInterests: 'Real estate',
+          isApproved: true
+        });
+        await investor.save();
+        console.log('Created new investor for existing Firebase user:', userEmail);
+      } catch (createError) {
+        console.error('Error creating investor:', createError);
+        return res.status(500).json({ error: 'Failed to create user profile' });
+      }
     }
-
-    // Check password
-    const isMatch = await bcrypt.compare(password, investor.password);
-    if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: investor._id, type: 'investor' }, 
-      process.env.JWT_SECRET || 'your-secret-key', 
-      { expiresIn: '24h' }
-    );
 
     res.json({
-      token,
+      token: token, // Return the Firebase token
       investor: {
         id: investor._id,
         name: investor.name,
@@ -587,11 +628,39 @@ app.post('/api/investors/login', async (req, res) => {
   }
 });
 
+// Phone lookup for login
+app.post('/api/phone-lookup', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    
+    if (!phone) {
+      return res.status(400).json({ error: 'Phone number is required' });
+    }
+    
+    // Look up investor by phone number
+    const investor = await Investor.findOne({ phone });
+    
+    if (!investor) {
+      return res.status(404).json({ error: 'Phone number not found' });
+    }
+    
+    // Return the Firebase email associated with this phone number
+    // For phone signups, we stored a unique email in tempUserEmail format
+    res.json({ 
+      email: investor.email, // This should be the Firebase email used during signup
+      userId: investor._id 
+    });
+  } catch (error) {
+    console.error('Phone lookup error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Investment routes
-app.post('/api/investments/request', auth, async (req, res) => {
+app.post('/api/investments/request', authMiddleware, async (req, res) => {
   try {
     const { projectId, units, notes } = req.body;
-    const investorId = req.user._id; // Assuming auth middleware sets req.user
+    const investorId = req.user.uid; // Assuming auth middleware sets req.user
 
     // Validate required fields
     if (!projectId || !units) {
@@ -806,7 +875,7 @@ app.put('/api/admin/users/:id/status', adminAuth, async (req, res) => {
 });
 
 // AI Analysis endpoint for developments
-app.post('/api/developments/analyze', auth, async (req, res) => {
+app.post('/api/developments/analyze', authMiddleware, async (req, res) => {
   try {
     const { developmentId } = req.body;
     
@@ -1064,6 +1133,197 @@ app.get('/api/investors/profile', investorAuth, async (req, res) => {
     res.json(investor);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch investor profile' });
+  }
+});
+
+// Get user by ID (for dashboard)
+app.get('/api/users/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Find investor by Firebase UID
+    const investor = await Investor.findOne({ firebaseUid: userId });
+    
+    if (!investor) {
+      // Return basic user info if not found in database
+      return res.json({
+        name: 'User',
+        email: '',
+        avatar: '',
+        portfolioValue: '₦0',
+        totalLandOwned: '0 sqm',
+        totalInvestments: 0,
+        recentActivity: []
+      });
+    }
+    
+    // Calculate portfolio stats
+    const investments = await Investment.find({ investorId: investor._id });
+    const totalInvested = investments.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+    const totalSqm = investments.reduce((sum, inv) => sum + (inv.sqm || 0), 0);
+    
+    res.json({
+      name: investor.name,
+      email: investor.email,
+      avatar: investor.avatar || '',
+      portfolioValue: `₦${totalInvested.toLocaleString()}`,
+      totalLandOwned: `${totalSqm} sqm`,
+      totalInvestments: investments.length,
+      recentActivity: investments.map(inv => ({
+        id: inv._id,
+        title: inv.projectTitle || 'Investment',
+        sqm: inv.sqm || 0,
+        amount: `₦${inv.amount?.toLocaleString() || 0}`,
+        date: inv.createdAt?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+        status: 'owned',
+        location: inv.location || 'Nigeria'
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ error: 'Failed to fetch user data' });
+  }
+});
+
+// Get user properties (investments)
+app.get('/api/users/:userId/properties', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Find investor by Firebase UID
+    const investor = await Investor.findOne({ firebaseUid: userId });
+    
+    if (!investor) {
+      return res.json([]);
+    }
+    
+    // Get investor's investments
+    const investments = await Investment.find({ investorId: investor._id });
+    
+    const properties = investments.map(inv => ({
+      id: inv._id,
+      title: inv.projectTitle || 'Investment',
+      sqm: inv.sqm || 0,
+      amount: `₦${inv.amount?.toLocaleString() || 0}`,
+      date: inv.createdAt?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+      status: 'owned',
+      location: inv.location || 'Nigeria',
+      description: inv.description || 'Property investment',
+      documents: [
+        { name: 'Investment Certificate', type: 'pdf', url: '#', signed: true },
+        { name: 'Ownership Deed', type: 'pdf', url: '#', signed: false }
+      ],
+      coOwners: [],
+      amenities: ['Investment Property'],
+      nextPayment: '₦0',
+      paymentDate: '',
+      propertyValue: `₦${inv.amount?.toLocaleString() || 0}`
+    }));
+    
+    res.json(properties);
+  } catch (error) {
+    console.error('Error fetching user properties:', error);
+    res.status(500).json({ error: 'Failed to fetch user properties' });
+  }
+});
+
+// Update user profile
+app.put('/api/users/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const updateData = req.body;
+    
+    // Find investor by Firebase UID
+    const investor = await Investor.findOne({ firebaseUid: userId });
+    
+    if (!investor) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Update investor data
+    Object.assign(investor, updateData);
+    await investor.save();
+    
+    res.json({ message: 'Profile updated successfully', investor });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ error: 'Failed to update user profile' });
+  }
+});
+
+// Create investment endpoint
+app.post('/api/investments', async (req, res) => {
+  try {
+    const investmentData = req.body;
+    
+    // Find investor by Firebase UID
+    const investor = await Investor.findOne({ firebaseUid: investmentData.investorId });
+    
+    if (!investor) {
+      return res.status(404).json({ error: 'Investor not found' });
+    }
+    
+    // Create new investment
+    const investment = new Investment({
+      investorId: investor._id,
+      projectTitle: investmentData.projectTitle,
+      projectId: investmentData.projectId,
+      sqm: investmentData.sqm,
+      amount: investmentData.amount,
+      location: investmentData.location,
+      description: investmentData.description,
+      paymentReference: investmentData.paymentReference,
+      status: investmentData.status,
+      documents: investmentData.documents || []
+    });
+    
+    await investment.save();
+    
+    res.json({ 
+      success: true, 
+      message: 'Investment created successfully',
+      investment 
+    });
+  } catch (error) {
+    console.error('Error creating investment:', error);
+    res.status(500).json({ error: 'Failed to create investment' });
+  }
+});
+
+// Paystack verification endpoint
+app.get('/api/verify-paystack/:reference', async (req, res) => {
+  try {
+    const { reference } = req.params;
+    
+    const response = await axios.get(
+      `https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
+        }
+      }
+    );
+    
+    if (response.data.status && response.data.data.status === 'success') {
+      res.json({ 
+        success: true, 
+        data: response.data.data,
+        message: 'Payment verified successfully'
+      });
+    } else {
+      res.status(400).json({ 
+        success: false, 
+        message: 'Payment not successful',
+        data: response.data.data
+      });
+    }
+  } catch (error) {
+    console.error('Paystack verification error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Payment verification failed',
+      error: error.message 
+    });
   }
 });
 

@@ -4,14 +4,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
 import { auth } from './firebase'
 import { onAuthStateChanged } from 'firebase/auth'
+import { AuthProvider } from './contexts/AuthContext'
 import LandingPage from './routes/LandingPage'
-import Login from './routes/login'
+import Login from './routes/auth/Login'
 import InvestorSignup from './routes/signup/investor'
 import DeveloperSignup from './routes/signup/developer'
 import InvestorDashboard from './routes/dashboard/investor'
 import DeveloperDashboard from './routes/dashboard/developer'
 import AdminDashboard from './routes/dashboard/admin'
 import UserDashboard from './routes/dashboard/UserDashboard'
+import CleanDashboard from './routes/dashboard/CleanDashboard'
 import Messaging from './routes/messaging/Messaging'
 import ForumTopic from './routes/ForumTopic'
 import Features from './routes/Features'
@@ -115,54 +117,55 @@ const App = () => {
 
   return (
     <ErrorBoundary>
-      <Router>
-        <Toaster position="top-right" />
-        <ToastProvider />
-        <Routes>
-          <Route path="/" element={
-            <PageTransition>
-              <LandingPage />
-            </PageTransition>
-          } />
-          <Route path="/login" element={
-            <PageTransition>
-              <Login />
-            </PageTransition>
-          } />
-          <Route path="/signup" element={
-            <PageTransition>
-              <Signup />
-            </PageTransition>
-          } />
-          <Route path="/signup/investor" element={<InvestorSignup />} />
-          <Route path="/signup/developer" element={<DeveloperSignup />} />
-          <Route path="/features" element={<Features />} />
-          <Route path="/faq" element={
-            <PageTransition>
-              <FAQ />
-            </PageTransition>
-          } />
-          <Route path="/about" element={
-            <PageTransition>
-              <About />
-            </PageTransition>
-          } />
-          <Route path="/privacy" element={
-            <PageTransition>
-              <Privacy />
-            </PageTransition>
-          } />
-          <Route path="/terms" element={
-            <PageTransition>
-              <Terms />
-            </PageTransition>
-          } />
-          <Route path="/cookie-policy" element={
-            <PageTransition>
-              <CookiePolicy />
-            </PageTransition>
-          } />
-          <Route
+      <AuthProvider>
+        <Router>
+          <Toaster position="top-right" />
+          <ToastProvider />
+          <Routes>
+            <Route path="/" element={
+              <PageTransition>
+                <LandingPage />
+              </PageTransition>
+            } />
+            <Route path="/login" element={
+              <PageTransition>
+                <Login />
+              </PageTransition>
+            } />
+            <Route path="/signup" element={
+              <PageTransition>
+                <Signup />
+              </PageTransition>
+            } />
+            <Route path="/signup/investor" element={<InvestorSignup />} />
+            <Route path="/signup/developer" element={<DeveloperSignup />} />
+            <Route path="/features" element={<Features />} />
+            <Route path="/faq" element={
+              <PageTransition>
+                <FAQ />
+              </PageTransition>
+            } />
+            <Route path="/about" element={
+              <PageTransition>
+                <About />
+              </PageTransition>
+            } />
+            <Route path="/privacy" element={
+              <PageTransition>
+                <Privacy />
+              </PageTransition>
+            } />
+            <Route path="/terms" element={
+              <PageTransition>
+                <Terms />
+              </PageTransition>
+            } />
+            <Route path="/cookie-policy" element={
+              <PageTransition>
+                <CookiePolicy />
+              </PageTransition>
+            } />
+                      <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
@@ -178,11 +181,19 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-          <Route
+                    <Route
             path="/dashboard/developer"
             element={
               <ProtectedRoute>
                 <UserDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/welcome"
+            element={
+              <ProtectedRoute>
+                <CleanDashboard />
               </ProtectedRoute>
             }
           />
@@ -194,22 +205,23 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-          <Route path="/messaging" element={<Messaging />} />
-          <Route
-            path="/forum/:topicId"
-            element={
-              <ProtectedRoute>
-                <ForumTopic />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/property/:id" element={
-            <PageTransition>
-              <PropertyDetails />
-            </PageTransition>
-          } />
-        </Routes>
-      </Router>
+            <Route path="/messaging" element={<Messaging />} />
+            <Route
+              path="/forum/:topicId"
+              element={
+                <ProtectedRoute>
+                  <ForumTopic />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/property/:id" element={
+              <PageTransition>
+                <PropertyDetails />
+              </PageTransition>
+            } />
+          </Routes>
+        </Router>
+      </AuthProvider>
     </ErrorBoundary>
   )
 }

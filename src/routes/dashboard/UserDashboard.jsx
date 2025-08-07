@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { auth } from '../../firebase';
 import toast from 'react-hot-toast';
+import jsPDF from 'jspdf';
+import PaymentSuccessModal from '../../components/PaymentSuccessModal';
 
 // Backend API functions
-const API_BASE_URL = 'https://subx-backend.vercel.app/api';
+const API_BASE_URL = 'https://subxbackend-production.up.railway.app/api';
+const IS_DEVELOPMENT = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 const apiCall = async (endpoint, options = {}) => {
   try {
@@ -28,67 +31,7 @@ const apiCall = async (endpoint, options = {}) => {
   }
 };
 
-const mockUserData = {
-  name: 'John Doe',
-  email: 'john@example.com',
-  avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-  portfolioValue: '₦750,000',
-  totalLandOwned: '150 sqm',
-  totalInvestments: 2,
-  recentActivity: [
-    {
-      id: 1,
-      title: 'Plot 77 - 2 Seasons Estate',
-      sqm: 50,
-      amount: '₦250,000',
-      date: '2024-01-15',
-      status: 'owned',
-      location: 'Ogun State, Nigeria',
-      description: 'Premium residential plot in 2 Seasons Estate with world-class amenities.',
-                  documents: [
-        { name: 'Group Purchase Agreement', type: 'pdf', url: '#', signed: true },
-        { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: true },
-        { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: false }
-      ],
-      coOwners: [
-        { name: 'John Doe', percentage: 25, sqm: 50, email: 'john@example.com', phone: '+234 801 234 5678' },
-        { name: 'Sarah Wilson', percentage: 20, sqm: 40, email: 'sarah@example.com', phone: '+234 802 345 6789' },
-        { name: 'Mike Johnson', percentage: 15, sqm: 30, email: 'mike@example.com', phone: '+234 803 456 7890' },
-        { name: 'Lisa Brown', percentage: 10, sqm: 20, email: 'lisa@example.com', phone: '+234 804 567 8901' },
-        { name: 'David Lee', percentage: 30, sqm: 60, email: 'david@example.com', phone: '+234 805 678 9012' }
-      ],
-      amenities: ['Gated Community', '24/7 Security', 'Recreation Center', 'Shopping Mall'],
-      nextPayment: '₦25,000',
-      paymentDate: '2024-04-15',
-      propertyValue: '₦300,000'
-    },
-    {
-      id: 2,
-      title: 'Plot 79 - 2 Seasons Estate',
-      sqm: 100,
-      amount: '₦500,000',
-      date: '2024-01-10',
-      status: 'owned',
-      location: 'Ogun State, Nigeria',
-      description: 'Exclusive residential plot with lakefront views and premium facilities.',
-      documents: [
-        { name: 'Group Purchase Agreement', type: 'pdf', url: '#', signed: true },
-        { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
-        { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: false }
-      ],
-      coOwners: [
-        { name: 'John Doe', percentage: 40, sqm: 100, email: 'john@example.com', phone: '+234 801 234 5678' },
-        { name: 'Emma Davis', percentage: 30, sqm: 75, email: 'emma@example.com', phone: '+234 806 789 0123' },
-        { name: 'Tom Wilson', percentage: 20, sqm: 50, email: 'tom@example.com', phone: '+234 807 890 1234' },
-        { name: 'Anna Smith', percentage: 10, sqm: 25, email: 'anna@example.com', phone: '+234 808 901 2345' }
-      ],
-      amenities: ['Lakefront Views', 'Wellness Center', 'Sports Academy', 'Content Village'],
-      nextPayment: '₦50,000',
-      paymentDate: '2024-04-10',
-      propertyValue: '₦600,000'
-    }
-  ]
-};
+
 
 const mockProjects = [
   {
@@ -155,9 +98,20 @@ const mockProjects = [
 
 export default function UserDashboard() {
   const navigate = useNavigate();
-  const [userData, setUserData] = useState(mockUserData);
+  const [userData, setUserData] = useState({
+    name: '',
+    email: '',
+    avatar: '',
+    portfolioValue: '₦0',
+    totalLandOwned: '0 sqm',
+    totalInvestments: 0,
+    recentActivity: []
+  });
   const [projects, setProjects] = useState(mockProjects);
+  const [userProperties, setUserProperties] = useState([]);
   const [activeTab, setActiveTab] = useState('opportunities');
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const [paymentData, setPaymentData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedProperty, setSelectedProperty] = useState(null);
@@ -199,6 +153,21 @@ export default function UserDashboard() {
       navigate('/login');
       return;
     }
+
+    // Check verification status
+    const checkVerificationStatus = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        await user.reload();
+        if (!user.emailVerified) {
+          toast.error('Please verify your email to access the dashboard');
+          navigate('/login');
+          return;
+        }
+      }
+    };
+
+    checkVerificationStatus();
     
     // Load data from backend
     const loadData = async () => {
@@ -221,6 +190,12 @@ export default function UserDashboard() {
       const script = document.createElement('script');
       script.src = 'https://js.paystack.co/v1/inline.js';
       script.async = true;
+      script.onload = () => {
+        console.log('Paystack script loaded successfully');
+      };
+      script.onerror = () => {
+        console.error('Failed to load Paystack script');
+      };
       document.body.appendChild(script);
     }
   }, [navigate]);
@@ -304,6 +279,106 @@ export default function UserDashboard() {
     setSignatureData(null);
   };
 
+  // Generate PDF Receipt
+  const generateReceipt = (investmentData) => {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.text('PAYMENT RECEIPT', 105, 20, { align: 'center' });
+    
+    // Company Info
+    doc.setFontSize(12);
+    doc.text('Subx Real Estate Investment Platform', 105, 35, { align: 'center' });
+    doc.text('Focal Point Property Development and Management Services Ltd.', 105, 42, { align: 'center' });
+    doc.text('Date: ' + new Date().toLocaleDateString(), 20, 55);
+    doc.text('Receipt No: ' + investmentData.paymentReference, 20, 62);
+    
+    // Payment Details
+    doc.setFontSize(14);
+    doc.text('Payment Details', 20, 80);
+    doc.setFontSize(12);
+    doc.text('Investor Name: ' + userData.name, 20, 90);
+    doc.text('Email: ' + userData.email, 20, 97);
+    doc.text('Project: ' + investmentData.projectTitle, 20, 104);
+    doc.text('Location: ' + investmentData.location, 20, 111);
+    doc.text('Land Area: ' + investmentData.sqm + ' sq.m', 20, 118);
+    doc.text('Amount Paid: ₦' + investmentData.amount.toLocaleString(), 20, 125);
+    doc.text('Payment Reference: ' + investmentData.paymentReference, 20, 132);
+    
+    // Footer
+    doc.setFontSize(10);
+    doc.text('Thank you for your investment!', 105, 180, { align: 'center' });
+    doc.text('This receipt serves as proof of your property investment.', 105, 187, { align: 'center' });
+    
+    return doc;
+  };
+
+  // Generate Certificate of Ownership
+  const generateCertificate = (investmentData) => {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(24);
+    doc.text('CERTIFICATE OF OWNERSHIP', 105, 25, { align: 'center' });
+    
+    // Certificate Number
+    doc.setFontSize(12);
+    doc.text('Certificate No: ' + investmentData.paymentReference, 105, 35, { align: 'center' });
+    doc.text('Date Issued: ' + new Date().toLocaleDateString(), 105, 42, { align: 'center' });
+    
+    // Main Content
+    doc.setFontSize(14);
+    doc.text('This is to certify that:', 20, 60);
+    doc.setFontSize(12);
+    doc.text(userData.name, 20, 70);
+    doc.text('Email: ' + userData.email, 20, 77);
+    
+    doc.text('is the legal owner of:', 20, 90);
+    doc.text(investmentData.sqm + ' square meters', 20, 100);
+    doc.text('in the property known as:', 20, 107);
+    doc.text(investmentData.projectTitle, 20, 117);
+    doc.text('Located at: ' + investmentData.location, 20, 124);
+    
+    doc.text('Total Investment Value: ₦' + investmentData.amount.toLocaleString(), 20, 140);
+    
+    // Legal Statement
+    doc.setFontSize(10);
+    doc.text('This certificate is issued by Focal Point Property Development and Management Services Ltd.', 20, 160);
+    doc.text('and serves as legal proof of ownership in the above-mentioned property investment.', 20, 167);
+    
+    // Signature
+    doc.text('Authorized Signature: _________________', 20, 190);
+    doc.text('Date: ' + new Date().toLocaleDateString(), 20, 197);
+    
+    return doc;
+  };
+
+  // Download Receipt
+  const handleDownloadReceipt = () => {
+    if (!paymentData) return;
+    
+    const doc = generateReceipt(paymentData);
+    doc.save(`receipt-${paymentData.paymentReference}.pdf`);
+    toast.success('Receipt downloaded successfully!');
+  };
+
+  // Download Certificate
+  const handleDownloadCertificate = () => {
+    if (!paymentData) return;
+    
+    const doc = generateCertificate(paymentData);
+    doc.save(`certificate-${paymentData.paymentReference}.pdf`);
+    toast.success('Certificate downloaded successfully!');
+  };
+
+  // Sign Deed of Assignment from Payment Success
+  const handleSignDeedFromPayment = () => {
+    setShowPaymentSuccess(false);
+    setShowDeedSignModal(true);
+    toast.info('Please sign your Deed of Assignment');
+  };
+
   // Backend integration functions
   const fetchUserData = async () => {
     try {
@@ -311,10 +386,19 @@ export default function UserDashboard() {
       if (!user) return;
 
       const response = await apiCall(`/users/${user.uid}`);
-      setUserData(response.data);
+      setUserData(response);
     } catch (error) {
       console.error('Failed to fetch user data:', error);
-      // Fallback to mock data
+      // Show empty state instead of mock data
+      setUserData({
+        name: user?.displayName || user?.email || 'User',
+        email: user?.email || '',
+        avatar: '',
+        portfolioValue: '₦0',
+        totalLandOwned: '0 sqm',
+        totalInvestments: 0,
+        recentActivity: []
+      });
     }
   };
 
@@ -330,7 +414,7 @@ export default function UserDashboard() {
         email: profileData.email || prev.email
       }));
 
-      // Try to save to backend
+      // Save to backend
       try {
         const response = await apiCall(`/users/${user.uid}`, {
           method: 'PUT',
@@ -373,9 +457,10 @@ export default function UserDashboard() {
         method: 'POST',
         body: JSON.stringify(documentData),
       });
+      console.log('Document saved to backend:', response);
 
       toast.success('Document signed successfully!');
-      return response.data;
+      return { success: true };
     } catch (error) {
       console.error('Failed to save document:', error);
       toast.error('Failed to save document');
@@ -389,14 +474,11 @@ export default function UserDashboard() {
       if (!user) return;
 
       const response = await apiCall(`/users/${user.uid}/properties`);
-      // Update user data with fetched properties
-      setUserData(prev => ({
-        ...prev,
-        recentActivity: response.data.properties || prev.recentActivity
-      }));
+      setUserProperties(response);
     } catch (error) {
       console.error('Failed to fetch properties:', error);
-      // Fallback to mock data
+      // Show empty state instead of mock data
+      setUserProperties([]);
     }
   };
 
@@ -405,68 +487,112 @@ export default function UserDashboard() {
     setOwnershipAmount(`₦${(sqm * 5000).toLocaleString()}`);
   };
 
-  const handleOwnershipSubmit = () => {
-    // Initialize Paystack payment
-    const amount = selectedSqm * 5000 * 100; // Convert to kobo
-    const email = userData.email;
-    const name = userData.name;
-    const reference = 'SUBX-' + Math.floor(Math.random() * 1000000000);
-    
-    if (window.PaystackPop) {
-      const handler = window.PaystackPop.setup({
-        key: 'pk_live_c6e9456f9a1b1071ed96b977c21f8fae727400e0',
-        email: email,
-        amount: amount,
-        currency: 'NGN',
-        ref: reference,
-        label: name,
-        callback: async function(response) {
-          // Payment successful
-          toast.success(`Payment successful! You now own ${selectedSqm} sq.m in ${selectedProject.title}!`);
-          
-          // Add to user's properties
-          const newProperty = {
-            id: Date.now(),
-            title: selectedProject.title,
-            sqm: selectedSqm,
-            amount: ownershipAmount,
-            date: new Date().toISOString(),
-            status: 'owned',
-            documents: [
-              { name: 'Group Purchase Agreement', type: 'pdf', url: '#' },
-              { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#' },
-              { name: 'Co-ownership Certificate', type: 'pdf', url: '#' }
-            ]
-          };
-          
-          // Save to backend
-          try {
-            await apiCall('/properties', {
+  const handleOwnershipSubmit = async () => {
+    try {
+      // Get current user
+      const user = auth.currentUser;
+      if (!user) {
+        toast.error('Please log in to make a payment');
+        return;
+      }
+
+      // Check if we have required data
+      if (!selectedProject) {
+        toast.error('No project selected. Please try again.');
+        return;
+      }
+
+      if (!selectedSqm || selectedSqm < 1) {
+        toast.error('Please select a valid amount of sqm.');
+        return;
+      }
+
+      // Initialize Paystack payment
+      const amount = selectedSqm * 5000 * 100; // Convert to kobo
+      const email = userData.email || user.email;
+      const name = userData.name || user.displayName || 'User';
+      const reference = 'SUBX-' + Math.floor(Math.random() * 1000000000);
+      
+      console.log('Payment details:', { amount, email, name, reference, selectedSqm });
+      
+      if (!window.PaystackPop) {
+        console.error('PaystackPop not available');
+        toast.error('Payment gateway not loaded. Please refresh the page and try again.');
+        return;
+      }
+
+      console.log('Setting up Paystack handler...');
+      
+            try {
+        const handler = window.PaystackPop.setup({
+          key: 'pk_live_c6e9456f9a1b1071ed96b977c21f8fae727400e0', // Production key
+          email: email,
+          amount: amount,
+          currency: 'NGN',
+          ref: reference,
+          label: name,
+          callback: function(response) {
+            // Handle payment success
+            console.log('Payment successful:', response);
+            
+            // Create investment record
+            const investmentData = {
+              investorId: user.uid,
+              projectTitle: selectedProject.title,
+              projectId: selectedProject.id,
+              sqm: selectedSqm,
+              amount: selectedSqm * 5000,
+              location: selectedProject.location,
+              description: selectedProject.description,
+              paymentReference: response.reference,
+              status: 'completed',
+              documents: [
+                { name: 'Group Purchase Agreement', type: 'pdf', url: '#', signed: true },
+                { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
+                { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: false }
+              ]
+            };
+            
+            // Save investment to backend
+            apiCall('/investments', {
               method: 'POST',
-              body: JSON.stringify(newProperty),
+              body: JSON.stringify(investmentData),
+            })
+            .then(() => {
+              // Refresh user data
+              return Promise.all([
+                fetchUserData(),
+                fetchUserProperties()
+              ]);
+            })
+            .then(() => {
+              // Show success modal with document options
+              setPaymentData(investmentData);
+              setShowOwnershipModal(false);
+              setShowPaymentSuccess(true);
+              toast.success('Payment successful! Download your documents below.');
+            })
+            .catch((error) => {
+              console.error('Failed to save investment to backend:', error);
+              toast.error('Payment successful but failed to save investment. Please contact support.');
             });
-          } catch (error) {
-            console.error('Failed to save property to backend:', error);
+          },
+          onClose: function() {
+            toast.error('Payment cancelled');
           }
-          
-          // Update user data
-          setUserData(prev => ({
-            ...prev,
-            totalInvestments: prev.totalInvestments + 1,
-            totalLandOwned: `${parseInt(prev.totalLandOwned.split(' ')[0]) + selectedSqm} sqm`,
-            portfolioValue: `₦${(parseInt(prev.portfolioValue.replace(/[^0-9]/g, '')) + (selectedSqm * 5000)).toLocaleString()}`,
-            recentActivity: [newProperty, ...prev.recentActivity]
-          }));
-          
-          setShowOwnershipModal(false);
-        },
-        onClose: function() {
-          toast.error('Payment cancelled');
-        }
-      });
+        });
+      
+      console.log('Opening Paystack iframe...');
       handler.openIframe();
-    } else {
-      toast.error('Payment gateway not loaded. Please try again.');
+      
+    } catch (paystackError) {
+      console.error('Paystack setup error:', paystackError);
+      toast.error('Failed to setup payment. Please try again.');
+    }
+    
+    } catch (error) {
+      console.error('Payment initialization error:', error);
+      toast.error('Failed to initialize payment. Please try again.');
     }
   };
 
@@ -1761,6 +1887,15 @@ export default function UserDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Payment Success Modal */}
+      <PaymentSuccessModal
+        open={showPaymentSuccess}
+        onClose={() => setShowPaymentSuccess(false)}
+        onDownloadReceipt={handleDownloadReceipt}
+        onDownloadCertificate={handleDownloadCertificate}
+        onSignDeed={handleSignDeedFromPayment}
+      />
     </div>
   );
 } 

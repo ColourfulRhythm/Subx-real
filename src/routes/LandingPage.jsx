@@ -98,34 +98,20 @@ export default function LandingPage() {
         className="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b border-gray-100"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="flex items-center"
-            >
-              <img src="/subx-logo/header-logo.png" alt="Subx Logo" className="h-20 w-auto" />
-            </motion.div>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="flex items-center space-x-4"
-            >
-              <button
-                onClick={() => navigate('/login')}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors"
-              >
-                Log in as Sub-owner
-              </button>
-              <button
-                onClick={() => navigate('/login')}
-                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:opacity-90 transition-opacity"
-              >
-                Sign Up
-              </button>
-            </motion.div>
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-4">
+              <Link to="/" className="text-2xl font-bold text-gray-900">
+                Subx
+              </Link>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Link to="/login" className="text-gray-600 hover:text-gray-900">
+                Login
+              </Link>
+              <Link to="/signup/investor" className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
+                Get Started
+              </Link>
+            </div>
           </div>
         </div>
       </motion.nav>
@@ -162,7 +148,7 @@ export default function LandingPage() {
               transition={{ delay: 0.8 }}
               className="mt-8 flex flex-col items-center justify-center gap-4"
             >
-              <div className="flex justify-center gap-4">
+              <div className="flex justify-center">
                 <Link to="/login">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -172,19 +158,36 @@ export default function LandingPage() {
                     Start Owning
                   </motion.button>
                 </Link>
-                <button
-                  className="px-8 py-3 text-base font-medium text-white bg-gray-400 rounded-full cursor-not-allowed opacity-60"
-                  disabled
-                  title="Not available, coming soon"
-                >
-                  Developer (Coming Soon)
-                </button>
               </div>
               <div className="mt-4 text-lg font-semibold text-indigo-700 bg-indigo-50 rounded-full px-6 py-2 shadow inline-block">
                 Exclusive for 10,000 individuals — <span className="font-bold">{spotsLeft.toLocaleString()}</span> spots left!
               </div>
-              <div className="mt-4 text-sm text-gray-600">
-                <p>✨ After signing up, access your <strong>Land Sub-ownership</strong> dashboard with <strong>Connections</strong> and <strong>Analytics</strong>!</p>
+
+              <div className="mt-6 flex items-center justify-center space-x-6">
+                <div className="flex items-center space-x-2">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs text-gray-600">Email Verified</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs text-gray-600">Phone Verified</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs text-gray-600">Anti-Spam Protected</span>
+                </div>
               </div>
             </motion.div>
           </div>

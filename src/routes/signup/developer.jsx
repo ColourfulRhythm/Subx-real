@@ -4,58 +4,180 @@ import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { motion } from 'framer-motion'
+import { auth } from '../../firebase'
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendEmailVerification } from 'firebase/auth'
+import VerificationSystem from '../../components/VerificationSystem'
 
 const schema = yup.object().shape({
-  firstName: yup.string().required('First name is required'),
-  lastName: yup.string().required('Last name is required'),
-  company: yup.string().required('Company name is required'),
-  email: yup.string().email('Invalid email').required('Email is required'),
-  password: yup.string().min(8, 'Password must be at least 8 characters').required('Password is required'),
-  confirmPassword: yup.string()
-    .oneOf([yup.ref('password'), null], 'Passwords must match')
-    .required('Confirm password is required'),
+  name: yup.string().required('Name is required'),
+  email: yup.string().when('$signupMethod', {
+    is: 'email',
+    then: (schema) => schema.email('Invalid email').required('Email is required'),
+    otherwise: (schema) => schema.optional(),
+  }),
   phone: yup.string().required('Phone number is required'),
-  website: yup.string().url('Invalid URL').required('Website is required'),
+  password: yup.string().when('$signupMethod', {
+    is: 'email',
+    then: (schema) => schema.min(6, 'Password must be at least 6 characters').required('Password is required'),
+    otherwise: (schema) => schema.optional(),
+  }),
+  confirmPassword: yup.string().when('$signupMethod', {
+    is: 'email',
+    then: (schema) => schema.oneOf([yup.ref('password'), null], 'Passwords must match').required('Confirm password is required'),
+    otherwise: (schema) => schema.optional(),
+  }),
+  company: yup.string().required('Company name is required'),
+  website: yup.string().url('Invalid website URL').required('Website is required'),
   bio: yup.string().required('Bio is required'),
-  projectTypes: yup.array().min(1, 'Select at least one project type').required('Project types are required'),
-  experience: yup.string().required('Experience level is required'),
+  projectTypes: yup.string().required('Project types are required'),
+  experience: yup.string().required('Experience is required'),
 })
 
 export default function DeveloperSignup() {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
+  const [showVerification, setShowVerification] = useState(false)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [selectedCountryCode, setSelectedCountryCode] = useState('+234')
+  const [signupMethod, setSignupMethod] = useState('email') // 'email' or 'google'
   const { register, handleSubmit, formState: { errors } } = useForm({
-    resolver: yupResolver(schema)
+    resolver: yupResolver(schema),
+    context: { signupMethod }
   })
+
+  // Initialize Google Auth Provider
+  const provider = new GoogleAuthProvider()
+  provider.addScope('profile')
+  provider.addScope('email')
 
   const onSubmit = async (data) => {
     setIsLoading(true)
+    setError('')
     try {
-      const response = await fetch('/api/developers/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: data.firstName,
-          lastName: data.lastName,
-          company: data.company,
-          email: data.email,
-          password: data.password,
-          phone: data.phone,
-          website: data.website,
-          bio: data.bio,
-          projectTypes: data.projectTypes,
-          experience: data.experience
-        })
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Registration failed');
-      // Redirect to dashboard after successful signup
-      navigate('/dashboard')
+      if (signupMethod === 'email') {
+        // Create user with Firebase Auth for email signup
+        const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password)
+        const user = userCredential.user
+        
+        // Store user data for verification
+        setCurrentUser(user)
+        setShowVerification(true)
+        
+        // Store form data for later use
+        localStorage.setItem('tempUserName', data.name)
+        localStorage.setItem('tempUserPhone', data.phone)
+        localStorage.setItem('tempUserType', 'developer')
+        localStorage.setItem('tempUserEmail', data.email)
+        localStorage.setItem('tempUserPassword', data.password)
+        localStorage.setItem('tempUserCompany', data.company)
+        localStorage.setItem('tempUserWebsite', data.website)
+        localStorage.setItem('tempUserBio', data.bio)
+        localStorage.setItem('tempUserProjectTypes', data.projectTypes)
+        localStorage.setItem('tempUserExperience', data.experience)
+        
+        console.log('User created, showing verification system')
+        
+        // Send verification email immediately
+        try {
+          await sendEmailVerification(user)
+          console.log('Verification email sent')
+        } catch (error) {
+          console.error('Failed to send verification email:', error)
+        }
+      } else {
+        // For phone signup, store data and go directly to verification
+        localStorage.setItem('tempUserName', data.name)
+        localStorage.setItem('tempUserPhone', `${selectedCountryCode}${data.phone}`)
+        localStorage.setItem('tempUserType', 'developer')
+        localStorage.setItem('tempUserCompany', data.company)
+        localStorage.setItem('tempUserWebsite', data.website)
+        localStorage.setItem('tempUserBio', data.bio)
+        localStorage.setItem('tempUserProjectTypes', data.projectTypes)
+        localStorage.setItem('tempUserExperience', data.experience)
+        
+        setShowVerification(true)
+        console.log('Phone signup, showing verification system')
+      }
+      
     } catch (error) {
-      alert('Signup failed: ' + error.message)
+      console.error('Signup error:', error)
+      setError(error.message)
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleGoogleSignup = async () => {
+    setIsLoading(true)
+    setError('')
+    try {
+      const result = await signInWithPopup(auth, provider)
+      const user = result.user
+      
+      // Store user data for verification
+      setCurrentUser(user)
+      setShowVerification(true)
+      
+      // Store form data for later use
+      localStorage.setItem('tempUserName', user.displayName || user.email)
+      localStorage.setItem('tempUserType', 'developer')
+      
+    } catch (error) {
+      console.error('Google signup error:', error)
+      setError(error.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleVerificationComplete = () => {
+    // Set authentication status after verification
+    localStorage.setItem('isAuthenticated', 'true')
+    localStorage.setItem('userType', 'developer')
+    localStorage.setItem('userEmail', currentUser.email)
+    localStorage.setItem('userName', localStorage.getItem('tempUserName'))
+    localStorage.setItem('userPhone', localStorage.getItem('tempUserPhone'))
+    
+    // Increment user count
+    if (window.incrementSubxUserCount) {
+      window.incrementSubxUserCount();
+    }
+    
+    // Clean up temp data
+    localStorage.removeItem('tempUserName')
+    localStorage.removeItem('tempUserPhone')
+    localStorage.removeItem('tempUserType')
+    localStorage.removeItem('tempUserEmail')
+    localStorage.removeItem('tempUserPassword')
+    localStorage.removeItem('tempUserCompany')
+    localStorage.removeItem('tempUserWebsite')
+    localStorage.removeItem('tempUserBio')
+    localStorage.removeItem('tempUserProjectTypes')
+    localStorage.removeItem('tempUserExperience')
+    
+    navigate('/dashboard')
+  }
+
+  const handleBackToSignup = () => {
+    setShowVerification(false)
+    setCurrentUser(null)
+    // Clean up the created user if they go back
+    if (currentUser) {
+      currentUser.delete()
+    }
+  }
+
+  if (showVerification) {
+    return (
+      <VerificationSystem
+        user={currentUser}
+        onVerificationComplete={handleVerificationComplete}
+        onBack={handleBackToSignup}
+      />
+    );
   }
 
   return (
@@ -92,59 +214,103 @@ export default function DeveloperSignup() {
           className="bg-white dark:bg-gray-800 py-8 px-6 shadow-xl rounded-2xl sm:px-10"
         >
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            {/* Signup Method Toggle */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Sign up with:
+              </label>
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setSignupMethod('email')}
+                  className={`flex-1 py-2 px-4 rounded-lg border transition-all duration-200 ${
+                    signupMethod === 'email'
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'
+                      : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span>Email</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSignupMethod('phone')}
+                  className={`flex-1 py-2 px-4 rounded-lg border transition-all duration-200 ${
+                    signupMethod === 'phone'
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'
+                      : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <span>Phone</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                First Name
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Full Name
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
-                  id="firstName"
-                  {...register('firstName')}
+                  id="name"
+                  {...register('name')}
                   type="text"
                   className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
                 />
               </motion.div>
-              {errors.firstName && (
+              {errors.name && (
                 <motion.p 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-1 text-sm text-red-600 dark:text-red-400"
                 >
-                  {errors.firstName.message}
+                  {errors.name.message}
                 </motion.p>
               )}
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Last Name
-              </label>
-              <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
-                <input
-                  id="lastName"
-                  {...register('lastName')}
-                  type="text"
-                  className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                />
+            {/* Email field - only show for email signup */}
+            {signupMethod === 'email' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Email
+                </label>
+                <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
+                  <input
+                    id="email"
+                    {...register('email')}
+                    type="email"
+                    className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                  />
+                </motion.div>
+                {errors.email && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-1 text-sm text-red-600 dark:text-red-400"
+                  >
+                    {errors.email.message}
+                  </motion.p>
+                )}
               </motion.div>
-              {errors.lastName && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600 dark:text-red-400"
-                >
-                  {errors.lastName.message}
-                </motion.p>
-              )}
-            </motion.div>
+            )}
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -178,43 +344,35 @@ export default function DeveloperSignup() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
             >
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Email
-              </label>
-              <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
-                <input
-                  id="email"
-                  {...register('email')}
-                  type="email"
-                  className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                />
-              </motion.div>
-              {errors.email && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600 dark:text-red-400"
-                >
-                  {errors.email.message}
-                </motion.p>
-              )}
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-            >
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Password
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
-                <input
-                  id="password"
-                  {...register('password')}
-                  type="password"
-                  className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    {...register('password')}
+                    type={showPassword ? 'text' : 'password'}
+                    className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 pr-10 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                    placeholder="Create a password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {showPassword ? (
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </motion.div>
               {errors.password && (
                 <motion.p 
@@ -236,12 +394,31 @@ export default function DeveloperSignup() {
                 Confirm Password
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
-                <input
-                  id="confirmPassword"
-                  {...register('confirmPassword')}
-                  type="password"
-                  className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                />
+                <div className="relative">
+                  <input
+                    id="confirmPassword"
+                    {...register('confirmPassword')}
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 pr-10 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                    placeholder="Confirm your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {showConfirmPassword ? (
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </motion.div>
               {errors.confirmPassword && (
                 <motion.p 
@@ -263,12 +440,33 @@ export default function DeveloperSignup() {
                 Phone Number
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
-                <input
-                  id="phone"
-                  {...register('phone')}
-                  type="tel"
-                  className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                />
+                <div className="flex">
+                  <select
+                    value={selectedCountryCode}
+                    onChange={(e) => setSelectedCountryCode(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-l-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white bg-white dark:bg-gray-700"
+                  >
+                    <option value="+234">🇳🇬 +234</option>
+                    <option value="+1">🇺🇸 +1</option>
+                    <option value="+44">🇬🇧 +44</option>
+                    <option value="+91">🇮🇳 +91</option>
+                    <option value="+86">🇨🇳 +86</option>
+                    <option value="+81">🇯🇵 +81</option>
+                    <option value="+49">🇩🇪 +49</option>
+                    <option value="+33">🇫🇷 +33</option>
+                    <option value="+61">🇦🇺 +61</option>
+                    <option value="+27">🇿🇦 +27</option>
+                    <option value="+254">🇰🇪 +254</option>
+                    <option value="+233">🇬🇭 +233</option>
+                  </select>
+                  <input
+                    id="phone"
+                    {...register('phone')}
+                    type="tel"
+                    className="flex-1 px-3 py-2 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                    placeholder="Enter your phone number"
+                  />
+                </div>
               </motion.div>
               {errors.phone && (
                 <motion.p 

@@ -4,6 +4,10 @@ import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { motion } from 'framer-motion'
+import { auth } from '../../firebase'
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import { useAuth } from '../../contexts/AuthContext'
+import { apiCall } from '../../config/api'
 
 const schema = yup.object().shape({
   email: yup.string().email('Invalid email').required('Email is required'),
@@ -12,33 +16,72 @@ const schema = yup.object().shape({
 
 export default function Login() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
-  const [userType, setUserType] = useState('investor') // 'investor' or 'developer'
+  const [userType] = useState('investor') // Always investor (sub-owner)
+  const [error, setError] = useState('')
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema)
   })
 
   const onSubmit = async (data) => {
     setIsLoading(true)
+    setError('')
+    
     try {
-      const endpoint = userType === 'investor' ? '/api/investors/login' : '/api/developers/login'
-      const response = await fetch(endpoint, {
+      // Login with email and password
+      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password)
+      const user = userCredential.user
+      
+      // Then, authenticate with backend API
+      const endpoint = userType === 'investor' ? '/investors/login' : '/developers/login'
+      const response = await apiCall(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Authorization': `Bearer ${await user.getIdToken()}`
+        },
         body: JSON.stringify(data)
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Login failed');
       
-      // Store token and user data
-      localStorage.setItem('token', result.token);
-      localStorage.setItem('userType', userType);
-      localStorage.setItem('userData', JSON.stringify(result[userType]));
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Login failed');
+      }
+      
+      // Store authentication data
+      localStorage.setItem('isAuthenticated', 'true')
+      localStorage.setItem('userType', userType)
+      localStorage.setItem('userEmail', user.email)
+      localStorage.setItem('userName', result[userType]?.name || user.displayName || user.email)
+      localStorage.setItem('token', result.token)
+      localStorage.setItem('userData', JSON.stringify(result[userType]))
+      
+      // Store Firebase UID for proper user data isolation
+      localStorage.setItem('userId', user.uid)
+      
+      // Show success message
+      alert(`Welcome back! You have been successfully logged in as a ${userType === 'investor' ? 'Sub-owner' : 'Developer'}.`)
       
       // Redirect to appropriate dashboard
       navigate(`/dashboard/${userType}`)
     } catch (error) {
-      alert('Login failed: ' + error.message)
+      console.error('Login error:', error)
+      let errorMessage = 'Login failed'
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email. Please sign up instead.'
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.'
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Please enter a valid email address.'
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later.'
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -77,35 +120,26 @@ export default function Login() {
           transition={{ delay: 0.3 }}
           className="bg-white dark:bg-gray-800 py-8 px-6 shadow-xl rounded-2xl sm:px-10"
         >
-          {/* User Type Toggle */}
-          <div className="mb-6">
-            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-              <button
-                type="button"
-                onClick={() => setUserType('investor')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  userType === 'investor'
-                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
-              >
-                Sub-owner
-              </button>
-              <button
-                type="button"
-                onClick={() => setUserType('developer')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  userType === 'developer'
-                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
-              >
-                Developer
-              </button>
-            </div>
+          {/* Error Message */}
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md"
+            >
+              <p className="text-sm text-red-600">{error}</p>
+            </motion.div>
+          )}
+
+          {/* Login for Sub-owners */}
+          <div className="mb-6 text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Login to your Sub-owner account
+            </p>
           </div>
 
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+                    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            {/* Email Field */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -175,10 +209,10 @@ export default function Login() {
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Don't have an account?{' '}
               <button
-                onClick={() => navigate(`/signup/${userType}`)}
+                onClick={() => navigate('/signup/investor')}
                 className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
               >
-                Sign up
+                Sign up as Sub-owner
               </button>
             </p>
           </div>

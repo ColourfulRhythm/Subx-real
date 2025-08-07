@@ -249,6 +249,33 @@ app.post('/api/investors/login', async (req, res) => {
   }
 });
 
+// Phone lookup for login
+app.post('/api/phone-lookup', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    
+    if (!phone) {
+      return res.status(400).json({ error: 'Phone number is required' });
+    }
+    
+    // Look up investor by phone number
+    const investor = await Investor.findOne({ phone });
+    
+    if (!investor) {
+      return res.status(404).json({ error: 'Phone number not found' });
+    }
+    
+    // Return the Firebase email associated with this phone number
+    res.json({ 
+      email: investor.email, // This should be the Firebase email used during signup
+      userId: investor._id 
+    });
+  } catch (error) {
+    console.error('Phone lookup error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Get investor profile
 app.get('/api/investors/profile', async (req, res) => {
   try {

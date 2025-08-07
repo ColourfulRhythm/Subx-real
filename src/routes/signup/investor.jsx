@@ -5,53 +5,60 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { motion } from 'framer-motion'
 import { auth } from '../../firebase'
-import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendEmailVerification } from 'firebase/auth'
+import VerificationSystem from '../../components/VerificationSystem'
 
 const schema = yup.object().shape({
   name: yup.string().required('Name is required'),
   email: yup.string().email('Invalid email').required('Email is required'),
-  phone: yup.string().required('Phone number is required'),
   password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
   terms: yup.bool().oneOf([true], 'You must agree to the terms'),
 })
 
 export default function InvestorSignup() {
-  const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showVerification, setShowVerification] = useState(false)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [showPassword, setShowPassword] = useState(false)
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema)
   })
 
-  // Initialize Google Auth Provider
+  const navigate = useNavigate()
   const provider = new GoogleAuthProvider()
-  provider.addScope('profile')
-  provider.addScope('email')
 
   const onSubmit = async (data) => {
     setIsLoading(true)
     setError('')
     try {
-      // Create user with Firebase Auth
+      // Create user with Firebase Auth for email signup
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password)
       const user = userCredential.user
       
-      // Set authentication status
-      localStorage.setItem('isAuthenticated', 'true')
-      localStorage.setItem('userType', 'investor')
-      localStorage.setItem('userEmail', user.email)
-      localStorage.setItem('userName', data.name)
-      localStorage.setItem('userPhone', data.phone)
+      // Store user data for verification
+      setCurrentUser(user)
+      setShowVerification(true)
       
-      // Increment user count
-      if (window.incrementSubxUserCount) {
-        window.incrementSubxUserCount();
+      // Store form data for later use
+      localStorage.setItem('tempUserName', data.name)
+      localStorage.setItem('tempUserType', 'investor')
+      localStorage.setItem('tempUserEmail', data.email)
+      localStorage.setItem('tempUserPassword', data.password)
+      localStorage.setItem('tempSignupMethod', 'email')
+      
+      console.log('User created, showing verification system')
+      
+      // Send verification email immediately
+      try {
+        await sendEmailVerification(user)
+        console.log('Verification email sent successfully')
+      } catch (error) {
+        console.error('Failed to send verification email:', error)
+        // Don't block the flow, just log the error - user can resend from verification page
+        setError(`Account created successfully, but failed to send verification email: ${error.message}. You can resend it from the verification page.`)
       }
       
-      // Show success message
-      alert(`Welcome ${data.name}! Your land sub-ownership account has been created successfully. You can now access your land sub-ownership dashboard.`)
-      
-      navigate('/dashboard')
     } catch (error) {
       console.error('Signup error:', error)
       setError(error.message)
@@ -67,27 +74,71 @@ export default function InvestorSignup() {
       const result = await signInWithPopup(auth, provider)
       const user = result.user
       
-      // Set authentication status
-      localStorage.setItem('isAuthenticated', 'true')
-      localStorage.setItem('userType', 'investor')
-      localStorage.setItem('userEmail', user.email)
-      localStorage.setItem('userName', user.displayName || user.email)
+      // Store user data for verification
+      setCurrentUser(user)
+      setShowVerification(true)
       
-      // Increment user count
-      if (window.incrementSubxUserCount) {
-        window.incrementSubxUserCount();
-      }
+      // Store form data for later use
+      localStorage.setItem('tempUserName', user.displayName || user.email)
+      localStorage.setItem('tempUserType', 'investor')
       
-      // Show success message
-      alert(`Welcome ${user.displayName || user.email}! Your land sub-ownership account has been created successfully. You can now access your land sub-ownership dashboard.`)
-      
-      navigate('/dashboard')
     } catch (error) {
       console.error('Google signup error:', error)
       setError(error.message)
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleVerificationComplete = () => {
+    // Set authentication status after verification
+    localStorage.setItem('isAuthenticated', 'true')
+    localStorage.setItem('userType', 'investor')
+    
+    // Handle email - use from temp storage or current user
+    const userEmail = localStorage.getItem('tempUserEmail') || (currentUser?.email) || ''
+    localStorage.setItem('userEmail', userEmail)
+    localStorage.setItem('userName', localStorage.getItem('tempUserName') || 'User')
+    
+    // Store Firebase UID for proper user data isolation
+    if (currentUser?.uid) {
+      localStorage.setItem('userId', currentUser.uid)
+    }
+    // Increment user count
+    if (window.incrementSubxUserCount) {
+      window.incrementSubxUserCount();
+    }
+    
+    // Clean up temp data
+    localStorage.removeItem('tempUserName')
+    localStorage.removeItem('tempUserType')
+    localStorage.removeItem('tempUserEmail')
+    localStorage.removeItem('tempUserPassword')
+    
+    // Show success message
+    alert('Verification complete! Welcome to Subx!')
+    
+    // Navigate to dashboard
+    navigate('/dashboard/investor')
+  }
+
+  const handleBackToSignup = () => {
+    setShowVerification(false)
+    setCurrentUser(null)
+    // Clean up the created user if they go back
+    if (currentUser) {
+      currentUser.delete()
+    }
+  }
+
+  if (showVerification) {
+    return (
+      <VerificationSystem
+        user={currentUser}
+        onVerificationComplete={handleVerificationComplete}
+        onBack={handleBackToSignup}
+      />
+    );
   }
 
   return (
@@ -130,6 +181,8 @@ export default function InvestorSignup() {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+
+
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Full Name
@@ -143,6 +196,7 @@ export default function InvestorSignup() {
               {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
             </div>
 
+            {/* Email field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Email
@@ -156,29 +210,37 @@ export default function InvestorSignup() {
               {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
             </div>
 
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Phone Number
-              </label>
-              <input
-                {...register('phone')}
-                type="tel"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Enter your phone number"
-              />
-              {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
-            </div>
 
+
+            {/* Password field - required for all signup methods */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Password
               </label>
-              <input
-                {...register('password')}
-                type="password"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Create a password"
-              />
+              <div className="relative">
+                <input
+                  {...register('password')}
+                  type={showPassword ? 'text' : 'password'}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Create a password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  {showPassword ? (
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
               {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
             </div>
 

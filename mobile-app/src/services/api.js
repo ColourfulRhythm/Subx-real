@@ -1,22 +1,19 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://localhost:30001/api';
+const API_URL = __DEV__ 
+  ? 'http://localhost:30001/api'
+  : 'https://subxbackend-production.up.railway.app/api';
 
 const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  timeout: 10000,
 });
 
-// Add a request interceptor to add the auth token
+// Add request interceptor to include auth token
 api.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // Add any auth headers here if needed
     return config;
   },
   (error) => {
