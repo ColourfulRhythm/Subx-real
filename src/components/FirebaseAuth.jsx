@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth } from '../firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { supabase } from '../services/supabaseClient';
+import { ensureSupabaseUserProfile } from '../utils/supabaseProfile';
 
 const FirebaseAuth = () => {
   const navigate = useNavigate();
@@ -25,8 +25,6 @@ const FirebaseAuth = () => {
     uppercase: false
   });
   const [authMethod, setAuthMethod] = useState('email'); // 'email' or 'phone'
-
-
 
   const handleEmailAuth = async (e) => {
     e.preventDefault();
@@ -68,26 +66,21 @@ const FirebaseAuth = () => {
       const identifier = authMethod === 'email' ? email : phone;
       
       if (authMode === 'signup') {
-        // For signup, we'll use email as the primary identifier but store phone if provided
+        // For signup, use email as primary identifier, fallback to phone-based alias
         const signupEmail = authMethod === 'email' ? email : `${phone.replace(/\D/g, '')}@subx.local`;
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: signupEmail,
+          password,
+          options: { data: { name } }
+        });
+        if (signUpError) throw signUpError;
+        userCredential = data;
         
-        userCredential = await createUserWithEmailAndPassword(auth, signupEmail, password);
-        
-        // Update user profile with name (handle potential errors)
-        try {
-          // Note: updateProfile is deprecated, we'll store the name in localStorage instead
-          console.log('User created successfully with name:', name);
-        } catch (profileError) {
-          console.warn('Could not update profile display name:', profileError);
-          // Continue anyway - the account was created successfully
-        }
-        
-        // Increment user count for new signups
+        // Increment user count for new signups (kept as-is)
         if (window.incrementSubxUserCount) {
           window.incrementSubxUserCount();
         }
         
-        // Show success message for new signup
         alert(`Welcome ${name}! Your land sub-ownership account has been created successfully. You can now access your ${selectedProfile} dashboard.`);
       } else {
         // For signin, try both email and phone formats
@@ -95,20 +88,27 @@ const FirebaseAuth = () => {
         if (authMethod === 'phone') {
           signinEmail = `${phone.replace(/\D/g, '')}@subx.local`;
         }
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          email: signinEmail,
+          password
+        });
+        if (signInError) throw signInError;
+        userCredential = data;
         
-        userCredential = await signInWithEmailAndPassword(auth, signinEmail, password);
-        
-        // Show success message for login
         alert(`Welcome back! You have been successfully logged in as a ${selectedProfile}. You can now access your land sub-ownership dashboard.`);
       }
       
-      const user = userCredential.user;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const sessionUser = sessionData?.session?.user;
+      const effectiveEmail = authMethod === 'email' ? email : `${phone.replace(/\D/g, '')}@subx.local`;
+
+      await ensureSupabaseUserProfile(name, authMethod === 'phone' ? phone : undefined, undefined);
       
       // Set authentication status with actual user data
       localStorage.setItem('isAuthenticated', 'true');
       localStorage.setItem('userType', selectedProfile);
-      localStorage.setItem('userEmail', user.email);
-      localStorage.setItem('userName', name || user.displayName || user.email);
+      localStorage.setItem('userEmail', effectiveEmail);
+      localStorage.setItem('userName', name || sessionUser?.user_metadata?.name || effectiveEmail);
       if (authMethod === 'phone') {
         localStorage.setItem('userPhone', phone);
       }
@@ -117,23 +117,8 @@ const FirebaseAuth = () => {
       navigate('/dashboard');
     } catch (error) {
       console.error('Email auth error:', error);
-      if (error.code === 'auth/email-already-in-use') {
-        setError('An account with this email already exists. Please sign in instead.');
-      } else if (error.code === 'auth/user-not-found') {
-        setError('No account found with this email. Please sign up instead.');
-      } else if (error.code === 'auth/wrong-password') {
-        setError('Incorrect password. Please try again.');
-      } else if (error.code === 'auth/weak-password') {
-        setError('Password is too weak. Please choose a stronger password.');
-      } else if (error.code === 'auth/invalid-email') {
-        setError('Please enter a valid email address.');
-      } else if (error.code === 'auth/password-does-not-meet-requirements') {
-        setError('Password does not meet the requirements. Please check the requirements below.');
-      } else {
-        // Remove "Firebase:" prefix from error messages
-        const cleanMessage = error.message.replace(/^Firebase:\s*/, '');
-        setError(cleanMessage);
-      }
+      const msg = (error?.message || '').replace(/^Firebase:\s*/, '');
+      setError(msg || 'Authentication failed');
     } finally {
       setIsLoading(false);
     }
@@ -142,8 +127,6 @@ const FirebaseAuth = () => {
   const handleProfileSelect = (profileType) => {
     setSelectedProfile(profileType);
   };
-
-
 
   // Password validation function
   const validatePassword = (password) => {
@@ -174,8 +157,6 @@ const FirebaseAuth = () => {
     
     checkNetwork();
   }, []);
-
-
 
   if (!selectedProfile) {
     return (
@@ -273,8 +254,6 @@ const FirebaseAuth = () => {
                 <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
-
-
 
             {/* Authentication Method Toggle */}
             <div className="mb-4">

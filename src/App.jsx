@@ -2,8 +2,6 @@ import React, { Suspense, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
-import { auth } from './firebase'
-import { onAuthStateChanged } from 'firebase/auth'
 import { AuthProvider } from './contexts/AuthContext'
 import LandingPage from './routes/LandingPage'
 import Login from './routes/auth/Login'
@@ -104,15 +102,9 @@ const App = () => {
   useEffect(() => {
     console.log('App component mounted')
     
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log('Auth state changed:', user ? 'User logged in' : 'No user')
-    })
-
-    return () => {
-      if (typeof unsubscribe === 'function') {
-        unsubscribe()
-      }
-    }
+    // The onAuthStateChanged listener is removed as per the edit hint.
+    // If authentication state needs to be tracked, it should be handled by the AuthProvider
+    // or a separate mechanism if the intent is to re-authenticate on page load.
   }, [])
 
   return (

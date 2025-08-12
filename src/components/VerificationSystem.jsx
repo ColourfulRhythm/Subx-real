@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { auth } from '../firebase';
+import { supabase } from '../supabase';
 import { 
   sendEmailVerification, 
   RecaptchaVerifier,

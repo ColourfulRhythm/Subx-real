@@ -1,4 +1,4 @@
-import { auth } from '../firebase';
+import { supabase } from '../supabase';
 
 // Utility function to find available backend port
 export const findBackendPort = async () => {

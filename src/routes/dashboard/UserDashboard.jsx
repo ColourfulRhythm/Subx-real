@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { auth } from '../../firebase';
+import { supabase } from '../../supabase';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import PaymentSuccessModal from '../../components/PaymentSuccessModal';
@@ -40,7 +40,7 @@ const mockProjects = [
     location: 'Ogun State',
     price: '₦5,000/sq.m',
     totalSqm: 500,
-    availableSqm: 350,
+    availableSqm: 500,
     image: '/2-seasons/2seasons-logo.jpg',
     status: 'Available',
     description: 'Premium residential plot in 2 Seasons Estate with world-class amenities.',
@@ -52,7 +52,7 @@ const mockProjects = [
     location: 'Ogun State',
     price: '₦5,000/sq.m',
     totalSqm: 500,
-    availableSqm: 280,
+    availableSqm: 500,
     image: '/2-seasons/2seasons-logo.jpg',
     status: 'Available',
     description: 'Exclusive residential plot with lakefront views and premium facilities.',
@@ -64,7 +64,7 @@ const mockProjects = [
     location: 'Ogun State',
     price: '₦5,000/sq.m',
     totalSqm: 500,
-    availableSqm: 420,
+    availableSqm: 500,
     image: '/2-seasons/2seasons-logo.jpg',
     status: 'Available',
     description: 'Premium plot in the wellness village with spa and recreation facilities.',
@@ -76,7 +76,7 @@ const mockProjects = [
     location: 'Ogun State',
     price: '₦5,000/sq.m',
     totalSqm: 500,
-    availableSqm: 380,
+    availableSqm: 500,
     image: '/2-seasons/2seasons-logo.jpg',
     status: 'Available',
     description: 'Strategic plot with excellent connectivity and modern amenities.',
@@ -88,7 +88,7 @@ const mockProjects = [
     location: 'Ogun State',
     price: '₦5,000/sq.m',
     totalSqm: 500,
-    availableSqm: 320,
+    availableSqm: 500,
     image: '/2-seasons/2seasons-logo.jpg',
     status: 'Available',
     description: 'Premium plot with panoramic views and exclusive amenities.',
@@ -136,13 +136,53 @@ export default function UserDashboard() {
     occupation: ''
   });
 
+  // Forum state
+  const [forumSearchQuery, setForumSearchQuery] = useState('');
+  const [forumTopics, setForumTopics] = useState([]);
+  const [forums, setForums] = useState({
+    general: {
+      title: 'General Discussion',
+      topics: [
+        {
+          id: 1,
+          title: 'Welcome to Subx Community!',
+          author: 'Subx Team',
+          content: 'Welcome to our community! Feel free to discuss real estate investment strategies, ask questions, and connect with other investors.',
+          replies: 5,
+          lastActivity: '2 hours ago',
+          category: 'general'
+        },
+        {
+          id: 2,
+          title: 'Investment Tips for Beginners',
+          author: 'Sarah Johnson',
+          content: 'I\'m new to real estate investment. Any tips for someone just starting out?',
+          replies: 12,
+          lastActivity: '1 day ago',
+          category: 'investment'
+        }
+      ]
+    }
+  });
+  const [activeForum, setActiveForum] = useState('general');
+  const [showNewTopicModal, setShowNewTopicModal] = useState(false);
+  const [newTopicData, setNewTopicData] = useState({
+    title: '',
+    content: '',
+    category: 'general'
+  });
+
   // Sync profile data with user data when userData changes
   useEffect(() => {
     if (userData) {
       setProfileData(prev => ({
         ...prev,
         name: userData.name || prev.name,
-        email: userData.email || prev.email
+        email: userData.email || prev.email,
+        phone: userData.phone || prev.phone,
+        address: userData.address || prev.address,
+        dateOfBirth: userData.dateOfBirth || prev.dateOfBirth,
+        occupation: userData.occupation || prev.occupation
       }));
     }
   }, [userData]);
@@ -156,10 +196,9 @@ export default function UserDashboard() {
 
     // Check verification status
     const checkVerificationStatus = async () => {
-      const user = auth.currentUser;
+      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await user.reload();
-        if (!user.emailVerified) {
+        if (!user.email_confirmed_at) {
           toast.error('Please verify your email to access the dashboard');
           navigate('/login');
           return;
@@ -202,7 +241,7 @@ export default function UserDashboard() {
 
   const handleLogout = async () => {
     try {
-      await auth.signOut();
+      await supabase.auth.signOut();
       localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('userType');
       navigate('/');
@@ -382,49 +421,94 @@ export default function UserDashboard() {
   // Backend integration functions
   const fetchUserData = async () => {
     try {
-      const user = auth.currentUser;
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const response = await apiCall(`/users/${user.uid}`);
-      setUserData(response);
+      // First try to load from localStorage for immediate display
+      const savedUserData = localStorage.getItem('userProfileData');
+      if (savedUserData) {
+        try {
+          const parsedData = JSON.parse(savedUserData);
+          setUserData(parsedData);
+        } catch (e) {
+          console.log('Failed to parse saved user data');
+        }
+      }
+
+      // Try to load from backend
+      try {
+        const userIdentifier = user.email || user.uid;
+        const response = await apiCall(`/users/${userIdentifier}`);
+        if (response && Object.keys(response).length > 0) {
+          setUserData(response);
+          // Save to localStorage for persistence
+          localStorage.setItem('userProfileData', JSON.stringify(response));
+        }
+      } catch (backendError) {
+        console.log('Backend not available, using localStorage data');
+      }
+
+      // If no data available, use basic user info
+      if (!savedUserData && !userData.name) {
+        const basicData = {
+          name: user?.user_metadata?.name || localStorage.getItem('userName') || user?.email || 'User',
+          email: user?.email || localStorage.getItem('userEmail') || '',
+          avatar: '',
+          portfolioValue: '₦0',
+          totalLandOwned: '0 sqm',
+          totalInvestments: 0,
+          recentActivity: []
+        };
+        setUserData(basicData);
+        localStorage.setItem('userProfileData', JSON.stringify(basicData));
+      }
     } catch (error) {
       console.error('Failed to fetch user data:', error);
-      // Show empty state instead of mock data
-      setUserData({
-        name: user?.displayName || user?.email || 'User',
-        email: user?.email || '',
-        avatar: '',
-        portfolioValue: '₦0',
-        totalLandOwned: '0 sqm',
-        totalInvestments: 0,
-        recentActivity: []
-      });
+      // Load from localStorage as fallback
+      const savedData = localStorage.getItem('userProfileData');
+      if (savedData) {
+        try {
+          setUserData(JSON.parse(savedData));
+        } catch (e) {
+          console.log('Failed to parse saved data');
+        }
+      }
     }
   };
 
   const updateUserProfile = async (profileData) => {
     try {
-      const user = auth.currentUser;
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
       // Update local state immediately for better UX
-      setUserData(prev => ({ 
-        ...prev, 
-        name: profileData.name || prev.name,
-        email: profileData.email || prev.email
-      }));
-
-      // Save to backend
+      const updatedUserData = {
+        ...userData,
+        name: profileData.name || userData.name,
+        email: profileData.email || userData.email,
+        phone: profileData.phone || userData.phone,
+        address: profileData.address || userData.address,
+        dateOfBirth: profileData.dateOfBirth || userData.dateOfBirth,
+        occupation: profileData.occupation || userData.occupation
+      };
+      
+      setUserData(updatedUserData);
+      
+      // Save to localStorage for persistence
+      localStorage.setItem('userProfileData', JSON.stringify(updatedUserData));
+      
+      // Try to save to backend
       try {
-        const response = await apiCall(`/users/${user.uid}`, {
+        const userIdentifier = user.email || user.uid;
+        const response = await apiCall(`/users/${userIdentifier}`, {
           method: 'PUT',
           body: JSON.stringify(profileData),
         });
         console.log('Profile updated in backend:', response);
       } catch (backendError) {
-        console.error('Backend update failed, but local state updated:', backendError);
+        console.log('Backend not available, saved to localStorage only');
       }
-
+      
       toast.success('Profile updated successfully!');
       setIsEditingProfile(false);
     } catch (error) {
@@ -450,7 +534,7 @@ export default function UserDashboard() {
 
   const savePropertyDocument = async (propertyId, documentData) => {
     try {
-      const user = auth.currentUser;
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
       const response = await apiCall(`/properties/${propertyId}/documents`, {
@@ -470,10 +554,12 @@ export default function UserDashboard() {
 
   const fetchUserProperties = async () => {
     try {
-      const user = auth.currentUser;
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const response = await apiCall(`/users/${user.uid}/properties`);
+      // Use email for API calls to match our real users
+      const userIdentifier = user.email || user.uid;
+      const response = await apiCall(`/users/${userIdentifier}/properties`);
       setUserProperties(response);
     } catch (error) {
       console.error('Failed to fetch properties:', error);
@@ -490,7 +576,7 @@ export default function UserDashboard() {
   const handleOwnershipSubmit = async () => {
     try {
       // Get current user
-      const user = auth.currentUser;
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error('Please log in to make a payment');
         return;
@@ -537,7 +623,7 @@ export default function UserDashboard() {
             
             // Create investment record
             const investmentData = {
-              investorId: user.uid,
+              investorId: user.email || user.uid,
               projectTitle: selectedProject.title,
               projectId: selectedProject.id,
               sqm: selectedSqm,
@@ -644,6 +730,7 @@ export default function UserDashboard() {
             { id: 'overview', label: 'Overview', icon: 'home' },
             { id: 'investments', label: 'My Properties', icon: 'chart-bar' },
             { id: 'documents', label: 'Documents', icon: 'document' },
+            { id: 'forum', label: 'Community', icon: 'users' },
             { id: 'profile', label: 'Profile', icon: 'user' }
           ].map((tab) => (
             <button
@@ -661,6 +748,7 @@ export default function UserDashboard() {
                 {tab.icon === 'chart-bar' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />}
                 {tab.icon === 'document' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />}
                 {tab.icon === 'user' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />}
+                {tab.icon === 'users' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />}
               </svg>
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
@@ -740,7 +828,9 @@ export default function UserDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Growth Rate</p>
-                      <p className="text-2xl font-bold text-gray-900">+15.2%</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {userData.totalInvestments > 0 ? '+0.0%' : '0.0%'}
+                      </p>
                     </div>
                     <div className="p-3 bg-yellow-100 rounded-full">
                       <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -950,7 +1040,9 @@ export default function UserDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Growth Rate</p>
-                      <p className="text-2xl font-bold text-gray-900">+20.5%</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {userData.totalInvestments > 0 ? '+0.0%' : '0.0%'}
+                      </p>
                       <p className="text-xs text-gray-500">Purchase to current value</p>
                     </div>
                     <div className="p-3 bg-yellow-100 rounded-full">
@@ -1215,7 +1307,9 @@ export default function UserDashboard() {
                           </div>
                           <div>
                             <p className="text-sm text-gray-500">Growth Rate</p>
-                            <p className="font-medium text-gray-900">+15.2%</p>
+                            <p className="font-medium text-gray-900">
+                              {userData.totalInvestments > 0 ? '+0.0%' : '0.0%'}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -1313,7 +1407,9 @@ export default function UserDashboard() {
                             </div>
                             <div>
                               <p className="text-sm text-gray-500">Growth Rate</p>
-                              <p className="font-medium text-gray-900">+15.2%</p>
+                              <p className="font-medium text-gray-900">
+                                {userData.totalInvestments > 0 ? '+0.0%' : '0.0%'}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -1335,6 +1431,82 @@ export default function UserDashboard() {
                         </button>
                       </div>
                     </form>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'forum' && (
+            <motion.div
+              key="forum"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-6"
+            >
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-900">Community Forum</h2>
+                <button
+                  onClick={() => setShowNewTopicModal(true)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center"
+                >
+                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  New Topic
+                </button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search topics..."
+                  value={forumSearchQuery}
+                  onChange={(e) => setForumSearchQuery(e.target.value)}
+                  className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                <svg className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+
+              {/* Forum Topics */}
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">General Discussion</h3>
+                  {forums.general.topics.length === 0 ? (
+                    <div className="text-center py-8">
+                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      <h3 className="mt-2 text-sm font-medium text-gray-900">No topics yet</h3>
+                      <p className="mt-1 text-sm text-gray-500">Get started by creating the first topic!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {forums.general.topics.map((topic) => (
+                        <div key={topic.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900 mb-1">{topic.title}</h4>
+                              <p className="text-sm text-gray-600 mb-2">{topic.content.substring(0, 100)}...</p>
+                              <div className="flex items-center space-x-4 text-sm text-gray-500">
+                                <span>By {topic.author}</span>
+                                <span>{topic.replies} replies</span>
+                                <span>{topic.lastActivity}</span>
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {topic.category}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
@@ -1896,6 +2068,122 @@ export default function UserDashboard() {
         onDownloadCertificate={handleDownloadCertificate}
         onSignDeed={handleSignDeedFromPayment}
       />
+
+      {/* New Topic Modal */}
+      <AnimatePresence>
+        {showNewTopicModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl max-w-2xl w-full p-6"
+            >
+              <div className="flex justify-between items-start mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Create New Topic</h2>
+                <button onClick={() => setShowNewTopicModal(false)} className="text-gray-400 hover:text-gray-600">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                if (newTopicData.title.trim() && newTopicData.content.trim()) {
+                  const newTopic = {
+                    id: forums.general.topics.length + 1,
+                    title: newTopicData.title,
+                    author: userData.name || 'Anonymous',
+                    content: newTopicData.content,
+                    replies: 0,
+                    lastActivity: 'Just now',
+                    category: newTopicData.category
+                  };
+                  
+                  setForums(prevForums => ({
+                    ...prevForums,
+                    general: {
+                      ...prevForums.general,
+                      topics: [...prevForums.general.topics, newTopic]
+                    }
+                  }));
+                  
+                  setNewTopicData({ title: '', content: '', category: 'general' });
+                  setShowNewTopicModal(false);
+                  toast.success('Topic created successfully!');
+                }
+              }} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Topic Title
+                  </label>
+                  <input
+                    type="text"
+                    value={newTopicData.title}
+                    onChange={(e) => setNewTopicData(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Enter topic title"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Category
+                  </label>
+                  <select
+                    value={newTopicData.category}
+                    onChange={(e) => setNewTopicData(prev => ({ ...prev, category: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="general">General Discussion</option>
+                    <option value="investment">Investment Tips</option>
+                    <option value="market">Market Analysis</option>
+                    <option value="legal">Legal Questions</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Content
+                  </label>
+                  <textarea
+                    value={newTopicData.content}
+                    onChange={(e) => setNewTopicData(prev => ({ ...prev, content: e.target.value }))}
+                    rows={6}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Write your topic content..."
+                    required
+                  />
+                </div>
+                
+                <div className="flex justify-end space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewTopicModal(false)}
+                    className="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                  >
+                    Create Topic
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 } 

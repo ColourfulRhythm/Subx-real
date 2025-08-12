@@ -5,9 +5,7 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { motion, AnimatePresence } from 'framer-motion'
 import AIAnalysis from '../../components/AIAnalysis'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { doc, updateDoc } from 'firebase/firestore'
-import { auth, db } from '../../firebase'
+import { supabase } from '../../supabase'
 import PaymentSuccessModal from '../../components/PaymentSuccessModal'
 import DeedSignatureModal from '../../components/DeedSignatureModal'
 import { generateReceipt, generateOwnershipCertificate, generateDeedPDF } from '../../components/ReceiptDownload'
@@ -233,11 +231,11 @@ export default function InvestorDashboard() {
     return <Navigate to="/login" replace />;
   }
   
-  // Get user data from localStorage with Firebase UID for proper isolation
+      // Get user data from localStorage with Supabase ID for proper isolation
   const userName = localStorage.getItem('userName') || 'User';
   const userEmail = localStorage.getItem('userEmail') || '';
   const userPhone = localStorage.getItem('userPhone') || '';
-  const userId = auth.currentUser?.uid || localStorage.getItem('userId') || '';
+      const userId = localStorage.getItem('userId') || '';
   
   // Helper function to create user-specific localStorage keys
   const getUserStorageKey = (key) => userId ? `${key}_${userId}` : key;
@@ -772,16 +770,34 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
         const previewUrl = URL.createObjectURL(file);
         setProfileImage(previewUrl);
 
-        // Upload to Firebase Storage
-        const storageRef = ref(storage, `profile_images/${auth.currentUser.uid}`);
-        const uploadResult = await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(uploadResult.ref);
-
-        // Update profile in Firestore
-        const userRef = doc(db, 'users', auth.currentUser.uid);
-        await updateDoc(userRef, {
-          profileImage: downloadURL
-        });
+        // Upload to Supabase Storage
+        const fileName = `${Date.now()}_${file.name}`;
+        const filePath = `profile_images/${userId}/${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('profile_images')
+          .upload(filePath, file);
+        
+        if (uploadError) {
+          throw uploadError;
+        }
+        
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('profile_images')
+          .getPublicUrl(filePath);
+        
+        // Update profile in Supabase
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            profile_image: publicUrl
+          })
+          .eq('id', userId);
+        
+        if (updateError) {
+          throw updateError;
+        }
 
         handleToast('Profile picture updated successfully');
       } catch (error) {
@@ -1136,8 +1152,12 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
 
   const handleLogout = async () => {
     try {
-      // Sign out from Firebase Auth
-      await auth.signOut()
+      // Sign out from Supabase Auth
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
+        console.error('Supabase signout error:', error)
+      }
       
       // Clear localStorage
       localStorage.removeItem('userType')
@@ -1150,13 +1170,39 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
       navigate('/')
     } catch (error) {
       console.error('Logout error:', error)
-      // Still clear localStorage and navigate even if Firebase signOut fails
+      // Still clear localStorage and navigate even if Supabase signOut fails
       localStorage.removeItem('userType')
       localStorage.removeItem('isAuthenticated')
       localStorage.removeItem('userEmail')
       localStorage.removeItem('userName')
       localStorage.removeItem('userPhone')
       navigate('/')
+    }
+  }
+
+  const handleSignOut = async () => {
+    try {
+      // Sign out from Supabase Auth
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
+        console.error('Supabase signout error:', error)
+      }
+      
+      // Clear localStorage
+      localStorage.removeItem('isAuthenticated')
+      localStorage.removeItem('userType')
+      localStorage.removeItem('userId')
+      localStorage.removeItem('userEmail')
+      localStorage.removeItem('userName')
+      
+      // Navigate to login
+      navigate('/login')
+    } catch (error) {
+      console.error('Signout error:', error)
+      // Still clear localStorage and navigate even if Supabase signOut fails
+      localStorage.clear()
+      navigate('/login')
     }
   }
 
@@ -3375,7 +3421,7 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={handleLogout}
+              onClick={handleSignOut}
               className="inline-flex items-center px-3 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
               Logout

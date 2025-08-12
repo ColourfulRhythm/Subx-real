@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { getDocument } from '../firebase';
+import { supabase } from '../supabase';
 
 const PropertyDetails = () => {
   const { id } = useParams();

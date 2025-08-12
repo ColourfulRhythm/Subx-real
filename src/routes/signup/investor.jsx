@@ -1,15 +1,15 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { motion } from 'framer-motion'
-import { auth } from '../../firebase'
-import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendEmailVerification } from 'firebase/auth'
-import VerificationSystem from '../../components/VerificationSystem'
+import { supabase } from '../../supabase'
+import Navbar from '../../components/Navbar'
+// import VerificationSystem from '../../components/VerificationSystem'
 
 const schema = yup.object().shape({
-  name: yup.string().required('Name is required'),
+  name: yup.string().required('Name is required').min(2, 'Name must be at least 2 characters'),
   email: yup.string().email('Invalid email').required('Email is required'),
   password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
   terms: yup.bool().oneOf([true], 'You must agree to the terms'),
@@ -26,69 +26,63 @@ export default function InvestorSignup() {
   })
 
   const navigate = useNavigate()
-  const provider = new GoogleAuthProvider()
 
   const onSubmit = async (data) => {
     setIsLoading(true)
     setError('')
     try {
-      // Create user with Firebase Auth for email signup
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password)
-      const user = userCredential.user
-      
-      // Store user data for verification
-      setCurrentUser(user)
-      setShowVerification(true)
-      
-      // Store form data for later use
-      localStorage.setItem('tempUserName', data.name)
-      localStorage.setItem('tempUserType', 'investor')
-      localStorage.setItem('tempUserEmail', data.email)
-      localStorage.setItem('tempUserPassword', data.password)
-      localStorage.setItem('tempSignupMethod', 'email')
-      
-      console.log('User created, showing verification system')
-      
-      // Send verification email immediately
-      try {
-        await sendEmailVerification(user)
-        console.log('Verification email sent successfully')
-      } catch (error) {
-        console.error('Failed to send verification email:', error)
-        // Don't block the flow, just log the error - user can resend from verification page
-        setError(`Account created successfully, but failed to send verification email: ${error.message}. You can resend it from the verification page.`)
+      // Create user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            full_name: data.name,
+            user_type: 'investor'
+          },
+          emailRedirectTo: `${window.location.origin}/dashboard/investor`
+        }
+      })
+
+      if (authError) {
+        setError(authError.message)
+        return
       }
-      
+
+      if (authData.user) {
+        // Create user profile in our users table
+        const { error: profileError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            full_name: data.name
+          })
+
+        if (profileError) {
+          console.warn('Profile creation warning:', profileError)
+        }
+
+        // Store user info in localStorage
+        localStorage.setItem('isAuthenticated', 'true')
+        localStorage.setItem('userType', 'investor')
+        localStorage.setItem('userId', authData.user.id)
+        localStorage.setItem('userEmail', authData.user.email)
+        localStorage.setItem('userName', data.name)
+
+        // Show success message
+        alert('Account created successfully! Welcome to Subx Real Estate.')
+        
+        // Navigate to dashboard
+        navigate('/dashboard/investor')
+      }
     } catch (error) {
-      console.error('Signup error:', error)
-      setError(error.message)
+      setError('Failed to create account: ' + error.message)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleGoogleSignup = async () => {
-    setIsLoading(true)
-    setError('')
-    try {
-      const result = await signInWithPopup(auth, provider)
-      const user = result.user
-      
-      // Store user data for verification
-      setCurrentUser(user)
-      setShowVerification(true)
-      
-      // Store form data for later use
-      localStorage.setItem('tempUserName', user.displayName || user.email)
-      localStorage.setItem('tempUserType', 'investor')
-      
-    } catch (error) {
-      console.error('Google signup error:', error)
-      setError(error.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  // Google signup removed for now
 
   const handleVerificationComplete = () => {
     // Set authentication status after verification
@@ -100,7 +94,7 @@ export default function InvestorSignup() {
     localStorage.setItem('userEmail', userEmail)
     localStorage.setItem('userName', localStorage.getItem('tempUserName') || 'User')
     
-    // Store Firebase UID for proper user data isolation
+          // Store Supabase ID for proper user data isolation
     if (currentUser?.uid) {
       localStorage.setItem('userId', currentUser.uid)
     }
@@ -131,18 +125,21 @@ export default function InvestorSignup() {
     }
   }
 
-  if (showVerification) {
-    return (
-      <VerificationSystem
-        user={currentUser}
-        onVerificationComplete={handleVerificationComplete}
-        onBack={handleBackToSignup}
-      />
-    );
-  }
+  // Verification system temporarily disabled
+  // if (showVerification) {
+  //   return (
+  //     <VerificationSystem
+  //       user={currentUser}
+  //       onVerificationComplete={handleVerificationComplete}
+  //       onBack={handleBackToSignup}
+  //     />
+  //   );
+  // }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <Navbar />
+      <div className="pt-24 px-4 sm:px-6 lg:px-8">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -185,12 +182,18 @@ export default function InvestorSignup() {
 
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Full Name
+                Full Name <span className="text-red-500">*</span>
               </label>
               <input
                 {...register('name')}
                 type="text"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white ${
+                  errors.name 
+                    ? 'border-red-500 dark:border-red-400' 
+                    : register('name').value && register('name').value.length >= 2
+                    ? 'border-green-500 dark:border-green-400'
+                    : 'border-gray-300 dark:border-gray-600'
+                }`}
                 placeholder="Enter your full name"
               />
               {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
@@ -199,12 +202,18 @@ export default function InvestorSignup() {
             {/* Email field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Email
+                Email <span className="text-red-500">*</span>
               </label>
               <input
                 {...register('email')}
                 type="email"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white ${
+                  errors.email 
+                    ? 'border-red-500 dark:border-red-400' 
+                    : register('email').value && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(register('email').value)
+                    ? 'border-green-500 dark:border-green-400'
+                    : 'border-gray-300 dark:border-gray-600'
+                }`}
                 placeholder="Enter your email"
               />
               {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
@@ -215,13 +224,19 @@ export default function InvestorSignup() {
             {/* Password field - required for all signup methods */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Password
+                Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  className={`w-full px-3 py-2 pr-10 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white ${
+                    errors.password 
+                      ? 'border-red-500 dark:border-red-400' 
+                      : register('password').value && register('password').value.length >= 6
+                      ? 'border-green-500 dark:border-green-400'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
                   placeholder="Create a password"
                 />
                 <button
@@ -263,6 +278,22 @@ export default function InvestorSignup() {
             </div>
             {errors.terms && <p className="text-red-500 text-sm mt-1">{errors.terms.message}</p>}
 
+            {/* Form Progress Indicator */}
+            <div className="mt-4">
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>Form Progress</span>
+                <span>{Object.keys(errors).length === 0 && register('name').value && register('email').value && register('password').value && register('terms').value ? '100%' : 'Incomplete'}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                  style={{ 
+                    width: `${Object.keys(errors).length === 0 && register('name').value && register('email').value && register('password').value && register('terms').value ? 100 : 0}%` 
+                  }}
+                ></div>
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={isLoading}
@@ -272,20 +303,7 @@ export default function InvestorSignup() {
             </button>
           </form>
 
-          <div className="flex items-center my-6">
-            <div className="flex-grow border-t border-gray-300"></div>
-            <span className="px-3 text-sm text-gray-500">or</span>
-            <div className="flex-grow border-t border-gray-300"></div>
-          </div>
-
-          <button
-            onClick={handleGoogleSignup}
-            disabled={isLoading}
-            className="w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 mr-2" />
-            Sign up with Google
-          </button>
+          {/* Google signup removed for now */}
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -300,6 +318,7 @@ export default function InvestorSignup() {
           </div>
         </motion.div>
       </motion.div>
+      </div>
     </div>
   )
 } 

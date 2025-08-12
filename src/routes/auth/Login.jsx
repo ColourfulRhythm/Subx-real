@@ -1,18 +1,9 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
-import * as yup from 'yup'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { auth } from '../../firebase'
-import { signInWithEmailAndPassword } from 'firebase/auth'
 import { useAuth } from '../../contexts/AuthContext'
-import { apiCall } from '../../config/api'
-
-const schema = yup.object().shape({
-  email: yup.string().email('Invalid email').required('Email is required'),
-  password: yup.string().required('Password is required'),
-})
+import { supabase } from '../../supabase'
+import Navbar from '../../components/Navbar'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -20,75 +11,49 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const [userType] = useState('investor') // Always investor (sub-owner)
   const [error, setError] = useState('')
-  const { register, handleSubmit, formState: { errors } } = useForm({
-    resolver: yupResolver(schema)
-  })
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
-  const onSubmit = async (data) => {
-    setIsLoading(true)
+  // Form validation
+  const isFormValid = email.trim() !== '' && password.trim() !== ''
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
     setError('')
-    
+    setIsLoading(true)
+
     try {
-      // Login with email and password
-      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password)
-      const user = userCredential.user
-      
-      // Then, authenticate with backend API
-      const endpoint = userType === 'investor' ? '/investors/login' : '/developers/login'
-      const response = await apiCall(endpoint, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${await user.getIdToken()}`
-        },
-        body: JSON.stringify(data)
-      });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Login failed');
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+      })
+
+      if (error) {
+        setError(error.message)
+        return
       }
-      
-      // Store authentication data
-      localStorage.setItem('isAuthenticated', 'true')
-      localStorage.setItem('userType', userType)
-      localStorage.setItem('userEmail', user.email)
-      localStorage.setItem('userName', result[userType]?.name || user.displayName || user.email)
-      localStorage.setItem('token', result.token)
-      localStorage.setItem('userData', JSON.stringify(result[userType]))
-      
-      // Store Firebase UID for proper user data isolation
-      localStorage.setItem('userId', user.uid)
-      
-      // Show success message
-      alert(`Welcome back! You have been successfully logged in as a ${userType === 'investor' ? 'Sub-owner' : 'Developer'}.`)
-      
-      // Redirect to appropriate dashboard
-      navigate(`/dashboard/${userType}`)
+
+      if (data.user) {
+        // Store user info in localStorage for backward compatibility
+        localStorage.setItem('isAuthenticated', 'true')
+        localStorage.setItem('userType', 'investor') // Default to investor
+        localStorage.setItem('userId', data.user.id)
+        localStorage.setItem('userEmail', data.user.email)
+        
+        // Navigate to dashboard
+        navigate('/dashboard/investor')
+      }
     } catch (error) {
-      console.error('Login error:', error)
-      let errorMessage = 'Login failed'
-      
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email. Please sign up instead.'
-      } else if (error.code === 'auth/wrong-password') {
-        errorMessage = 'Incorrect password. Please try again.'
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Please enter a valid email address.'
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed attempts. Please try again later.'
-      } else if (error.message) {
-        errorMessage = error.message
-      }
-      
-      setError(errorMessage)
+      setError('Failed to log in: ' + error.message)
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <Navbar />
+      <div className="pt-24 px-4 sm:px-6 lg:px-8">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -138,7 +103,7 @@ export default function Login() {
             </p>
           </div>
 
-                    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+                    <form className="space-y-6" onSubmit={handleSubmit}>
             {/* Email Field */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -146,25 +111,22 @@ export default function Login() {
               transition={{ delay: 0.4 }}
             >
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Email
+                Email <span className="text-red-500">*</span>
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
                   id="email"
-                  {...register('email')}
                   type="email"
-                  className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`block w-full rounded-xl shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm ${
+                    email.trim() !== '' 
+                      ? 'border-green-500 dark:border-green-400' 
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                  placeholder="Enter your email"
                 />
               </motion.div>
-              {errors.email && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600 dark:text-red-400"
-                >
-                  {errors.email.message}
-                </motion.p>
-              )}
             </motion.div>
 
             <motion.div
@@ -173,33 +135,48 @@ export default function Login() {
               transition={{ delay: 0.5 }}
             >
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Password
+                Password <span className="text-red-500">*</span>
               </label>
               <motion.div whileHover={{ scale: 1.02 }} className="mt-1">
                 <input
                   id="password"
-                  {...register('password')}
                   type="password"
-                  className="block w-full rounded-xl border-gray-300 dark:border-gray-600 shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`block w-full rounded-xl shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm ${
+                    password.trim() !== '' 
+                      ? 'border-green-500 dark:border-green-400' 
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                  placeholder="Enter your password"
                 />
               </motion.div>
-              {errors.password && (
-                <motion.p 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600 dark:text-red-400"
-                >
-                  {errors.password.message}
-                </motion.p>
-              )}
             </motion.div>
+
+            {/* Form Progress Indicator */}
+            <div className="mt-4">
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>Form Progress</span>
+                <span>{isFormValid ? '100%' : 'Incomplete'}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: isFormValid ? '100%' : '0%' }}
+                ></div>
+              </div>
+            </div>
 
             <motion.button
               type="submit"
-              disabled={isLoading}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading || !isFormValid}
+              whileHover={isFormValid ? { scale: 1.02 } : {}}
+              whileTap={isFormValid ? { scale: 0.98 } : {}}
+              className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white rounded-xl shadow-sm text-sm font-medium ${
+                isFormValid 
+                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500' 
+                  : 'bg-gray-400 cursor-not-allowed'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {isLoading ? 'Signing in...' : 'Sign in'}
             </motion.button>
@@ -218,6 +195,7 @@ export default function Login() {
           </div>
         </motion.div>
       </motion.div>
+      </div>
     </div>
   )
 } 

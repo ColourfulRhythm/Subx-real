@@ -4,9 +4,8 @@ import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { motion } from 'framer-motion'
-import { auth } from '../../firebase'
-import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendEmailVerification } from 'firebase/auth'
-import VerificationSystem from '../../components/VerificationSystem'
+import { supabase } from '../../supabase'
+import Navbar from '../../components/Navbar'
 
 const schema = yup.object().shape({
   name: yup.string().required('Name is required'),
@@ -42,146 +41,143 @@ export default function DeveloperSignup() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [selectedCountryCode, setSelectedCountryCode] = useState('+234')
-  const [signupMethod, setSignupMethod] = useState('email') // 'email' or 'google'
+  const [signupMethod, setSignupMethod] = useState('email') // Only email signup for now
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
     context: { signupMethod }
   })
 
-  // Initialize Google Auth Provider
-  const provider = new GoogleAuthProvider()
-  provider.addScope('profile')
-  provider.addScope('email')
+  // Google authentication removed for now
 
   const onSubmit = async (data) => {
     setIsLoading(true)
     setError('')
     try {
-      if (signupMethod === 'email') {
-        // Create user with Firebase Auth for email signup
-        const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password)
-        const user = userCredential.user
-        
-        // Store user data for verification
-        setCurrentUser(user)
-        setShowVerification(true)
-        
-        // Store form data for later use
-        localStorage.setItem('tempUserName', data.name)
-        localStorage.setItem('tempUserPhone', data.phone)
-        localStorage.setItem('tempUserType', 'developer')
-        localStorage.setItem('tempUserEmail', data.email)
-        localStorage.setItem('tempUserPassword', data.password)
-        localStorage.setItem('tempUserCompany', data.company)
-        localStorage.setItem('tempUserWebsite', data.website)
-        localStorage.setItem('tempUserBio', data.bio)
-        localStorage.setItem('tempUserProjectTypes', data.projectTypes)
-        localStorage.setItem('tempUserExperience', data.experience)
-        
-        console.log('User created, showing verification system')
-        
-        // Send verification email immediately
-        try {
-          await sendEmailVerification(user)
-          console.log('Verification email sent')
-        } catch (error) {
-          console.error('Failed to send verification email:', error)
-        }
-      } else {
-        // For phone signup, store data and go directly to verification
-        localStorage.setItem('tempUserName', data.name)
-        localStorage.setItem('tempUserPhone', `${selectedCountryCode}${data.phone}`)
-        localStorage.setItem('tempUserType', 'developer')
-        localStorage.setItem('tempUserCompany', data.company)
-        localStorage.setItem('tempUserWebsite', data.website)
-        localStorage.setItem('tempUserBio', data.bio)
-        localStorage.setItem('tempUserProjectTypes', data.projectTypes)
-        localStorage.setItem('tempUserExperience', data.experience)
-        
-        setShowVerification(true)
-        console.log('Phone signup, showing verification system')
+      // Create user with Supabase Auth
+              const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+          options: {
+            data: {
+              full_name: data.name,
+              user_type: 'developer'
+            },
+            emailRedirectTo: `${window.location.origin}/dashboard/developer`
+          }
+        })
+
+      if (authError) {
+        setError(authError.message)
+        return
       }
-      
+
+      if (authData.user) {
+        // Create user profile in our users table
+        const { error: profileError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            full_name: data.name
+          })
+
+        if (profileError) {
+          console.warn('Profile creation warning:', profileError)
+        }
+
+        // Store user info in localStorage
+        localStorage.setItem('isAuthenticated', 'true')
+        localStorage.setItem('userType', 'developer')
+        localStorage.setItem('userId', authData.user.id)
+        localStorage.setItem('userEmail', authData.user.email)
+        localStorage.setItem('userName', data.name)
+
+        // Show success message
+        alert('Account created successfully! Welcome to Subx Real Estate.')
+        
+        // Navigate to dashboard
+        navigate('/dashboard/developer')
+      }
     } catch (error) {
-      console.error('Signup error:', error)
-      setError(error.message)
+      setError('Failed to create account: ' + error.message)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleGoogleSignup = async () => {
-    setIsLoading(true)
-    setError('')
-    try {
-      const result = await signInWithPopup(auth, provider)
-      const user = result.user
+  // const handleGoogleSignup = async () => {
+  //   setIsLoading(true)
+  //   setError('')
+  //   try {
+  //     const result = await signInWithPopup(auth, provider)
+  //     const user = result.user
       
-      // Store user data for verification
-      setCurrentUser(user)
-      setShowVerification(true)
+  //     // Store user data for verification
+  //     setCurrentUser(user)
+  //     setShowVerification(true)
       
-      // Store form data for later use
-      localStorage.setItem('tempUserName', user.displayName || user.email)
-      localStorage.setItem('tempUserType', 'developer')
+  //     // Store form data for later use
+  //     localStorage.setItem('tempUserName', user.displayName || user.email)
+  //     localStorage.setItem('tempUserType', 'developer')
       
-    } catch (error) {
-      console.error('Google signup error:', error)
-      setError(error.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  //   } catch (error) {
+  //     console.error('Google signup error:', error)
+  //     setError(error.message)
+  //   } finally {
+  //     setIsLoading(false)
+  //   }
+  // }
 
-  const handleVerificationComplete = () => {
-    // Set authentication status after verification
-    localStorage.setItem('isAuthenticated', 'true')
-    localStorage.setItem('userType', 'developer')
-    localStorage.setItem('userEmail', currentUser.email)
-    localStorage.setItem('userName', localStorage.getItem('tempUserName'))
-    localStorage.setItem('userPhone', localStorage.getItem('tempUserPhone'))
+  // const handleVerificationComplete = () => {
+  //   // Set authentication status after verification
+  //   localStorage.setItem('isAuthenticated', 'true')
+  //   localStorage.setItem('userType', 'developer')
+  //   localStorage.setItem('userEmail', currentUser.email)
+  //   localStorage.setItem('userName', localStorage.getItem('tempUserName'))
+  //   localStorage.setItem('userPhone', localStorage.getItem('tempUserPhone'))
     
-    // Increment user count
-    if (window.incrementSubxUserCount) {
-      window.incrementSubxUserCount();
-    }
+  //   // Increment user count
+  //   if (window.incrementSubxUserCount) {
+  //     window.incrementSubxUserCount();
+  //   }
     
-    // Clean up temp data
-    localStorage.removeItem('tempUserName')
-    localStorage.removeItem('tempUserPhone')
-    localStorage.removeItem('tempUserType')
-    localStorage.removeItem('tempUserEmail')
-    localStorage.removeItem('tempUserPassword')
-    localStorage.removeItem('tempUserCompany')
-    localStorage.removeItem('tempUserWebsite')
-    localStorage.removeItem('tempUserBio')
-    localStorage.removeItem('tempUserProjectTypes')
-    localStorage.removeItem('tempUserExperience')
+  //   // Clean up temp data
+  //   localStorage.removeItem('tempUserName')
+  //   localStorage.removeItem('tempUserPhone')
+  //   localStorage.removeItem('tempUserType')
+  //   localStorage.removeItem('tempUserEmail')
+  //   localStorage.removeItem('tempUserPassword')
+  //   localStorage.removeItem('tempUserCompany')
+  //   localStorage.removeItem('tempUserWebsite')
+  //   localStorage.removeItem('tempUserBio')
+  //   localStorage.removeItem('tempUserProjectTypes')
+  //   localStorage.removeItem('tempUserExperience')
     
-    navigate('/dashboard')
-  }
+  //   navigate('/dashboard')
+  // }
 
-  const handleBackToSignup = () => {
-    setShowVerification(false)
-    setCurrentUser(null)
-    // Clean up the created user if they go back
-    if (currentUser) {
-      currentUser.delete()
-    }
-  }
+  // const handleBackToSignup = () => {
+  //   setShowVerification(false)
+  //   setCurrentUser(null)
+  //   // Clean up the created user if they go back
+  //   if (currentUser) {
+  //     currentUser.delete()
+  //   }
+  // }
 
-  if (showVerification) {
-    return (
-      <VerificationSystem
-        user={currentUser}
-        onVerificationComplete={handleVerificationComplete}
-        onBack={handleBackToSignup}
-      />
-    );
-  }
+  // if (showVerification) {
+  //   return (
+  //     <VerificationSystem
+  //       user={currentUser}
+  //       onVerificationComplete={handleVerificationComplete}
+  //       onBack={handleBackToSignup}
+  //     />
+  //   );
+  // }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <Navbar />
+      <div className="pt-24 px-4 sm:px-6 lg:px-8">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -625,6 +621,7 @@ export default function DeveloperSignup() {
           </form>
         </motion.div>
       </motion.div>
+      </div>
     </div>
   )
 } 

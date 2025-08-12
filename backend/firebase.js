@@ -1,41 +1,40 @@
-import { initializeApp, applicationDefault, cert } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import fs from 'fs';
+import { createClient } from '@supabase/supabase-js';
 
-let firebaseConfig;
-if (process.env.FIREBASE_SERVICE_ACCOUNT && process.env.FIREBASE_SERVICE_ACCOUNT !== '{}') {
-  try {
-    firebaseConfig = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    console.log('Firebase service account loaded successfully');
-    console.log('Project ID:', firebaseConfig.project_id);
-  } catch (error) {
-    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT:', error);
-    firebaseConfig = null;
+// Supabase service role client for backend operations
+const supabaseUrl = process.env.SUPABASE_URL || 'https://hclguhbswctxfahhzrrr.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+if (!supabaseServiceKey) {
+  console.error('SUPABASE_SERVICE_ROLE_KEY is required for backend operations');
+  process.exit(1);
+}
+
+// Create Supabase client with service role (full access)
+export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
   }
-} else if (fs.existsSync('./serviceAccountKey.json')) {
-  firebaseConfig = JSON.parse(fs.readFileSync('./serviceAccountKey.json', 'utf8'));
-  console.log('Firebase service account loaded from file');
-} else {
-  console.log('No Firebase service account found, using application default');
-}
+});
 
-let app;
-if (!firebaseConfig || Object.keys(firebaseConfig).length === 0) {
-  // Use application default credentials when no service account is provided
-  console.log('Initializing Firebase with application default credentials');
-  app = initializeApp({
-    credential: applicationDefault(),
-    storageBucket: 'subx-825e9.appspot.com' // Replace with your actual bucket name
-  });
-} else {
-  console.log('Initializing Firebase with service account credentials');
-  app = initializeApp({
-    credential: cert(firebaseConfig),
-    storageBucket: 'subx-825e9.appspot.com' // Replace with your actual bucket name
-  });
-}
+// Export for backward compatibility
+export const auth = {
+  // Supabase JWT verification function
+  verifyIdToken: async (token) => {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error) throw error;
+      
+      // Return in Firebase-compatible format
+      return {
+        uid: user.id,
+        email: user.email,
+        role: user.user_metadata?.role || 'user'
+      };
+    } catch (error) {
+      throw new Error('Invalid token');
+    }
+  }
+};
 
-const auth = getAuth(app);
-console.log('Firebase Admin SDK initialized successfully');
-
-export { auth };
+console.log('Supabase backend client initialized successfully');

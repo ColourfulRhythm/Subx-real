@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { auth as firebaseAuth } from '../firebase.js';
-import { getAuth } from 'firebase-admin/auth';
+import { supabase } from '../supabase.js';
 import { Admin } from '../models/Admin.js';
 import { User } from '../models/User.js';
 
@@ -13,17 +12,17 @@ export const auth = async (req, res, next) => {
       throw new Error('No token provided');
     }
 
-    // Verify Firebase ID token
-    const decodedToken = await getAuth().verifyIdToken(token);
-    if (!decodedToken) {
+    // Verify Supabase JWT token
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
       throw new Error('Invalid token');
     }
 
-    // Set user info from Firebase token
+    // Set user info from Supabase token
     req.user = {
-      uid: decodedToken.uid,
-      email: decodedToken.email,
-      role: decodedToken.role || 'user'
+      uid: user.id,
+      email: user.email,
+      role: user.user_metadata?.role || 'user'
     };
     
     req.token = token;

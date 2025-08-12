@@ -1,15 +1,12 @@
 import express from 'express';
 import multer from 'multer';
-import { getStorage } from 'firebase-admin/storage';
-import { getFirestore } from 'firebase-admin/firestore';
+import { supabase } from '../supabase.js';
 import { v4 as uuidv4 } from 'uuid';
 import sgMail from '@sendgrid/mail';
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
-const db = getFirestore();
-const storage = getStorage().bucket();
 
 // Upload a document (PDF)
 router.post('/upload', upload.single('file'), async (req, res) => {
@@ -17,20 +14,43 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     const { userId, userEmail, plotId, type, date } = req.body;
     const file = req.file;
     if (!file) return res.status(400).json({ error: 'No file uploaded' });
+    
     const docId = uuidv4();
     const fileName = `documents/${userId}/${docId}_${file.originalname}`;
-    const fileUpload = storage.file(fileName);
-    await fileUpload.save(file.buffer, { contentType: file.mimetype });
-    const fileUrl = `https://storage.googleapis.com/${storage.name}/${fileName}`;
-    await db.collection('documents').doc(docId).set({
-      userId,
-      plotId,
-      type,
-      date,
-      fileUrl,
-      fileName: file.originalname,
-      createdAt: new Date().toISOString(),
-    });
+    
+    // Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(fileName, file.buffer, {
+        contentType: file.mimetype
+      });
+    
+    if (uploadError) {
+      throw uploadError;
+    }
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('documents')
+      .getPublicUrl(fileName);
+    
+    // Store document metadata in Supabase database
+    const { error: dbError } = await supabase
+      .from('documents')
+      .insert({
+        id: docId,
+        user_id: userId,
+        plot_id: plotId,
+        doc_type: type,
+        storage_path: fileName,
+        file_url: publicUrl,
+        file_name: file.originalname,
+        created_at: new Date().toISOString()
+      });
+    
+    if (dbError) {
+      throw dbError;
+    }
 
     // Send email with attachment
     if (userEmail) {
@@ -56,7 +76,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       }
     }
 
-    res.json({ success: true, fileUrl, docId });
+    res.json({ success: true, fileUrl: publicUrl, docId });
   } catch (err) {
     console.error('Document upload error:', err);
     res.status(500).json({ error: 'Failed to upload document' });
@@ -67,9 +87,15 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 router.get('/list', async (req, res) => {
   try {
     const { userId } = req.query;
-    const snapshot = await db.collection('documents').where('userId', '==', userId).get();
-    const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    res.json(docs);
+    
+    const { data: docs, error } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('user_id', userId);
+    
+    if (error) throw error;
+    
+    res.json(docs || []);
   } catch (err) {
     console.error('Document list error:', err);
     res.status(500).json({ error: 'Failed to list documents' });
@@ -79,11 +105,17 @@ router.get('/list', async (req, res) => {
 // Download a document by ID (returns the file URL)
 router.get('/:id/download', async (req, res) => {
   try {
-    const docRef = db.collection('documents').doc(req.params.id);
-    const docSnap = await docRef.get();
-    if (!docSnap.exists) return res.status(404).json({ error: 'Document not found' });
-    const { fileUrl } = docSnap.data();
-    res.json({ fileUrl });
+    const { data: doc, error } = await supabase
+      .from('documents')
+      .select('file_url')
+      .eq('id', req.params.id)
+      .single();
+    
+    if (error || !doc) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+    
+    res.json({ fileUrl: doc.file_url });
   } catch (err) {
     console.error('Document download error:', err);
     res.status(500).json({ error: 'Failed to get document' });

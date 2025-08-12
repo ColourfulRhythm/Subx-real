@@ -22,7 +22,8 @@ import { documentsRouter } from './routes/documents.js';
 import { Investor } from './models/Investor.js';
 import { Connection } from './models/Connection.js';
 import nodemailer from 'nodemailer';
-import { auth as firebaseAuth } from './firebase.js';
+// Supabase authentication service
+import { supabase } from './supabase.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -140,31 +141,30 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Authentication middleware
-const authMiddleware = async (req, res, next) => {
+// Supabase token verification middleware
+const supabaseAuthMiddleware = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const header = req.header('Authorization') || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : null;
     if (!token) {
-      throw new Error();
+      return res.status(401).json({ error: 'No token provided' });
     }
 
-    // Verify Firebase ID token
-    const decodedToken = await firebaseAuth.verifyIdToken(token);
-    if (!decodedToken) {
-      throw new Error();
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user) {
+      return res.status(401).json({ error: 'Invalid token' });
     }
 
-    // Set user info from Firebase token
+    // Normalize to existing shape
     req.user = {
-      uid: decodedToken.uid,
-      email: decodedToken.email,
-      role: decodedToken.role || 'user'
+      uid: data.user.id,
+      email: data.user.email,
     };
-    
-    req.token = token;
+
     next();
-  } catch (error) {
-    res.status(401).json({ error: 'Please authenticate' });
+  } catch (err) {
+    console.error('Supabase auth error:', err);
+    res.status(500).json({ error: 'Authentication failed' });
   }
 };
 
@@ -176,8 +176,8 @@ const adminAuth = async (req, res, next) => {
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    // Verify Firebase ID token
-    const decodedToken = await firebaseAuth.verifyIdToken(token);
+    // Verify Supabase JWT token
+    const decodedToken = await auth.verifyIdToken(token);
     if (!decodedToken) {
       return res.status(401).json({ error: 'Invalid token' });
     }
@@ -209,8 +209,8 @@ const investorAuth = async (req, res, next) => {
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    // Verify Firebase ID token
-    const decodedToken = await firebaseAuth.verifyIdToken(token);
+    // Verify Supabase JWT token
+    const decodedToken = await auth.verifyIdToken(token);
     if (!decodedToken) {
       return res.status(401).json({ error: 'Invalid token' });
     }
@@ -374,14 +374,14 @@ app.post('/api/developers/login', async (req, res) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
 
     if (!token) {
-      return res.status(401).json({ error: 'Firebase token required' });
+      return res.status(401).json({ error: 'Supabase token required' });
     }
 
-    // Verify Firebase token
+    // Verify Supabase token
     console.log('Received token length:', token ? token.length : 0);
     console.log('Token starts with:', token ? token.substring(0, 20) + '...' : 'null');
     
-    const decodedToken = await firebaseAuth.verifyIdToken(token);
+    const decodedToken = await auth.verifyIdToken(token);
     if (!decodedToken || decodedToken.email !== email) {
       return res.status(401).json({ error: 'Invalid token' });
     }
@@ -402,7 +402,7 @@ app.post('/api/developers/login', async (req, res) => {
         company: developer.company,
         isSubscribed: developer.isSubscribed
       },
-      token: token // Return the Firebase token
+      token: token // Return the Supabase token
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -431,7 +431,7 @@ app.get('/api/developers/:id', async (req, res) => {
   }
 });
 
-app.put('/api/developers/:id', authMiddleware, upload.single('logo'), async (req, res) => {
+app.put('/api/developers/:id', adminAuth, upload.single('logo'), async (req, res) => {
   try {
     const updates = req.body;
     if (req.file) {
@@ -457,7 +457,7 @@ app.put('/api/developers/:id', authMiddleware, upload.single('logo'), async (req
   }
 });
 
-app.delete('/api/developers/:id', authMiddleware, async (req, res) => {
+app.delete('/api/developers/:id', adminAuth, async (req, res) => {
   try {
     const developer = await Developer.findByIdAndDelete(req.params.id);
     if (!developer) {
@@ -470,7 +470,7 @@ app.delete('/api/developers/:id', authMiddleware, async (req, res) => {
 });
 
 // Project routes
-app.post('/api/projects', authMiddleware, upload.array('images', 5), async (req, res) => {
+app.post('/api/projects', supabaseAuthMiddleware, upload.array('images', 5), async (req, res) => {
   try {
     const { title, description, location, type, units } = req.body;
     const imageUrls = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
@@ -481,7 +481,7 @@ app.post('/api/projects', authMiddleware, upload.array('images', 5), async (req,
       location,
       type,
       imageUrls,
-      developerId: req.user.uid, // Use req.user.uid for developerId
+      developerId: req.user.uid,
       units: JSON.parse(units)
     });
 
@@ -569,62 +569,60 @@ app.get('/api/investors', (req, res) => {
   }
 });
 
-// Investor login
+// Investor login via Supabase token
 app.post('/api/investors/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-
+    const header = req.header('Authorization') || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : null;
     if (!token) {
-      return res.status(401).json({ error: 'Firebase token required' });
+      return res.status(401).json({ error: 'Supabase token required' });
     }
 
-    // Temporarily bypass Firebase token verification for testing
-    console.log('Received token length:', token ? token.length : 0);
-    console.log('Token starts with:', token ? token.substring(0, 20) + '...' : 'null');
-    console.log('Bypassing Firebase token verification for testing');
-    console.log('Request email:', email);
-    
-    // Use email from request body for now
-    const userEmail = email || 'user@example.com';
-    
-    // Find investor by email
-    let investor = await Investor.findOne({ email: userEmail });
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user) {
+      return res.status(401).json({ error: 'Invalid Supabase token' });
+    }
+
+    const supaUser = data.user;
+
+    // Find or create investor using Supabase user id/email
+    let investor = await Investor.findOne({
+      $or: [
+        { supabase_id: supaUser.id }, // Updated to use Supabase ID
+        { email: supaUser.email }
+      ]
+    });
+
     if (!investor) {
-      // Create investor if they don't exist (for existing Firebase users)
-      try {
-        investor = new Investor({
-          name: userEmail ? userEmail.split('@')[0] : 'User',
-          email: userEmail || email,
-          password: 'temp-password-123', // Required field
-          phone: '',
-          bio: '',
-          investmentInterests: 'Real estate',
-          isApproved: true
-        });
-        await investor.save();
-        console.log('Created new investor for existing Firebase user:', userEmail);
-      } catch (createError) {
-        console.error('Error creating investor:', createError);
-        return res.status(500).json({ error: 'Failed to create user profile' });
-      }
+      investor = new Investor({
+        supabase_id: supaUser.id,
+        name: supaUser.user_metadata?.name || (supaUser.email?.split('@')[0]) || 'User',
+        email: supaUser.email || '',
+        password: 'supabase-auth',
+        phone: '',
+        bio: '',
+        investmentInterests: 'Real estate',
+        isApproved: true
+      });
+      await investor.save();
+          } else if (!investor.supabase_id) {
+        investor.supabase_id = supaUser.id;
+      await investor.save();
     }
 
     res.json({
-      token: token, // Return the Firebase token
-      investor: {
+      message: 'Login successful',
+      user: {
         id: investor._id,
         name: investor.name,
         email: investor.email,
-        phone: investor.phone,
-        bio: investor.bio,
-        investmentInterests: investor.investmentInterests,
-        isApproved: investor.isApproved
-      }
+        supabase_id: investor.supabase_id
+      },
+      token
     });
   } catch (error) {
-    console.error('Investor login error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Supabase investor login error:', error);
+    res.status(500).json({ error: 'Server error during login' });
   }
 });
 
@@ -644,10 +642,10 @@ app.post('/api/phone-lookup', async (req, res) => {
       return res.status(404).json({ error: 'Phone number not found' });
     }
     
-    // Return the Firebase email associated with this phone number
+    // Return the Supabase email associated with this phone number
     // For phone signups, we stored a unique email in tempUserEmail format
     res.json({ 
-      email: investor.email, // This should be the Firebase email used during signup
+              email: investor.email, // This should be the Supabase email used during signup
       userId: investor._id 
     });
   } catch (error) {
@@ -657,7 +655,7 @@ app.post('/api/phone-lookup', async (req, res) => {
 });
 
 // Investment routes
-app.post('/api/investments/request', authMiddleware, async (req, res) => {
+app.post('/api/investments/request', supabaseAuthMiddleware, async (req, res) => {
   try {
     const { projectId, units, notes } = req.body;
     const investorId = req.user.uid; // Assuming auth middleware sets req.user
@@ -875,7 +873,7 @@ app.put('/api/admin/users/:id/status', adminAuth, async (req, res) => {
 });
 
 // AI Analysis endpoint for developments
-app.post('/api/developments/analyze', authMiddleware, async (req, res) => {
+app.post('/api/developments/analyze', supabaseAuthMiddleware, async (req, res) => {
   try {
     const { developmentId } = req.body;
     
@@ -1136,13 +1134,36 @@ app.get('/api/investors/profile', investorAuth, async (req, res) => {
   }
 });
 
+// Public user count endpoint (place BEFORE dynamic :userId to avoid route shadowing)
+app.get('/api/users/count', async (req, res) => {
+  try {
+    const investorCount = await Investor.countDocuments();
+    const developerCount = await Developer.countDocuments();
+    const totalUsers = investorCount + developerCount;
+    res.json({
+      totalUsers,
+      investors: investorCount,
+      developers: developerCount,
+      message: `Total registered users: ${totalUsers}`
+    });
+  } catch (error) {
+    console.error('Error getting user count:', error);
+    res.status(500).json({ error: 'Failed to get user count' });
+  }
+});
+
 // Get user by ID (for dashboard)
 app.get('/api/users/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Find investor by Firebase UID
-    const investor = await Investor.findOne({ firebaseUid: userId });
+    // Try to find investor by Supabase ID first, then by email
+    let investor = await Investor.findOne({ 
+      $or: [
+        { supabase_id: userId },
+        { email: userId }
+      ]
+    });
     
     if (!investor) {
       // Return basic user info if not found in database
@@ -1161,6 +1182,14 @@ app.get('/api/users/:userId', async (req, res) => {
     const investments = await Investment.find({ investorId: investor._id });
     const totalInvested = investments.reduce((sum, inv) => sum + (inv.amount || 0), 0);
     const totalSqm = investments.reduce((sum, inv) => sum + (inv.sqm || 0), 0);
+    
+    console.log('User data found:', {
+      name: investor.name,
+      email: investor.email,
+      investments: investments.length,
+      totalInvested,
+      totalSqm
+    });
     
     res.json({
       name: investor.name,
@@ -1190,8 +1219,13 @@ app.get('/api/users/:userId/properties', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Find investor by Firebase UID
-    const investor = await Investor.findOne({ firebaseUid: userId });
+    // Try to find investor by Supabase ID first, then by email
+    let investor = await Investor.findOne({ 
+      $or: [
+        { supabase_id: userId },
+        { email: userId }
+      ]
+    });
     
     if (!investor) {
       return res.json([]);
@@ -1199,6 +1233,11 @@ app.get('/api/users/:userId/properties', async (req, res) => {
     
     // Get investor's investments
     const investments = await Investment.find({ investorId: investor._id });
+    
+    console.log('User properties found:', {
+      investorId: investor._id,
+      investments: investments.length
+    });
     
     const properties = investments.map(inv => ({
       id: inv._id,
@@ -1233,20 +1272,54 @@ app.put('/api/users/:userId', async (req, res) => {
     const { userId } = req.params;
     const updateData = req.body;
     
-    // Find investor by Firebase UID
-    const investor = await Investor.findOne({ firebaseUid: userId });
-    
-    if (!investor) {
-      return res.status(404).json({ error: 'User not found' });
+    // Try to find investor by Supabase ID first, then by email
+    let investor = await Investor.findOne({ 
+      $or: [
+        { supabase_id: userId },
+        { email: userId }
+      ]
+    });
+
+    // If still not found, try by provided email in payload
+    if (!investor && updateData?.email) {
+      investor = await Investor.findOne({ email: updateData.email });
+      if (investor && !investor.supabase_id && !userId.includes('@')) {
+        investor.supabase_id = userId;
+      }
     }
     
-    // Update investor data
-    Object.assign(investor, updateData);
+    if (!investor) {
+      // Create new investor if they don't exist
+      console.log('Creating new investor for:', userId);
+      investor = new Investor({
+        supabase_id: userId.includes('@') ? undefined : userId,
+        name: updateData.name || 'User',
+        email: updateData.email || userId,
+        password: 'supabase-auth', // Required field
+        phone: updateData.phone || '',
+        bio: updateData.bio || '',
+        investmentInterests: 'Real estate',
+        isApproved: true
+      });
+    } else {
+      // Update existing investor data
+      Object.assign(investor, updateData);
+    }
+    
     await investor.save();
+    
+    console.log('Profile updated successfully:', {
+      id: investor._id,
+      name: investor.name,
+      email: investor.email
+    });
     
     res.json({ message: 'Profile updated successfully', investor });
   } catch (error) {
     console.error('Error updating user:', error);
+    if (error.code === 11000) {
+      return res.status(409).json({ error: 'Email already exists' });
+    }
     res.status(500).json({ error: 'Failed to update user profile' });
   }
 });
@@ -1256,8 +1329,13 @@ app.post('/api/investments', async (req, res) => {
   try {
     const investmentData = req.body;
     
-    // Find investor by Firebase UID
-    const investor = await Investor.findOne({ firebaseUid: investmentData.investorId });
+    // Find investor by Supabase ID first, then by email
+    let investor = await Investor.findOne({ supabase_id: investmentData.investorId });
+    
+    if (!investor) {
+      // If not found by Supabase ID, try by email (for real users)
+      investor = await Investor.findOne({ email: investmentData.investorId });
+    }
     
     if (!investor) {
       return res.status(404).json({ error: 'Investor not found' });
@@ -1273,11 +1351,18 @@ app.post('/api/investments', async (req, res) => {
       location: investmentData.location,
       description: investmentData.description,
       paymentReference: investmentData.paymentReference,
-      status: investmentData.status,
+      status: investmentData.status || 'active',
       documents: investmentData.documents || []
     });
     
     await investment.save();
+    
+    console.log('Investment created successfully:', {
+      investorId: investor._id,
+      projectTitle: investmentData.projectTitle,
+      amount: investmentData.amount,
+      paymentReference: investmentData.paymentReference
+    });
     
     res.json({ 
       success: true, 

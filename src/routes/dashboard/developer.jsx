@@ -6,7 +6,7 @@ import * as yup from 'yup';
 import { apiCall } from '../../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { auth } from '../../firebase';
+import { supabase } from '../../supabase';
 
 // Validation schema for developer profile
 const developerSchema = yup.object().shape({
@@ -407,8 +407,8 @@ export default function DeveloperDashboard() {
   // Handle logout
   const handleLogout = async () => {
     try {
-      // Sign out from Firebase Auth
-      await auth.signOut()
+      // Sign out from Supabase Auth
+      await supabase.auth.signOut()
       
       // Clear localStorage
       localStorage.removeItem('userType');
@@ -422,7 +422,7 @@ export default function DeveloperDashboard() {
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error)
-      // Still clear localStorage and navigate even if Firebase signOut fails
+      // Still clear localStorage and navigate even if Supabase signOut fails
       localStorage.removeItem('userType');
       localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('userId');
