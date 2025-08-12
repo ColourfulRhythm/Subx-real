@@ -4,6 +4,11 @@ import App from './App';
 import './index.css';
 
 console.log('Application starting...');
+console.log('Environment variables check:');
+console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
+console.log('VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Present' : 'Missing');
+console.log('VITE_SITE_URL:', import.meta.env.VITE_SITE_URL);
+console.log('Mode:', import.meta.env.MODE);
 
 try {
   const root = ReactDOM.createRoot(document.getElementById('root'));
