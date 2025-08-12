@@ -5,7 +5,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hclguhbswctxfa
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 // Site URL for redirects (replace with your actual domain)
-const siteUrl = import.meta.env.VITE_SITE_URL || 'https://your-actual-domain.com';
+const siteUrl = import.meta.env.VITE_SITE_URL || 'https://subxhq.com';
 
 // Create Supabase client with auth configuration
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

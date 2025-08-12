@@ -101,6 +101,9 @@ const PageTransition = ({ children }) => {
 const App = () => {
   useEffect(() => {
     console.log('App component mounted')
+    console.log('Environment:', import.meta.env.MODE)
+    console.log('Site URL:', import.meta.env.VITE_SITE_URL)
+    console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL)
     
     // The onAuthStateChanged listener is removed as per the edit hint.
     // If authentication state needs to be tracked, it should be handled by the AuthProvider
