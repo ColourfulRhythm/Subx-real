@@ -20,6 +20,7 @@ import Privacy from './routes/legal/Privacy'
 import Terms from './routes/legal/Terms'
 import CookiePolicy from './routes/legal/CookiePolicy'
 import About from './routes/About'
+import VerificationSuccess from './routes/auth/VerificationSuccess'
 import ToastProvider from './components/ToastProvider'
 
 const ProtectedRoute = ({ children, requiredUserType }) => {
@@ -125,6 +126,11 @@ const App = () => {
             <Route path="/login" element={
               <PageTransition>
                 <Login />
+              </PageTransition>
+            } />
+            <Route path="/verify" element={
+              <PageTransition>
+                <VerificationSuccess />
               </PageTransition>
             } />
             <Route path="/signup" element={

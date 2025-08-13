@@ -20,7 +20,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     flowType: 'pkce',
     // Set the redirect URL for email verification
-    redirectTo: `${siteUrl}/dashboard/investor`
+    redirectTo: `${siteUrl}/verify`
   }
 });
 

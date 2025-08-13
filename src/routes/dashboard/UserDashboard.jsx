@@ -148,29 +148,85 @@ export default function UserDashboard() {
           title: 'Welcome to Subx Community!',
           author: 'Subx Team',
           content: 'Welcome to our community! Feel free to discuss real estate investment strategies, ask questions, and connect with other investors.',
-          replies: 5,
-          lastActivity: '2 hours ago',
-          category: 'general'
+          replies: [
+            { id: 1, author: 'John Doe', content: 'Great to be here! Looking forward to learning from everyone.', timestamp: '2 hours ago' },
+            { id: 2, author: 'Sarah Johnson', content: 'This is exactly what I needed. Thanks Subx Team!', timestamp: '1 hour ago' },
+            { id: 3, author: 'Mike Chen', content: 'Excited to start my real estate journey with Subx!', timestamp: '45 minutes ago' },
+            { id: 4, author: 'Emma Wilson', content: 'The platform looks amazing. Can\'t wait to explore more.', timestamp: '30 minutes ago' },
+            { id: 5, author: 'David Brown', content: 'Already learning so much from the community!', timestamp: '15 minutes ago' }
+          ],
+          lastActivity: '15 minutes ago',
+          category: 'general',
+          timestamp: '3 hours ago'
         },
         {
           id: 2,
           title: 'Investment Tips for Beginners',
           author: 'Sarah Johnson',
-          content: 'I\'m new to real estate investment. Any tips for someone just starting out?',
-          replies: 12,
+          content: 'I\'m new to real estate investment. Any tips for someone just starting out? What should I focus on first?',
+          replies: [
+            { id: 1, author: 'Mike Chen', content: 'Start small! Even 1 sqm is a great beginning. Focus on understanding the market first.', timestamp: '1 day ago' },
+            { id: 2, author: 'Emma Wilson', content: 'Research the location thoroughly. Location is everything in real estate.', timestamp: '1 day ago' },
+            { id: 3, author: 'David Brown', content: 'Don\'t rush into decisions. Take your time to understand the investment.', timestamp: '23 hours ago' },
+            { id: 4, author: 'John Doe', content: 'Consider starting with smaller plots to get comfortable with the process.', timestamp: '22 hours ago' },
+            { id: 5, author: 'Lisa Park', content: 'Network with other investors. The community here is very helpful!', timestamp: '21 hours ago' },
+            { id: 6, author: 'Alex Turner', content: 'Set realistic expectations. Real estate is a long-term investment.', timestamp: '20 hours ago' },
+            { id: 7, author: 'Maria Garcia', content: 'Learn about the legal aspects. Understanding contracts is crucial.', timestamp: '19 hours ago' },
+            { id: 8, author: 'Tom Anderson', content: 'Start with areas you know or can easily research.', timestamp: '18 hours ago' },
+            { id: 9, author: 'Rachel Green', content: 'Don\'t invest more than you can afford to lose.', timestamp: '17 hours ago' },
+            { id: 10, author: 'Chris Martin', content: 'Keep learning! The market changes constantly.', timestamp: '16 hours ago' },
+            { id: 11, author: 'Sophie Turner', content: 'Consider the potential for development in the area.', timestamp: '15 hours ago' },
+            { id: 12, author: 'James Bond', content: 'Patience is key. Good investments take time to mature.', timestamp: '14 hours ago' }
+          ],
+          lastActivity: '14 hours ago',
+          category: 'investment',
+          timestamp: '2 days ago'
+        },
+        {
+          id: 3,
+          title: 'Best Locations for Investment in 2025',
+          author: 'Mike Chen',
+          content: 'What are your thoughts on the best locations for real estate investment this year? I\'m particularly interested in emerging markets.',
+          replies: [
+            { id: 1, author: 'Emma Wilson', content: 'Ogun State is showing great potential with the new developments.', timestamp: '5 hours ago' },
+            { id: 2, author: 'David Brown', content: 'I agree! The infrastructure improvements are making it very attractive.', timestamp: '4 hours ago' },
+            { id: 3, author: 'Lisa Park', content: 'Lagos outskirts are also worth considering for long-term growth.', timestamp: '3 hours ago' }
+          ],
+          lastActivity: '3 hours ago',
+          category: 'investment',
+          timestamp: '6 hours ago'
+        }
+      ]
+    },
+    investment: {
+      title: 'Investment Strategies',
+      topics: [
+        {
+          id: 4,
+          title: 'Diversification Strategies',
+          author: 'Emma Wilson',
+          content: 'How do you diversify your real estate portfolio? Looking for strategies to spread risk.',
+          replies: [
+            { id: 1, author: 'David Brown', content: 'I invest in different locations and plot sizes to spread risk.', timestamp: '1 day ago' },
+            { id: 2, author: 'Mike Chen', content: 'Consider different types of properties too - residential, commercial, etc.', timestamp: '1 day ago' }
+          ],
           lastActivity: '1 day ago',
-          category: 'investment'
+          category: 'investment',
+          timestamp: '2 days ago'
         }
       ]
     }
   });
   const [activeForum, setActiveForum] = useState('general');
   const [showNewTopicModal, setShowNewTopicModal] = useState(false);
+  const [showTopicModal, setShowTopicModal] = useState(false);
+  const [selectedTopic, setSelectedTopic] = useState(null);
   const [newTopicData, setNewTopicData] = useState({
     title: '',
     content: '',
     category: 'general'
   });
+  const [newReply, setNewReply] = useState('');
 
   // Sync profile data with user data when userData changes
   useEffect(() => {
@@ -278,6 +334,59 @@ export default function UserDashboard() {
   const handleSignDeed = (document) => {
     setSelectedDocument(document);
     setShowDeedSignModal(true);
+  };
+
+  // Forum functions
+  const handleViewTopic = (topic) => {
+    setSelectedTopic(topic);
+    setShowTopicModal(true);
+  };
+
+  const handleAddReply = async () => {
+    if (!newReply.trim()) return;
+    
+    const reply = {
+      id: Date.now(),
+      author: userData.name || 'User',
+      content: newReply,
+      timestamp: 'Just now'
+    };
+    
+    // Add reply to the selected topic
+    const updatedForums = { ...forums };
+    const topic = updatedForums[activeForum].topics.find(t => t.id === selectedTopic.id);
+    if (topic) {
+      topic.replies.push(reply);
+      topic.lastActivity = 'Just now';
+      setForums(updatedForums);
+      setNewReply('');
+      toast.success('Reply added successfully!');
+    }
+  };
+
+  const handleCreateTopic = async () => {
+    if (!newTopicData.title.trim() || !newTopicData.content.trim()) return;
+    
+    const newTopic = {
+      id: Date.now(),
+      title: newTopicData.title,
+      author: userData.name || 'User',
+      content: newTopicData.content,
+      replies: [],
+      lastActivity: 'Just now',
+      category: newTopicData.category,
+      timestamp: 'Just now'
+    };
+    
+    // Add new topic to the active forum
+    const updatedForums = { ...forums };
+    updatedForums[activeForum].topics.unshift(newTopic);
+    setForums(updatedForums);
+    
+    // Reset form and close modal
+    setNewTopicData({ title: '', content: '', category: 'general' });
+    setShowNewTopicModal(false);
+    toast.success('Topic created successfully!');
   };
 
   const handleSignatureStart = (e) => {
@@ -1535,11 +1644,7 @@ export default function UserDashboard() {
                         <div 
                           key={topic.id} 
                           className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                          onClick={() => {
-                            // Handle topic click - show full topic view
-                            toast.success(`Viewing topic: ${topic.title}`);
-                            // You can implement a full topic view modal here
-                          }}
+                          onClick={() => handleViewTopic(topic)}
                         >
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
@@ -1547,7 +1652,7 @@ export default function UserDashboard() {
                               <p className="text-sm text-gray-600 mb-2">{topic.content.substring(0, 100)}...</p>
                               <div className="flex items-center space-x-4 text-sm text-gray-500">
                                 <span>By {topic.author}</span>
-                                <span>{topic.replies} replies</span>
+                                <span>{topic.replies?.length || 0} replies</span>
                                 <span>{topic.lastActivity}</span>
                               </div>
                             </div>
@@ -1618,9 +1723,18 @@ export default function UserDashboard() {
                       max="500"
                       value={selectedSqm}
                       onChange={(e) => {
-                        const value = parseInt(e.target.value) || 1;
-                        const clampedValue = Math.min(Math.max(value, 1), 500);
-                        handleSqmChange(clampedValue);
+                        const value = parseInt(e.target.value);
+                        if (value && value >= 1 && value <= 500) {
+                          handleSqmChange(value);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const value = parseInt(e.target.value);
+                        if (!value || value < 1) {
+                          handleSqmChange(1);
+                        } else if (value > 500) {
+                          handleSqmChange(500);
+                        }
                       }}
                       className="w-20 px-2 py-1 text-center border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     />
@@ -2160,29 +2274,7 @@ export default function UserDashboard() {
               
               <form onSubmit={(e) => {
                 e.preventDefault();
-                if (newTopicData.title.trim() && newTopicData.content.trim()) {
-                  const newTopic = {
-                    id: forums.general.topics.length + 1,
-                    title: newTopicData.title,
-                    author: userData.name || 'Anonymous',
-                    content: newTopicData.content,
-                    replies: 0,
-                    lastActivity: 'Just now',
-                    category: newTopicData.category
-                  };
-                  
-                  setForums(prevForums => ({
-                    ...prevForums,
-                    general: {
-                      ...prevForums.general,
-                      topics: [...prevForums.general.topics, newTopic]
-                    }
-                  }));
-                  
-                  setNewTopicData({ title: '', content: '', category: 'general' });
-                  setShowNewTopicModal(false);
-                  toast.success('Topic created successfully!');
-                }
+                handleCreateTopic();
               }} className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2245,6 +2337,101 @@ export default function UserDashboard() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Topic View Modal */}
+      <AnimatePresence>
+        {showTopicModal && selectedTopic && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            >
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">{selectedTopic.title}</h2>
+                  <button onClick={() => setShowTopicModal(false)} className="text-gray-400 hover:text-gray-600">
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                {/* Topic Content */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-medium text-indigo-600">{selectedTopic.author.split(' ').map(n => n[0]).join('')}</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{selectedTopic.author}</p>
+                      <p className="text-sm text-gray-500">{selectedTopic.timestamp}</p>
+                    </div>
+                  </div>
+                  <p className="text-gray-700">{selectedTopic.content}</p>
+                </div>
+                
+                {/* Replies */}
+                <div className="space-y-4 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Replies ({selectedTopic.replies?.length || 0})</h3>
+                  
+                  {selectedTopic.replies && selectedTopic.replies.length > 0 ? (
+                    selectedTopic.replies.map((reply) => (
+                      <div key={reply.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-medium text-gray-600">{reply.author.split(' ').map(n => n[0]).join('')}</span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{reply.author}</p>
+                            <p className="text-sm text-gray-500">{reply.timestamp}</p>
+                          </div>
+                        </div>
+                        <p className="text-gray-700">{reply.content}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No replies yet. Be the first to respond!</p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Add Reply */}
+                <div className="border-t pt-6">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Add Your Reply</h4>
+                  <div className="flex space-x-4">
+                    <input
+                      type="text"
+                      value={newReply}
+                      onChange={(e) => setNewReply(e.target.value)}
+                      placeholder="Write your reply..."
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                    <button
+                      onClick={handleAddReply}
+                      disabled={!newReply.trim()}
+                      className={`px-6 py-2 text-sm font-medium rounded-lg ${
+                        newReply.trim()
+                          ? 'text-white bg-indigo-600 hover:bg-indigo-700'
+                          : 'text-gray-400 bg-gray-200 cursor-not-allowed'
+                      }`}
+                    >
+                      Reply
+                    </button>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}
