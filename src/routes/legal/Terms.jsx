@@ -115,7 +115,7 @@ export default function Terms() {
               </li>
               <li>
                 <strong>VAT (Value Added Tax)</strong><br/>
-                Subx’s platform service charge of 2% is subject to VAT as required by Nigerian tax law. The VAT is calculated on the service charge and is deducted from the developer’s payout, not the buyer’s payment.<br/>
+                Subx’s platform service charge of 5% is subject to VAT as required by Nigerian tax law. The VAT is calculated on the service charge and is deducted from the developer’s payout, not the buyer’s payment.<br/>
                 Buyers will not be charged VAT directly on land purchases unless required by law.
               </li>
               <li>

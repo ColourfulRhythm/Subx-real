@@ -198,12 +198,12 @@ export default function UserDashboard() {
     const checkVerificationStatus = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Temporarily allow access without email verification
-        // if (!user.email_confirmed_at) {
-        //   toast.error('Please verify your email to access the dashboard');
-        //   navigate('/login');
-        //   return;
-        // }
+        // Check email verification
+        if (!user.email_confirmed_at) {
+          toast.error('Please verify your email to access the dashboard');
+          navigate('/login');
+          return;
+        }
         console.log('User logged in:', user.email);
       }
     };
@@ -596,10 +596,16 @@ export default function UserDashboard() {
         return;
       }
 
-      // Also check localStorage for additional authentication
+      // Check if user is authenticated and verified
       const isAuthenticated = localStorage.getItem('isAuthenticated');
       if (!isAuthenticated) {
         toast.error('Please log in to make a payment');
+        return;
+      }
+
+      // Check email verification
+      if (!user.email_confirmed_at) {
+        toast.error('Please verify your email before making a payment');
         return;
       }
 
@@ -1606,8 +1612,20 @@ export default function UserDashboard() {
                       onChange={(e) => handleSqmChange(parseInt(e.target.value))}
                       className="flex-1"
                     />
+                    <input
+                      type="number"
+                      min="1"
+                      max="500"
+                      value={selectedSqm}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 1;
+                        const clampedValue = Math.min(Math.max(value, 1), 500);
+                        handleSqmChange(clampedValue);
+                      }}
+                      className="w-20 px-2 py-1 text-center border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
                     <span className="text-lg font-semibold text-gray-900 min-w-[60px]">
-                      {selectedSqm} sq.m
+                      sq.m
                     </span>
                   </div>
                   <p className="text-sm text-gray-500 mt-1">Price: ₦5,000 per square meter</p>

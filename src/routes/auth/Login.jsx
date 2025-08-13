@@ -153,19 +153,7 @@ export default function Login() {
               </motion.div>
             </motion.div>
 
-            {/* Form Progress Indicator */}
-            <div className="mt-4">
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
-                <span>Form Progress</span>
-                <span>{isFormValid ? '100%' : 'Incomplete'}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: isFormValid ? '100%' : '0%' }}
-                ></div>
-              </div>
-            </div>
+
 
             <motion.button
               type="submit"

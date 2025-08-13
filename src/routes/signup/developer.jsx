@@ -84,18 +84,17 @@ export default function DeveloperSignup() {
           console.warn('Profile creation warning:', profileError)
         }
 
-        // Store user info in localStorage
-        localStorage.setItem('isAuthenticated', 'true')
+        // Store user info in localStorage (but not authenticated yet)
         localStorage.setItem('userType', 'developer')
         localStorage.setItem('userId', authData.user.id)
         localStorage.setItem('userEmail', authData.user.email)
         localStorage.setItem('userName', data.name)
 
-        // Show success message
-        alert('Account created successfully! Welcome to Subx Real Estate.')
+        // Show verification message
+        alert('Account created successfully! Please check your email and verify your account before logging in.')
         
-        // Navigate to dashboard
-        navigate('/dashboard/developer')
+        // Navigate to login page
+        navigate('/login')
       }
     } catch (error) {
       setError('Failed to create account: ' + error.message)

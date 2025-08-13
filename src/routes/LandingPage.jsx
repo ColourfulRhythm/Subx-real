@@ -98,10 +98,10 @@ export default function LandingPage() {
         className="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b border-gray-100"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex justify-between items-center py-2 sm:py-4">
             <div className="flex items-center space-x-4">
               <Link to="/" className="flex items-center">
-                <img src="/subx-logo/header-logo.png" alt="Subx Logo" className="h-20 w-auto" />
+                <img src="/subx-logo/header-logo.png" alt="Subx Logo" className="h-16 sm:h-20 w-auto" />
               </Link>
             </div>
             <div className="flex items-center space-x-4">
@@ -121,7 +121,7 @@ export default function LandingPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
-        className="pt-24 pb-16 relative"
+        className="pt-20 sm:pt-24 pb-16 relative"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">

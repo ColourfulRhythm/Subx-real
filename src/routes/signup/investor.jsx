@@ -62,18 +62,17 @@ export default function InvestorSignup() {
           console.warn('Profile creation warning:', profileError)
         }
 
-        // Store user info in localStorage
-        localStorage.setItem('isAuthenticated', 'true')
+        // Store user info in localStorage (but not authenticated yet)
         localStorage.setItem('userType', 'investor')
         localStorage.setItem('userId', authData.user.id)
         localStorage.setItem('userEmail', authData.user.email)
         localStorage.setItem('userName', data.name)
 
-        // Show success message
-        alert('Account created successfully! Welcome to Subx Real Estate.')
+        // Show verification message
+        alert('Account created successfully! Please check your email and verify your account before logging in.')
         
-        // Navigate to dashboard
-        navigate('/dashboard/investor')
+        // Navigate to login page
+        navigate('/login')
       }
     } catch (error) {
       setError('Failed to create account: ' + error.message)
@@ -278,21 +277,7 @@ export default function InvestorSignup() {
             </div>
             {errors.terms && <p className="text-red-500 text-sm mt-1">{errors.terms.message}</p>}
 
-            {/* Form Progress Indicator */}
-            <div className="mt-4">
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
-                <span>Form Progress</span>
-                <span>{Object.keys(errors).length === 0 && register('name').value && register('email').value && register('password').value && register('terms').value ? '100%' : 'Incomplete'}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                  style={{ 
-                    width: `${Object.keys(errors).length === 0 && register('name').value && register('email').value && register('password').value && register('terms').value ? 100 : 0}%` 
-                  }}
-                ></div>
-              </div>
-            </div>
+
 
             <button
               type="submit"
