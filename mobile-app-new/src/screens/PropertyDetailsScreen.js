@@ -44,7 +44,7 @@ const PropertyDetailsScreen = ({ route, navigation }) => {
 
       // Initialize Paystack payment
       const handler = window.PaystackPop.setup({
-        key: 'pk_live_c6e9456f9a1b1071ed96b977c21f8fae727400e0',
+        key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || 'pk_live_c6e9456f9a1b1071ed96b977c21f8fae727400e0',
         email: email,
         amount: amount * 100, // Paystack expects amount in kobo
         currency: 'NGN',

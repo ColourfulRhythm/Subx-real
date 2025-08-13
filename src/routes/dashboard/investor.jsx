@@ -156,7 +156,7 @@ const payWithPaystack = (amount, email, name) => {
   }
   const reference = 'SUBX-' + Math.floor(Math.random() * 1000000000);
   const handler = window.PaystackPop.setup({
-    key: 'pk_live_c6e9456f9a1b1071ed96b977c21f8fae727400e0',
+            key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_c6e9456f9a1b1071ed96b977c21f8fae727400e0',
     email: email,
     amount: amount * 100, // Paystack expects amount in kobo
     currency: 'NGN',

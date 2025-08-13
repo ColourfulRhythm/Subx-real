@@ -194,15 +194,17 @@ export default function UserDashboard() {
       return;
     }
 
-    // Check verification status
+    // Check verification status - temporarily disabled for development
     const checkVerificationStatus = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        if (!user.email_confirmed_at) {
-          toast.error('Please verify your email to access the dashboard');
-          navigate('/login');
-          return;
-        }
+        // Temporarily allow access without email verification
+        // if (!user.email_confirmed_at) {
+        //   toast.error('Please verify your email to access the dashboard');
+        //   navigate('/login');
+        //   return;
+        // }
+        console.log('User logged in:', user.email);
       }
     };
 
@@ -451,13 +453,21 @@ export default function UserDashboard() {
       // If no data available, use basic user info
       if (!savedUserData && !userData.name) {
         const basicData = {
-          name: user?.user_metadata?.name || localStorage.getItem('userName') || user?.email || 'User',
+          name: user?.user_metadata?.name || localStorage.getItem('userName') || user?.email?.split('@')[0] || 'User',
           email: user?.email || localStorage.getItem('userEmail') || '',
-          avatar: '',
+          avatar: '/subx-logo/default-avatar.png',
           portfolioValue: '₦0',
           totalLandOwned: '0 sqm',
           totalInvestments: 0,
-          recentActivity: []
+          recentActivity: [
+            {
+              id: 1,
+              title: 'Account Created',
+              amount: 'Welcome to Subx!',
+              date: new Date().toLocaleDateString(),
+              status: 'completed'
+            }
+          ]
         };
         setUserData(basicData);
         localStorage.setItem('userProfileData', JSON.stringify(basicData));
@@ -496,6 +506,10 @@ export default function UserDashboard() {
       
       // Save to localStorage for persistence
       localStorage.setItem('userProfileData', JSON.stringify(updatedUserData));
+      
+      // Also save individual fields to localStorage for compatibility
+      localStorage.setItem('userName', profileData.name || userData.name);
+      localStorage.setItem('userEmail', profileData.email || userData.email);
       
       // Try to save to backend
       try {
@@ -582,6 +596,13 @@ export default function UserDashboard() {
         return;
       }
 
+      // Also check localStorage for additional authentication
+      const isAuthenticated = localStorage.getItem('isAuthenticated');
+      if (!isAuthenticated) {
+        toast.error('Please log in to make a payment');
+        return;
+      }
+
       // Check if we have required data
       if (!selectedProject) {
         toast.error('No project selected. Please try again.');
@@ -611,7 +632,7 @@ export default function UserDashboard() {
       
             try {
         const handler = window.PaystackPop.setup({
-          key: 'pk_live_c6e9456f9a1b1071ed96b977c21f8fae727400e0', // Production key
+          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_c6e9456f9a1b1071ed96b977c21f8fae727400e0', // Use environment variable
           email: email,
           amount: amount,
           currency: 'NGN',
@@ -1164,45 +1185,63 @@ export default function UserDashboard() {
 
               <div className="bg-white rounded-xl shadow-lg border border-gray-200">
                 <div className="p-6">
-                  <div className="space-y-6">
-                    {userData.recentActivity.filter(activity => activity.status === 'owned').map((property) => (
-                      <div key={property.id} className="border-b border-gray-200 pb-6 last:border-b-0">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">{property.title}</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {property.documents?.map((document, index) => (
-                            <div key={index} className="bg-gray-50 rounded-lg p-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center space-x-2">
-                                  <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                  </svg>
-                                  <span className="font-medium text-gray-900">{document.name}</span>
+                  {userData.recentActivity && userData.recentActivity.filter(activity => activity.status === 'owned').length > 0 ? (
+                    <div className="space-y-6">
+                      {userData.recentActivity.filter(activity => activity.status === 'owned').map((property) => (
+                        <div key={property.id} className="border-b border-gray-200 pb-6 last:border-b-0">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">{property.title}</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {property.documents?.map((document, index) => (
+                              <div key={index} className="bg-gray-50 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center space-x-2">
+                                    <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                    </svg>
+                                    <span className="font-medium text-gray-900">{document.name}</span>
+                                  </div>
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    document.signed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                    {document.signed ? 'Signed' : 'Pending'}
+                                  </span>
                                 </div>
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  document.signed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                }`}>
-                                  {document.signed ? 'Signed' : 'Pending'}
-                                </span>
-                              </div>
-                              <div className="flex space-x-2">
-                                <button className="flex-1 px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                                  View
-                                </button>
-                                {!document.signed && (
-                                  <button 
-                                    onClick={() => handleSignDeed(document)}
-                                    className="flex-1 px-3 py-1 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
-                                  >
-                                    Sign
+                                <div className="flex space-x-2">
+                                  <button className="flex-1 px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
+                                    View
                                   </button>
-                                )}
+                                  {!document.signed && (
+                                    <button 
+                                      onClick={() => handleSignDeed(document)}
+                                      className="flex-1 px-3 py-1 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
+                                    >
+                                      Sign
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <h3 className="mt-4 text-lg font-medium text-gray-900">No documents yet</h3>
+                      <p className="mt-2 text-sm text-gray-500">Your property documents will appear here after you make investments.</p>
+                      <div className="mt-6">
+                        <button
+                          onClick={() => setActiveTab('opportunities')}
+                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                        >
+                          Browse Investment Opportunities
+                        </button>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -1487,7 +1526,15 @@ export default function UserDashboard() {
                   ) : (
                     <div className="space-y-4">
                       {forums.general.topics.map((topic) => (
-                        <div key={topic.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+                        <div 
+                          key={topic.id} 
+                          className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={() => {
+                            // Handle topic click - show full topic view
+                            toast.success(`Viewing topic: ${topic.title}`);
+                            // You can implement a full topic view modal here
+                          }}
+                        >
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <h4 className="font-medium text-gray-900 mb-1">{topic.title}</h4>
