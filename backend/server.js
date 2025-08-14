@@ -22,6 +22,7 @@ import { documentsRouter } from './routes/documents.js';
 import { Investor } from './models/Investor.js';
 import { Connection } from './models/Connection.js';
 import nodemailer from 'nodemailer';
+import telegramBot from './services/telegramBot.js';
 // Supabase authentication service
 import { supabase } from './supabase.js';
 
@@ -550,6 +551,19 @@ app.post('/api/investors', async (req, res) => {
       sendWelcomeEmail(investor).catch(err => console.error('Welcome email error:', err));
     }
 
+    // Send Telegram welcome notification (in background)
+    try {
+      await telegramBot.sendWelcomeMessage({
+        id: investor._id,
+        email: investor.email,
+        name: investor.name
+      });
+      console.log('Telegram welcome notification sent successfully');
+    } catch (telegramError) {
+      console.error('Failed to send Telegram welcome notification:', telegramError);
+      // Don't fail the request if Telegram notification fails
+    }
+
     res.status(201).json({ 
       message: 'Investor created successfully', 
       investor: { ...investor.toObject(), password: undefined } 
@@ -605,8 +619,21 @@ app.post('/api/investors/login', async (req, res) => {
         isApproved: true
       });
       await investor.save();
-          } else if (!investor.supabase_id) {
-        investor.supabase_id = supaUser.id;
+      
+      // Send Telegram welcome notification for new user (in background)
+      try {
+        await telegramBot.sendWelcomeMessage({
+          id: investor._id,
+          email: investor.email,
+          name: investor.name
+        });
+        console.log('Telegram welcome notification sent for new login user');
+      } catch (telegramError) {
+        console.error('Failed to send Telegram welcome notification:', telegramError);
+        // Don't fail the request if Telegram notification fails
+      }
+    } else if (!investor.supabase_id) {
+      investor.supabase_id = supaUser.id;
       await investor.save();
     }
 
@@ -1363,6 +1390,18 @@ app.post('/api/investments', async (req, res) => {
       amount: investmentData.amount,
       paymentReference: investmentData.paymentReference
     });
+
+    // Send Telegram notification for successful purchase
+    try {
+      await telegramBot.sendPurchaseNotification(investmentData, {
+        email: investor.email,
+        name: investor.name
+      });
+      console.log('Telegram notification sent successfully');
+    } catch (telegramError) {
+      console.error('Failed to send Telegram notification:', telegramError);
+      // Don't fail the request if Telegram notification fails
+    }
     
     res.json({ 
       success: true, 
@@ -1371,6 +1410,14 @@ app.post('/api/investments', async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating investment:', error);
+    
+    // Send error notification to Telegram (in background)
+    try {
+      await telegramBot.sendErrorNotification(error, 'Investment Creation');
+    } catch (telegramError) {
+      console.error('Failed to send Telegram error notification:', telegramError);
+    }
+    
     res.status(500).json({ error: 'Failed to create investment' });
   }
 });
@@ -1409,6 +1456,35 @@ app.get('/api/verify-paystack/:reference', async (req, res) => {
       message: 'Payment verification failed',
       error: error.message 
     });
+  }
+});
+
+// Test Telegram bot endpoint
+app.post('/api/test-telegram', async (req, res) => {
+  try {
+    const { type, data } = req.body;
+    
+    switch (type) {
+      case 'purchase':
+        await telegramBot.sendPurchaseNotification(data, {
+          email: data.investorId,
+          name: 'Test User'
+        });
+        break;
+      case 'welcome':
+        await telegramBot.sendWelcomeMessage(data);
+        break;
+      case 'error':
+        await telegramBot.sendErrorNotification(new Error(data.message), data.context);
+        break;
+      default:
+        await telegramBot.sendMessage('🧪 Test message from Subx backend!');
+    }
+    
+    res.json({ success: true, message: 'Telegram test message sent successfully' });
+  } catch (error) {
+    console.error('Telegram test error:', error);
+    res.status(500).json({ error: 'Failed to send test message' });
   }
 });
 
