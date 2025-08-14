@@ -321,9 +321,57 @@ export default function UserDashboard() {
     setShowProjectModal(true);
   };
 
-  const handleViewCoOwners = (property) => {
+  const handleViewCoOwners = async (property) => {
     setSelectedProperty(property);
     setShowCoOwnersModal(true);
+    
+    try {
+      // Fetch co-owners data from backend
+      const response = await fetch(`/api/co-owners/${property.id}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update the property with real co-owners data
+        setSelectedProperty(prev => ({
+          ...prev,
+          coOwners: data.coOwners,
+          totalOwners: data.totalOwners,
+          totalInvestment: data.totalInvestment
+        }));
+      } else {
+        console.error('Failed to fetch co-owners:', data.message);
+        // Use mock data as fallback
+        setSelectedProperty(prev => ({
+          ...prev,
+          coOwners: [
+            {
+              name: userData.name,
+              email: userData.email,
+              phone: userData.phone || 'N/A',
+              sqm: property.sqm || 1,
+              percentage: 100,
+              amount: property.amount || 50000
+            }
+          ]
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching co-owners:', error);
+      // Use mock data as fallback
+      setSelectedProperty(prev => ({
+        ...prev,
+        coOwners: [
+          {
+            name: userData.name,
+            email: userData.email,
+            phone: userData.phone || 'N/A',
+            sqm: property.sqm || 1,
+            percentage: 100,
+            amount: property.amount || 50000
+          }
+        ]
+      }));
+    }
   };
 
   const handleViewDocuments = (property) => {
@@ -1843,50 +1891,101 @@ export default function UserDashboard() {
               className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
             >
               <div className="p-6">
-                <div className="flex justify-between items-start mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Co-owners - {selectedProperty.title}</h2>
+                <div className="flex justify-between items-start mb-4 sm:mb-6">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Co-owners - {selectedProperty.title}</h2>
                   <button onClick={() => setShowCoOwnersModal(false)} className="text-gray-400 hover:text-gray-600">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
                 </div>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Ownership Distribution</h3>
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="w-48 h-48 mx-auto mb-4">
-                        {/* Pie Chart Placeholder */}
-                        <div className="w-full h-full rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg">
-                          Pie Chart
-                        </div>
+                      <div className="w-48 h-48 mx-auto mb-4 relative">
+                        {/* Functional Pie Chart */}
+                        <svg className="w-full h-full" viewBox="0 0 100 100">
+                          {selectedProperty.coOwners?.map((owner, index) => {
+                            const totalOwners = selectedProperty.coOwners.length;
+                            const startAngle = (index / totalOwners) * 360;
+                            const endAngle = ((index + 1) / totalOwners) * 360;
+                            const radius = 40;
+                            const colors = ['#3B82F6', '#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#EF4444'];
+                            
+                            const x1 = 50 + radius * Math.cos((startAngle - 90) * Math.PI / 180);
+                            const y1 = 50 + radius * Math.sin((startAngle - 90) * Math.PI / 180);
+                            const x2 = 50 + radius * Math.cos((endAngle - 90) * Math.PI / 180);
+                            const y2 = 50 + radius * Math.sin((endAngle - 90) * Math.PI / 180);
+                            
+                            const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1;
+                            
+                            return (
+                              <path
+                                key={index}
+                                d={`M 50 50 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`}
+                                fill={colors[index % colors.length]}
+                                className="hover:opacity-80 transition-opacity cursor-pointer"
+                                title={`${owner.name}: ${owner.percentage}%`}
+                              />
+                            );
+                          })}
+                          <circle cx="50" cy="50" r="15" fill="white" />
+                        </svg>
                       </div>
-                      <p className="text-center text-sm text-gray-600">Visual representation of ownership percentages</p>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        {selectedProperty.coOwners?.map((owner, index) => {
+                          const colors = ['#3B82F6', '#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#EF4444'];
+                          return (
+                            <div key={index} className="flex items-center space-x-2">
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: colors[index % colors.length] }}
+                              ></div>
+                              <span className="truncate">{owner.name}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                   
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Co-owners List</h3>
-                    <div className="space-y-3">
-                      {selectedProperty.coOwners?.map((owner, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-medium text-indigo-600">{owner.name.split(' ').map(n => n[0]).join('')}</span>
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {selectedProperty.coOwners?.length > 0 ? (
+                        selectedProperty.coOwners.map((owner, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div className="flex items-center space-x-3 min-w-0 flex-1">
+                              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs sm:text-sm font-medium text-indigo-600">
+                                  {owner.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-gray-900 text-sm sm:text-base truncate">{owner.name}</p>
+                                <p className="text-xs sm:text-sm text-gray-500 truncate">{owner.email}</p>
+                                {owner.phone && (
+                                  <p className="text-xs sm:text-sm text-gray-500 truncate">{owner.phone}</p>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium text-gray-900">{owner.name}</p>
-                              <p className="text-sm text-gray-500">{owner.email}</p>
-                              <p className="text-sm text-gray-500">{owner.phone}</p>
+                            <div className="text-right flex-shrink-0 ml-2">
+                              <p className="font-semibold text-indigo-600 text-sm sm:text-base">{owner.percentage}%</p>
+                              <p className="text-xs sm:text-sm text-gray-500">{owner.sqm} sq.m</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-indigo-600">{owner.percentage}%</p>
-                            <p className="text-sm text-gray-500">{owner.sqm} sq.m</p>
-                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8">
+                          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          <p className="mt-2 text-sm text-gray-500">No co-owners found</p>
+                          <p className="text-xs text-gray-400">This property is currently owned by you only</p>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1995,14 +2094,14 @@ export default function UserDashboard() {
                     <p className="text-sm text-gray-600">
                       <strong>DEED OF SALE</strong><br/><br/>
                       This Deed of Sale is made on [Date] between:<br/><br/>
-                      <strong>SELLER:</strong> 2 Seasons Estate Development Company<br/>
+                      <strong>SELLER:</strong> Focal Point Property Development and Management Services Ltd.<br/>
                       <strong>BUYER:</strong> {userData.name}<br/><br/>
                       For the purchase of land in 2 Seasons Estate, Ogun State, Nigeria.<br/><br/>
                       <strong>PROPERTY DETAILS:</strong><br/>
-                      • Location: 2 Seasons Estate, Ogun State<br/>
-                      • Plot Number: [Plot Number]<br/>
-                      • Square Meters: [SQM]<br/>
-                      • Purchase Price: [Amount]<br/><br/>
+                      • Location: 2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state<br/>
+                      • Plot Number: {selectedProperty?.title?.split(' - ')[1] || '[Plot Number]'}<br/>
+                      • Square Meters: {selectedProperty?.sqm || '[SQM]'} sqm<br/>
+                      • Purchase Price: ₦{(selectedProperty?.amount || 0).toLocaleString()}<br/><br/>
                       <strong>TERMS AND CONDITIONS:</strong><br/>
                       1. The Seller hereby transfers ownership of the specified land to the Buyer<br/>
                       2. The Buyer acknowledges receipt of the property and agrees to all terms<br/>

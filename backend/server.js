@@ -1584,4 +1584,62 @@ app.get('/api/verify-paystack/:reference', async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, message: 'Verification failed', error: error.message });
   }
+});
+
+// Co-owners endpoint - Get co-owners for a specific property
+app.get('/api/co-owners/:propertyId', async (req, res) => {
+  try {
+    const { propertyId } = req.params;
+    
+    // Find all investments for this property
+    const investments = await Investment.find({ 
+      projectId: propertyId,
+      status: 'completed'
+    }).populate('investorId', 'name email phone');
+    
+    if (!investments || investments.length === 0) {
+      return res.json({ 
+        success: true, 
+        coOwners: [],
+        message: 'No co-owners found for this property' 
+      });
+    }
+    
+    // Calculate total investment amount for this property
+    const totalAmount = investments.reduce((sum, inv) => sum + inv.amount, 0);
+    
+    // Create co-owners list with percentages
+    const coOwners = investments.map(investment => {
+      const percentage = ((investment.amount / totalAmount) * 100).toFixed(1);
+      return {
+        id: investment.investorId._id,
+        name: investment.investorId.name,
+        email: investment.investorId.email,
+        phone: investment.investorId.phone,
+        sqm: investment.sqm,
+        amount: investment.amount,
+        percentage: parseFloat(percentage),
+        purchaseDate: investment.createdAt
+      };
+    });
+    
+    // Sort by percentage (highest first)
+    coOwners.sort((a, b) => b.percentage - a.percentage);
+    
+    res.json({
+      success: true,
+      coOwners,
+      totalOwners: coOwners.length,
+      totalInvestment: totalAmount,
+      message: `Found ${coOwners.length} co-owner(s) for this property`
+    });
+    
+  } catch (error) {
+    console.error('Error fetching co-owners:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch co-owners',
+      message: error.message 
+    });
+  }
 }); 
