@@ -3,8 +3,8 @@ import crypto from 'crypto';
 
 class TelegramBotService {
   constructor() {
-    this.botToken = '8466268446:AAFRwpiD416wgLzhbP0awxUJ73-zcHuCOiQ';
-    this.chatId = '-1002635491419';
+    this.botToken = process.env.TELEGRAM_BOT_TOKEN || '8466268446:AAFRwpiD416wgLzhbP0awxUJ73-zcHuCOiQ';
+    this.chatId = process.env.TELEGRAM_CHAT_ID || '-1002635491419';
     this.apiUrl = `https://api.telegram.org/bot${this.botToken}`;
   }
 
@@ -12,6 +12,15 @@ class TelegramBotService {
   generateUserHash(userId, email) {
     const data = `${userId}-${email}-${Date.now()}`;
     return crypto.createHash('md5').update(data).digest('hex').substring(0, 8).toUpperCase();
+  }
+
+  // Mask email for privacy (e.g., j***@example.com)
+  maskEmail(email) {
+    if (!email || !email.includes('@')) return '***@***';
+    const [localPart, domain] = email.split('@');
+    const maskedLocal = localPart.length > 2 ? localPart[0] + '*'.repeat(localPart.length - 2) + localPart[localPart.length - 1] : '***';
+    const maskedDomain = domain.length > 3 ? domain[0] + '*'.repeat(domain.length - 3) + domain[domain.length - 1] : '***';
+    return `${maskedLocal}@${maskedDomain}`;
   }
 
   // Send message to Telegram group
@@ -69,11 +78,12 @@ Welcome to the Subx family! 🏘️✨`;
   async sendWelcomeMessage(userData) {
     try {
       const userHash = this.generateUserHash(userData.id || userData.email, userData.email);
+      const maskedEmail = this.maskEmail(userData.email);
       
       const message = `👋 <b>New Subx Member!</b> 🌟
 
 👤 User: <code>${userHash}</code>
-📧 Email: ${userData.email}
+📧 Email: ${maskedEmail}
 📅 Joined: ${new Date().toLocaleDateString()}
 
 Welcome to Subx Real Estate! 🏠✨`;

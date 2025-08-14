@@ -1,8 +1,8 @@
 import axios from 'axios';
 import crypto from 'crypto';
 
-const BOT_TOKEN = '8466268446:AAFRwpiD416wgLzhbP0awxUJ73-zcHuCOiQ';
-const CHAT_ID = '-1002635491419';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8466268446:AAFRwpiD416wgLzhbP0awxUJ73-zcHuCOiQ';
+const CHAT_ID = process.env.TELEGRAM_CHAT_ID || '-1002635491419';
 const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
 export default async function handler(req, res) {
@@ -33,10 +33,11 @@ Welcome to the Subx family! 🏘️✨`;
         
       case 'welcome':
         const welcomeHash = generateUserHash(data.id || data.email, data.email);
+        const maskedEmail = maskEmail(data.email);
         message = `👋 <b>New Subx Member!</b> 🌟
 
 👤 User: <code>${welcomeHash}</code>
-📧 Email: ${data.email}
+📧 Email: ${maskedEmail}
 📅 Joined: ${new Date().toLocaleDateString()}
 
 Welcome to Subx Real Estate! 🏠✨`;
@@ -91,4 +92,12 @@ Please check the system logs.`;
 function generateUserHash(userId, email) {
   const data = `${userId}-${email}-${Date.now()}`;
   return crypto.createHash('md5').update(data).digest('hex').substring(0, 8).toUpperCase();
+}
+
+function maskEmail(email) {
+  if (!email || !email.includes('@')) return '***@***';
+  const [localPart, domain] = email.split('@');
+  const maskedLocal = localPart.length > 2 ? localPart[0] + '*'.repeat(localPart.length - 2) + localPart[localPart.length - 1] : '***';
+  const maskedDomain = domain.length > 3 ? domain[0] + '*'.repeat(domain.length - 3) + domain[domain.length - 1] : '***';
+  return `${maskedLocal}@${domain}`;
 }
