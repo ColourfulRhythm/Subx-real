@@ -54,14 +54,14 @@ export default function FAQ() {
                   <li>Extend the holding period</li>
                 </ul>
               </li>
-              <li><strong>Do I have to pay any extra charges when I buy?</strong><br/>No. Buyers do not pay any additional charges. Subx charges a 2% service fee, but this is deducted from the developer’s payout — not from your payment.</li>
-              <li><strong>Is VAT included in my payment?</strong><br/>No. The buyer doesn’t pay VAT. The VAT on the 2% service charge is handled between Subx and the developer. You pay exactly what you see.</li>
+              <li><strong>Do I have to pay any extra charges when I buy?</strong><br/>No. Buyers do not pay any additional charges. Subx charges a 5% service fee, but this is deducted from the developer’s payout — not from your payment.</li>
+              <li><strong>Is VAT included in my payment?</strong><br/>No. The buyer doesn’t pay VAT. The VAT on the 5% service charge is handled between Subx and the developer. You pay exactly what you see.</li>
               <li><strong>Is my ownership secure if I buy only 1 square meter?</strong><br/>Yes. Every square meter is recorded, documented, and legally protected. Whether you own 1 sqm or 1,000 sqm, your stake is secure.</li>
               <li><strong>Can I visit the land?</strong><br/>Yes. Site visitations are scheduled periodically for each project. You’ll be notified ahead of time via email, WhatsApp, or inside the app.</li>
               <li><strong>Can I transfer my land share to someone else?</strong><br/>Transfers are not allowed during the 2-year period. After maturity, you may request a transfer, resale, or reassignment — subject to group agreement and platform policies.</li>
               <li><strong>What if the group disagrees on selling after 2 years?</strong><br/>Each project has its own decision threshold (e.g., 80% agreement). If the threshold is not met, the holding may be extended until a decision is reached, other subs will be allowed to buy you out.</li>
               <li><strong>What if Subx shuts down? Will I lose my land?</strong><br/>No. Your land ownership is backed by legal documentation from Focal Point Property Development and registered with relevant authorities. Even if Subx goes offline, your land remains yours.</li>
-              <li><strong>Do I pay VAT when I buy land on Subx?</strong><br/>No, buyers are not charged VAT on land purchases through Subx. Land is generally VAT-exempt under Nigerian tax law. However, the 2% platform service fee charged by Subx to the developer is subject to 7.5% VAT, which is already deducted from Focal Point's payout — not passed to you.</li>
+              <li><strong>Do I pay VAT when I buy land on Subx?</strong><br/>No, buyers are not charged VAT on land purchases through Subx. Land is generally VAT-exempt under Nigerian tax law. However, the 5% platform service fee charged by Subx to the developer is subject to 7.5% VAT, which is already deducted from Focal Point's payout — not passed to you.</li>
             </ol>
           </motion.div>
         </div>
