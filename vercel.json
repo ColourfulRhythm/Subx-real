@@ -1,4 +1,11 @@
 {
+  "redirects": [
+    {
+      "source": "https://www.subxhq.com/:path*",
+      "destination": "https://subxhq.com/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

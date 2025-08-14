@@ -37,7 +37,7 @@ const mockProjects = [
   {
     id: 1,
     title: '2 Seasons - Plot 77',
-    location: 'Ogun State',
+    location: '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state',
     price: '₦5,000/sq.m',
     totalSqm: 500,
     availableSqm: 500,
@@ -49,7 +49,7 @@ const mockProjects = [
   {
     id: 2,
     title: '2 Seasons - Plot 79',
-    location: 'Ogun State',
+    location: '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state',
     price: '₦5,000/sq.m',
     totalSqm: 500,
     availableSqm: 500,
@@ -61,7 +61,7 @@ const mockProjects = [
   {
     id: 3,
     title: '2 Seasons - Plot 81',
-    location: 'Ogun State',
+    location: '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state',
     price: '₦5,000/sq.m',
     totalSqm: 500,
     availableSqm: 500,
@@ -73,7 +73,7 @@ const mockProjects = [
   {
     id: 4,
     title: '2 Seasons - Plot 84',
-    location: 'Ogun State',
+    location: '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state',
     price: '₦5,000/sq.m',
     totalSqm: 500,
     availableSqm: 500,
@@ -85,7 +85,7 @@ const mockProjects = [
   {
     id: 5,
     title: '2 Seasons - Plot 87',
-    location: 'Ogun State',
+    location: '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state',
     price: '₦5,000/sq.m',
     totalSqm: 500,
     availableSqm: 500,
@@ -336,6 +336,17 @@ export default function UserDashboard() {
     setShowDeedSignModal(true);
   };
 
+  // Update available SQM after purchase
+  const updateAvailableSqm = (projectId, purchasedSqm) => {
+    setProjects(prevProjects => 
+      prevProjects.map(project => 
+        project.id === projectId 
+          ? { ...project, availableSqm: Math.max(0, project.availableSqm - purchasedSqm) }
+          : project
+      )
+    );
+  };
+
   // Forum functions
   const handleViewTopic = (topic) => {
     setSelectedTopic(topic);
@@ -439,7 +450,7 @@ export default function UserDashboard() {
     
     // Company Info
     doc.setFontSize(12);
-    doc.text('Subx Real Estate Investment Platform', 105, 35, { align: 'center' });
+    doc.text('Subx Real Estate Ownership Platform', 105, 35, { align: 'center' });
     doc.text('Focal Point Property Development and Management Services Ltd.', 105, 42, { align: 'center' });
     doc.text('Date: ' + new Date().toLocaleDateString(), 20, 55);
     doc.text('Receipt No: ' + investmentData.paymentReference, 20, 62);
@@ -458,8 +469,8 @@ export default function UserDashboard() {
     
     // Footer
     doc.setFontSize(10);
-    doc.text('Thank you for your investment!', 105, 180, { align: 'center' });
-    doc.text('This receipt serves as proof of your property investment.', 105, 187, { align: 'center' });
+    doc.text('Thank you for your ownership!', 105, 180, { align: 'center' });
+    doc.text('This receipt serves as proof of your ownership.', 105, 187, { align: 'center' });
     
     return doc;
   };
@@ -490,12 +501,12 @@ export default function UserDashboard() {
     doc.text(investmentData.projectTitle, 20, 117);
     doc.text('Located at: ' + investmentData.location, 20, 124);
     
-    doc.text('Total Investment Value: ₦' + investmentData.amount.toLocaleString(), 20, 140);
+    doc.text('Total Ownership Value: ₦' + investmentData.amount.toLocaleString(), 20, 140);
     
     // Legal Statement
     doc.setFontSize(10);
     doc.text('This certificate is issued by Focal Point Property Development and Management Services Ltd.', 20, 160);
-    doc.text('and serves as legal proof of ownership in the above-mentioned property investment.', 20, 167);
+    doc.text('and serves as legal proof of ownership in the above-mentioned property.', 20, 167);
     
     // Signature
     doc.text('Authorized Signature: _________________', 20, 190);
@@ -788,6 +799,9 @@ export default function UserDashboard() {
               ]);
             })
             .then(() => {
+              // Update available SQM
+              updateAvailableSqm(selectedProject.id, selectedSqm);
+              
               // Show success modal with document options
               setPaymentData(investmentData);
               setShowOwnershipModal(false);
@@ -1300,9 +1314,50 @@ export default function UserDashboard() {
 
               <div className="bg-white rounded-xl shadow-lg border border-gray-200">
                 <div className="p-6">
-                  {userData.recentActivity && userData.recentActivity.filter(activity => activity.status === 'owned').length > 0 ? (
+                  {(userData.recentActivity && userData.recentActivity.filter(activity => activity.status === 'owned').length > 0) || 
+                   (userProperties && userProperties.length > 0) ? (
                     <div className="space-y-6">
-                      {userData.recentActivity.filter(activity => activity.status === 'owned').map((property) => (
+                      {/* Show documents from recent activity */}
+                      {userData.recentActivity && userData.recentActivity.filter(activity => activity.status === 'owned').map((property) => (
+                        <div key={property.id} className="border-b border-gray-200 pb-6 last:border-b-0">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">{property.title}</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {property.documents?.map((document, index) => (
+                              <div key={index} className="bg-gray-50 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center space-x-2">
+                                    <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                    </svg>
+                                    <span className="font-medium text-gray-900">{document.name}</span>
+                                  </div>
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    document.signed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                    {document.signed ? 'Signed' : 'Pending'}
+                                  </span>
+                                </div>
+                                <div className="flex space-x-2">
+                                  <button className="flex-1 px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
+                                    View
+                                  </button>
+                                  {!document.signed && (
+                                    <button 
+                                      onClick={() => handleSignDeed(document)}
+                                      className="flex-1 px-3 py-1 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
+                                    >
+                                      Sign
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {/* Show documents from user properties */}
+                      {userProperties && userProperties.map((property) => (
                         <div key={property.id} className="border-b border-gray-200 pb-6 last:border-b-0">
                           <h3 className="text-lg font-semibold text-gray-900 mb-4">{property.title}</h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
