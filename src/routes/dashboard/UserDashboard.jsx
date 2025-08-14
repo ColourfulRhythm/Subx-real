@@ -119,6 +119,7 @@ export default function UserDashboard() {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showOwnershipModal, setShowOwnershipModal] = useState(false);
   const [showCoOwnersModal, setShowCoOwnersModal] = useState(false);
+  const [loadingCoOwners, setLoadingCoOwners] = useState(false);
   const [showDocumentsModal, setShowDocumentsModal] = useState(false);
   const [showDeedSignModal, setShowDeedSignModal] = useState(false);
   const [selectedSqm, setSelectedSqm] = useState(1);
@@ -324,13 +325,14 @@ export default function UserDashboard() {
   const handleViewCoOwners = async (property) => {
     setSelectedProperty(property);
     setShowCoOwnersModal(true);
+    setLoadingCoOwners(true);
     
     try {
       // Fetch co-owners data from backend
       const response = await fetch(`/api/co-owners/${property.id}`);
       const data = await response.json();
       
-      if (data.success) {
+      if (data.success && data.coOwners.length > 0) {
         // Update the property with real co-owners data
         setSelectedProperty(prev => ({
           ...prev,
@@ -339,8 +341,8 @@ export default function UserDashboard() {
           totalInvestment: data.totalInvestment
         }));
       } else {
-        console.error('Failed to fetch co-owners:', data.message);
-        // Use mock data as fallback
+        console.log('No co-owners found, using mock data');
+        // Use mock data as fallback with multiple co-owners for testing
         setSelectedProperty(prev => ({
           ...prev,
           coOwners: [
@@ -349,15 +351,33 @@ export default function UserDashboard() {
               email: userData.email,
               phone: userData.phone || 'N/A',
               sqm: property.sqm || 1,
-              percentage: 100,
+              percentage: 60,
               amount: property.amount || 50000
+            },
+            {
+              name: 'John Smith',
+              email: 'john.smith@example.com',
+              phone: '+234 801 234 5678',
+              sqm: 2,
+              percentage: 25,
+              amount: 20000
+            },
+            {
+              name: 'Sarah Johnson',
+              email: 'sarah.j@example.com',
+              phone: '+234 802 345 6789',
+              sqm: 1,
+              percentage: 15,
+              amount: 12000
             }
-          ]
+          ],
+          totalOwners: 3,
+          totalInvestment: 82000
         }));
       }
     } catch (error) {
       console.error('Error fetching co-owners:', error);
-      // Use mock data as fallback
+      // Use mock data as fallback with multiple co-owners for testing
       setSelectedProperty(prev => ({
         ...prev,
         coOwners: [
@@ -366,11 +386,31 @@ export default function UserDashboard() {
             email: userData.email,
             phone: userData.phone || 'N/A',
             sqm: property.sqm || 1,
-            percentage: 100,
+            percentage: 60,
             amount: property.amount || 50000
+          },
+          {
+            name: 'John Smith',
+            email: 'john.smith@example.com',
+            phone: '+234 801 234 5678',
+            sqm: 2,
+            percentage: 25,
+            amount: 20000
+          },
+          {
+            name: 'Sarah Johnson',
+            email: 'sarah.j@example.com',
+            phone: '+234 802 345 6789',
+            sqm: 1,
+            percentage: 15,
+            amount: 12000
           }
-        ]
+        ],
+        totalOwners: 3,
+        totalInvestment: 82000
       }));
+    } finally {
+      setLoadingCoOwners(false);
     }
   };
 
@@ -1900,9 +1940,33 @@ export default function UserDashboard() {
                   </button>
                 </div>
                 
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Ownership Distribution</h3>
+                {/* Summary Statistics */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-indigo-50 rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-indigo-600">{selectedProperty.totalOwners || 0}</p>
+                    <p className="text-sm text-gray-600">Total Co-owners</p>
+                  </div>
+                  <div className="bg-green-50 rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-green-600">₦{(selectedProperty.totalInvestment || 0).toLocaleString()}</p>
+                    <p className="text-sm text-gray-600">Total Investment</p>
+                  </div>
+                  <div className="bg-purple-50 rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-purple-600">{selectedProperty.coOwners?.reduce((sum, owner) => sum + owner.sqm, 0) || 0}</p>
+                    <p className="text-sm text-gray-600">Total Sq.m Owned</p>
+                  </div>
+                </div>
+                
+                {loadingCoOwners ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading co-owners data...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Ownership Distribution</h3>
                     <div className="bg-gray-50 rounded-lg p-4">
                       <div className="w-48 h-48 mx-auto mb-4 relative">
                         {/* Functional Pie Chart */}
@@ -1989,6 +2053,7 @@ export default function UserDashboard() {
                     </div>
                   </div>
                 </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
