@@ -861,7 +861,7 @@ export default function UserDashboard() {
       
             try {
         const handler = window.PaystackPop.setup({
-          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_c6e9456f9a1b1071ed96b977c21f8fae727400e0', // Use environment variable
+          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
           email: email,
           amount: amount,
           currency: 'NGN',

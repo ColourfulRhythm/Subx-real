@@ -25,6 +25,8 @@ import nodemailer from 'nodemailer';
 import telegramBot from './services/telegramBot.js';
 // Supabase authentication service
 import { supabase } from './supabase.js';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -113,15 +115,83 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 // Connect to MongoDB
 connectDB();
 
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      scriptSrc: ["'self'", "https://js.paystack.co"],
+      connectSrc: ["'self'", "https://api.paystack.co", "https://subxbackend-production.up.railway.app"]
+    }
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+}));
+
+// Apply rate limiting to all routes
+app.use(limiter);
+
 // Middleware
 app.use(cors({
-  origin: '*',
+  origin: [
+    'https://www.subxhq.com',
+    'https://subxhq.com',
+    'https://subx-real-ish3bi357-colourfulrhythms-projects.vercel.app',
+    'https://subx-real-eveinv7gn-colourfulrhythms-projects.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Input validation middleware
+app.use((req, res, next) => {
+  // Check request size
+  const contentLength = parseInt(req.headers['content-length'] || '0');
+  if (contentLength > 10 * 1024 * 1024) { // 10MB limit
+    return res.status(413).json({ error: 'Request entity too large' });
+  }
+  
+  // Sanitize request body
+  if (req.body) {
+    Object.keys(req.body).forEach(key => {
+      if (typeof req.body[key] === 'string') {
+        req.body[key] = req.body[key].trim().replace(/[<>]/g, '');
+      }
+    });
+  }
+  
+  // Sanitize query parameters
+  if (req.query) {
+    Object.keys(req.query).forEach(key => {
+      if (typeof req.query[key] === 'string') {
+        req.query[key] = req.query[key].trim().replace(/[<>]/g, '');
+      }
+    });
+  }
+  
+  next();
+});
 
 // Mount routes
 app.use('/api/admin', adminRouter);
@@ -136,11 +206,28 @@ const storage = multer.diskStorage({
     cb(null, path.join(__dirname, 'uploads'));
   },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
+    // Sanitize filename to prevent path traversal
+    const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    cb(null, `${Date.now()}-${sanitizedName}`);
   }
 });
 
-const upload = multer({ storage });
+const upload = multer({ 
+  storage,
+  fileFilter: (req, file, cb) => {
+    // Allow only specific file types
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and PDF files are allowed.'), false);
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+    files: 1 // Only 1 file per request
+  }
+});
 
 // Supabase token verification middleware
 const supabaseAuthMiddleware = async (req, res, next) => {
@@ -178,10 +265,11 @@ const adminAuth = async (req, res, next) => {
     }
 
     // Verify Supabase JWT token
-    const decodedToken = await auth.verifyIdToken(token);
-    if (!decodedToken) {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
+    const decodedToken = data.user;
 
     // Check if user is admin in database
     const admin = await Admin.findOne({ email: decodedToken.email });
@@ -191,7 +279,7 @@ const adminAuth = async (req, res, next) => {
 
     req.admin = admin;
     req.user = {
-      uid: decodedToken.uid,
+      uid: decodedToken.id,
       email: decodedToken.email,
       role: 'admin'
     };
@@ -211,10 +299,11 @@ const investorAuth = async (req, res, next) => {
     }
 
     // Verify Supabase JWT token
-    const decodedToken = await auth.verifyIdToken(token);
-    if (!decodedToken) {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
+    const decodedToken = data.user;
 
     // Check if user is investor in database
     const investor = await Investor.findOne({ email: decodedToken.email });
@@ -224,7 +313,7 @@ const investorAuth = async (req, res, next) => {
 
     req.investor = investor;
     req.user = {
-      uid: decodedToken.uid,
+      uid: decodedToken.id,
       email: decodedToken.email,
       role: 'investor'
     };
