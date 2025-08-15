@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../../supabase';
+import { supabase, paystackKey } from '../../supabase';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import PaymentSuccessModal from '../../components/PaymentSuccessModal';
@@ -861,7 +861,7 @@ export default function UserDashboard() {
       
             try {
         const handler = window.PaystackPop.setup({
-          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+          key: paystackKey,
           email: email,
           amount: amount,
           currency: 'NGN',

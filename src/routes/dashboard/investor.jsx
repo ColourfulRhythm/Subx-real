@@ -5,7 +5,7 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { motion, AnimatePresence } from 'framer-motion'
 import AIAnalysis from '../../components/AIAnalysis'
-import { supabase } from '../../supabase'
+import { supabase, paystackKey } from '../../supabase'
 import PaymentSuccessModal from '../../components/PaymentSuccessModal'
 import DeedSignatureModal from '../../components/DeedSignatureModal'
 import { generateReceipt, generateOwnershipCertificate, generateDeedPDF } from '../../components/ReceiptDownload'
@@ -156,7 +156,7 @@ const payWithPaystack = (amount, email, name) => {
   }
   const reference = 'SUBX-' + Math.floor(Math.random() * 1000000000);
   const handler = window.PaystackPop.setup({
-            key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+            key: paystackKey,
     email: email,
     amount: amount * 100, // Paystack expects amount in kobo
     currency: 'NGN',
