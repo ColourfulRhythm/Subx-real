@@ -62,7 +62,7 @@ export default function DeveloperSignup() {
               full_name: data.name,
               user_type: 'developer'
             },
-            emailRedirectTo: `${window.location.origin}/dashboard/developer`
+            emailRedirectTo: `${window.location.origin}/verify`
           }
         })
 

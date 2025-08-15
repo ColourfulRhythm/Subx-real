@@ -49,11 +49,30 @@ export default function LandingPage() {
   const [spotsLeft, setSpotsLeft] = useState(10000);
 
   useEffect(() => {
-    // Get user count from localStorage or use a realistic starting number
-    const totalUsers = parseInt(localStorage.getItem('totalUsers') || '0');
-    const baseUsers = 0; // Start with 0 users for honesty
-    const currentTotal = baseUsers + totalUsers;
-    setSpotsLeft(Math.max(0, 10000 - currentTotal));
+    // Fetch real user count from backend
+    const fetchUserCount = async () => {
+      try {
+        const response = await fetch('/api/users/count');
+        const data = await response.json();
+        if (data.success) {
+          const totalUsers = data.totalUsers || 0;
+          setSpotsLeft(Math.max(0, 10000 - totalUsers));
+          // Store in localStorage for fallback
+          localStorage.setItem('totalUsers', totalUsers.toString());
+        } else {
+          // Fallback to localStorage
+          const totalUsers = parseInt(localStorage.getItem('totalUsers') || '0');
+          setSpotsLeft(Math.max(0, 10000 - totalUsers));
+        }
+      } catch (error) {
+        console.error('Error fetching user count:', error);
+        // Fallback to localStorage
+        const totalUsers = parseInt(localStorage.getItem('totalUsers') || '0');
+        setSpotsLeft(Math.max(0, 10000 - totalUsers));
+      }
+    };
+
+    fetchUserCount();
   }, []);
 
   // Function to increment user count when someone signs up

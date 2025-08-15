@@ -272,7 +272,8 @@ export default function UserDashboard() {
       try {
         await Promise.all([
           fetchUserData(),
-          fetchUserProperties()
+          fetchUserProperties(),
+          fetchProjects()
         ]);
       } catch (error) {
         console.error('Failed to load data:', error);
@@ -790,6 +791,20 @@ export default function UserDashboard() {
     }
   };
 
+  // Fetch projects from backend
+  const fetchProjects = async () => {
+    try {
+      const response = await apiCall('/projects');
+      if (response && response.length > 0) {
+        setProjects(response);
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      // Fallback to mock data
+      setProjects(mockProjects);
+    }
+  };
+
   const handleSqmChange = (sqm) => {
     setSelectedSqm(sqm);
     setOwnershipAmount(`₦${(sqm * 5000).toLocaleString()}`);
@@ -879,15 +894,28 @@ export default function UserDashboard() {
               method: 'POST',
               body: JSON.stringify(investmentData),
             })
+            .then((response) => {
+              console.log('Investment saved successfully:', response);
+              
+              // Update available SQM in backend
+              return apiCall(`/projects/${selectedProject.id}/update-sqm`, {
+                method: 'PUT',
+                body: JSON.stringify({ 
+                  purchasedSqm: selectedSqm,
+                  availableSqm: Math.max(0, selectedProject.availableSqm - selectedSqm)
+                }),
+              });
+            })
             .then(() => {
-              // Refresh user data
+              // Refresh user data and projects
               return Promise.all([
                 fetchUserData(),
-                fetchUserProperties()
+                fetchUserProperties(),
+                fetchProjects()
               ]);
             })
             .then(() => {
-              // Update available SQM
+              // Update available SQM in frontend
               updateAvailableSqm(selectedProject.id, selectedSqm);
               
               // Show success modal with document options

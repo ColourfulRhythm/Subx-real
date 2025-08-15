@@ -40,7 +40,7 @@ export default function InvestorSignup() {
             full_name: data.name,
             user_type: 'investor'
           },
-          emailRedirectTo: `${window.location.origin}/dashboard/investor`
+          emailRedirectTo: `${window.location.origin}/verify`
         }
       })
 
