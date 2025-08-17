@@ -8,13 +8,17 @@ import PaymentSuccessModal from '../../components/PaymentSuccessModal';
 
 // Backend API functions
 const API_BASE_URL = 'https://subxbackend-production.up.railway.app/api';
-const IS_DEVELOPMENT = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 const apiCall = async (endpoint, options = {}) => {
   try {
+    // Get the current user's session token
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : '',
         ...options.headers,
       },
       ...options,
@@ -31,2469 +35,656 @@ const apiCall = async (endpoint, options = {}) => {
   }
 };
 
-
-
-const mockProjects = [
-  {
-    id: 1,
-    title: '2 Seasons - Plot 77',
-    location: '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state',
-    price: '₦5,000/sq.m',
-    totalSqm: 500,
-    availableSqm: 500,
-    image: '/2-seasons/2seasons-logo.jpg',
-    status: 'Available',
-    description: 'Premium residential plot in 2 Seasons Estate with world-class amenities.',
-    amenities: ['Gated Community', '24/7 Security', 'Recreation Center', 'Shopping Mall']
-  },
-  {
-    id: 2,
-    title: '2 Seasons - Plot 79',
-    location: '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state',
-    price: '₦5,000/sq.m',
-    totalSqm: 500,
-    availableSqm: 500,
-    image: '/2-seasons/2seasons-logo.jpg',
-    status: 'Available',
-    description: 'Exclusive residential plot with lakefront views and premium facilities.',
-    amenities: ['Lakefront Views', 'Wellness Center', 'Sports Academy', 'Content Village']
-  },
-  {
-    id: 3,
-    title: '2 Seasons - Plot 81',
-    location: '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state',
-    price: '₦5,000/sq.m',
-    totalSqm: 500,
-    availableSqm: 500,
-    image: '/2-seasons/2seasons-logo.jpg',
-    status: 'Available',
-    description: 'Premium plot in the wellness village with spa and recreation facilities.',
-    amenities: ['Spa & Wellness', 'Fruit Forest', 'Yoga Pavilion', 'Juice Bars']
-  },
-  {
-    id: 4,
-    title: '2 Seasons - Plot 84',
-    location: '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state',
-    price: '₦5,000/sq.m',
-    totalSqm: 500,
-    availableSqm: 500,
-    image: '/2-seasons/2seasons-logo.jpg',
-    status: 'Available',
-    description: 'Strategic plot with excellent connectivity and modern amenities.',
-    amenities: ['Strategic Location', 'Easy Access', 'Modern Infrastructure', 'Community Hub']
-  },
-  {
-    id: 5,
-    title: '2 Seasons - Plot 87',
-    location: '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state',
-    price: '₦5,000/sq.m',
-    totalSqm: 500,
-    availableSqm: 500,
-    image: '/2-seasons/2seasons-logo.jpg',
-    status: 'Available',
-    description: 'Premium plot with panoramic views and exclusive amenities.',
-    amenities: ['Panoramic Views', 'Exclusive Access', 'Premium Facilities', 'Privacy']
-  }
-];
-
 export default function UserDashboard() {
   const navigate = useNavigate();
-  const [userData, setUserData] = useState({
-    name: '',
-    email: '',
-    avatar: '',
-    portfolioValue: '₦0',
-    totalLandOwned: '0 sqm',
-    totalInvestments: 0,
-    recentActivity: []
-  });
-  const [projects, setProjects] = useState(mockProjects);
+  const [user, setUser] = useState(null);
+  const [userData, setUserData] = useState({});
   const [userProperties, setUserProperties] = useState([]);
-  const [activeTab, setActiveTab] = useState('opportunities');
+  const [projects, setProjects] = useState([]);
+  const [showOwnershipModal, setShowOwnershipModal] = useState(false);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [paymentData, setPaymentData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [selectedProperty, setSelectedProperty] = useState(null);
-  const [selectedDocument, setSelectedDocument] = useState(null);
-  const [showProjectModal, setShowProjectModal] = useState(false);
-  const [showOwnershipModal, setShowOwnershipModal] = useState(false);
-  const [showCoOwnersModal, setShowCoOwnersModal] = useState(false);
-  const [loadingCoOwners, setLoadingCoOwners] = useState(false);
-  const [showDocumentsModal, setShowDocumentsModal] = useState(false);
-  const [showDeedSignModal, setShowDeedSignModal] = useState(false);
-  const [selectedSqm, setSelectedSqm] = useState(1);
-  const [ownershipAmount, setOwnershipAmount] = useState('₦5,000');
-  const [signatureCanvas, setSignatureCanvas] = useState(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [signatureData, setSignatureData] = useState(null);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileData, setProfileData] = useState({
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [forumTopics, setForumTopics] = useState([]);
+  const [forumCategories, setForumCategories] = useState([]);
+  const [newTopic, setNewTopic] = useState({ title: '', content: '', categoryId: '' });
+  const [showNewTopicModal, setShowNewTopicModal] = useState(false);
+  const [expandedPlots, setExpandedPlots] = useState(new Set());
+
+  // Form states for ownership modal
+  const [ownershipForm, setOwnershipForm] = useState({
     name: '',
     email: '',
     phone: '',
-    address: '',
-    dateOfBirth: '',
-    occupation: ''
+    amount: '',
+    sqm: ''
   });
-
-  // Forum state
-  const [forumSearchQuery, setForumSearchQuery] = useState('');
-  const [forumTopics, setForumTopics] = useState([]);
-  const [forums, setForums] = useState({
-    general: {
-      title: 'General Discussion',
-      topics: [
-        {
-          id: 1,
-          title: 'Welcome to Subx Community!',
-          author: 'Subx Team',
-          content: 'Welcome to our community! Feel free to discuss real estate investment strategies, ask questions, and connect with other investors.',
-          replies: [
-            { id: 1, author: 'John Doe', content: 'Great to be here! Looking forward to learning from everyone.', timestamp: '2 hours ago' },
-            { id: 2, author: 'Sarah Johnson', content: 'This is exactly what I needed. Thanks Subx Team!', timestamp: '1 hour ago' },
-            { id: 3, author: 'Mike Chen', content: 'Excited to start my real estate journey with Subx!', timestamp: '45 minutes ago' },
-            { id: 4, author: 'Emma Wilson', content: 'The platform looks amazing. Can\'t wait to explore more.', timestamp: '30 minutes ago' },
-            { id: 5, author: 'David Brown', content: 'Already learning so much from the community!', timestamp: '15 minutes ago' }
-          ],
-          lastActivity: '15 minutes ago',
-          category: 'general',
-          timestamp: '3 hours ago'
-        },
-        {
-          id: 2,
-          title: 'Investment Tips for Beginners',
-          author: 'Sarah Johnson',
-          content: 'I\'m new to real estate investment. Any tips for someone just starting out? What should I focus on first?',
-          replies: [
-            { id: 1, author: 'Mike Chen', content: 'Start small! Even 1 sqm is a great beginning. Focus on understanding the market first.', timestamp: '1 day ago' },
-            { id: 2, author: 'Emma Wilson', content: 'Research the location thoroughly. Location is everything in real estate.', timestamp: '1 day ago' },
-            { id: 3, author: 'David Brown', content: 'Don\'t rush into decisions. Take your time to understand the investment.', timestamp: '23 hours ago' },
-            { id: 4, author: 'John Doe', content: 'Consider starting with smaller plots to get comfortable with the process.', timestamp: '22 hours ago' },
-            { id: 5, author: 'Lisa Park', content: 'Network with other investors. The community here is very helpful!', timestamp: '21 hours ago' },
-            { id: 6, author: 'Alex Turner', content: 'Set realistic expectations. Real estate is a long-term investment.', timestamp: '20 hours ago' },
-            { id: 7, author: 'Maria Garcia', content: 'Learn about the legal aspects. Understanding contracts is crucial.', timestamp: '19 hours ago' },
-            { id: 8, author: 'Tom Anderson', content: 'Start with areas you know or can easily research.', timestamp: '18 hours ago' },
-            { id: 9, author: 'Rachel Green', content: 'Don\'t invest more than you can afford to lose.', timestamp: '17 hours ago' },
-            { id: 10, author: 'Chris Martin', content: 'Keep learning! The market changes constantly.', timestamp: '16 hours ago' },
-            { id: 11, author: 'Sophie Turner', content: 'Consider the potential for development in the area.', timestamp: '15 hours ago' },
-            { id: 12, author: 'James Bond', content: 'Patience is key. Good investments take time to mature.', timestamp: '14 hours ago' }
-          ],
-          lastActivity: '14 hours ago',
-          category: 'investment',
-          timestamp: '2 days ago'
-        },
-        {
-          id: 3,
-          title: 'Best Locations for Investment in 2025',
-          author: 'Mike Chen',
-          content: 'What are your thoughts on the best locations for real estate investment this year? I\'m particularly interested in emerging markets.',
-          replies: [
-            { id: 1, author: 'Emma Wilson', content: 'Ogun State is showing great potential with the new developments.', timestamp: '5 hours ago' },
-            { id: 2, author: 'David Brown', content: 'I agree! The infrastructure improvements are making it very attractive.', timestamp: '4 hours ago' },
-            { id: 3, author: 'Lisa Park', content: 'Lagos outskirts are also worth considering for long-term growth.', timestamp: '3 hours ago' }
-          ],
-          lastActivity: '3 hours ago',
-          category: 'investment',
-          timestamp: '6 hours ago'
-        }
-      ]
-    },
-    investment: {
-      title: 'Investment Strategies',
-      topics: [
-        {
-          id: 4,
-          title: 'Diversification Strategies',
-          author: 'Emma Wilson',
-          content: 'How do you diversify your real estate portfolio? Looking for strategies to spread risk.',
-          replies: [
-            { id: 1, author: 'David Brown', content: 'I invest in different locations and plot sizes to spread risk.', timestamp: '1 day ago' },
-            { id: 2, author: 'Mike Chen', content: 'Consider different types of properties too - residential, commercial, etc.', timestamp: '1 day ago' }
-          ],
-          lastActivity: '1 day ago',
-          category: 'investment',
-          timestamp: '2 days ago'
-        }
-      ]
-    }
-  });
-  const [activeForum, setActiveForum] = useState('general');
-  const [showNewTopicModal, setShowNewTopicModal] = useState(false);
-  const [showTopicModal, setShowTopicModal] = useState(false);
-  const [selectedTopic, setSelectedTopic] = useState(null);
-  const [newTopicData, setNewTopicData] = useState({
-    title: '',
-    content: '',
-    category: 'general'
-  });
-  const [newReply, setNewReply] = useState('');
-
-  // Sync profile data with user data when userData changes
-  useEffect(() => {
-    if (userData) {
-      setProfileData(prev => ({
-        ...prev,
-        name: userData.name || prev.name,
-        email: userData.email || prev.email,
-        phone: userData.phone || prev.phone,
-        address: userData.address || prev.address,
-        dateOfBirth: userData.dateOfBirth || prev.dateOfBirth,
-        occupation: userData.occupation || prev.occupation
-      }));
-    }
-  }, [userData]);
 
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-
-    // Check verification status - temporarily disabled for development
-    const checkVerificationStatus = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // Check email verification
-        if (!user.email_confirmed_at) {
-          toast.error('Please verify your email to access the dashboard');
-          navigate('/login');
-          return;
-        }
-        console.log('User logged in:', user.email);
-      }
-    };
-
-    checkVerificationStatus();
-    
-    // Load data from backend
-    const loadData = async () => {
+    const getUser = async () => {
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUser(user);
         await Promise.all([
-          fetchUserData(),
-          fetchUserProperties(),
-          fetchProjects()
-        ]);
+            fetchUserData(user),
+            fetchUserProperties(user),
+            fetchProjects(),
+            fetchForumData()
+          ]);
+        }
       } catch (error) {
-        console.error('Failed to load data:', error);
+        console.error('Error getting user:', error);
+        navigate('/login');
       } finally {
-        setTimeout(() => setIsLoading(false), 1000);
+        setLoading(false);
       }
     };
 
-    loadData();
-    
-    // Load Paystack script
-    if (!window.PaystackPop) {
-      const script = document.createElement('script');
-      script.src = 'https://js.paystack.co/v1/inline.js';
-      script.async = true;
-      script.onload = () => {
-        console.log('Paystack script loaded successfully');
-      };
-      script.onerror = () => {
-        console.error('Failed to load Paystack script');
-      };
-      document.body.appendChild(script);
-    }
+    getUser();
   }, [navigate]);
 
-  const handleLogout = async () => {
+  const fetchUserData = async (user) => {
     try {
-      await supabase.auth.signOut();
-      localStorage.removeItem('isAuthenticated');
-      localStorage.removeItem('userType');
-      navigate('/');
-      toast.success('Logged out successfully');
-    } catch (error) {
-      toast.error('Failed to logout');
-    }
-  };
-
-  const handleOwnNow = (project) => {
-    setSelectedProject(project);
-    setSelectedSqm(1);
-    setOwnershipAmount('₦5,000');
-    setShowOwnershipModal(true);
-  };
-
-  const handleViewDetails = (project) => {
-    setSelectedProject(project);
-    setShowProjectModal(true);
-  };
-
-  const handleViewCoOwners = async (property) => {
-    setSelectedProperty(property);
-    setShowCoOwnersModal(true);
-    setLoadingCoOwners(true);
-    
-    try {
-      // Fetch co-owners data from backend
-      const response = await fetch(`/api/co-owners/${property.id}`);
-      const data = await response.json();
-      
-      if (data.success && data.coOwners.length > 0) {
-        // Update the property with real co-owners data
-        setSelectedProperty(prev => ({
-          ...prev,
-          coOwners: data.coOwners,
-          totalOwners: data.totalOwners,
-          totalInvestment: data.totalInvestment
-        }));
-      } else {
-        console.log('No co-owners found, using mock data');
-        // Use mock data as fallback with multiple co-owners for testing
-        setSelectedProperty(prev => ({
-          ...prev,
-          coOwners: [
-            {
-              name: userData.name,
-              email: userData.email,
-              phone: userData.phone || 'N/A',
-              sqm: property.sqm || 1,
-              percentage: 60,
-              amount: property.amount || 50000
-            },
-            {
-              name: 'John Smith',
-              email: 'john.smith@example.com',
-              phone: '+234 801 234 5678',
-              sqm: 2,
-              percentage: 25,
-              amount: 20000
-            },
-            {
-              name: 'Sarah Johnson',
-              email: 'sarah.j@example.com',
-              phone: '+234 802 345 6789',
-              sqm: 1,
-              percentage: 15,
-              amount: 12000
-            }
-          ],
-          totalOwners: 3,
-          totalInvestment: 82000
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching co-owners:', error);
-      // Use mock data as fallback with multiple co-owners for testing
-      setSelectedProperty(prev => ({
-        ...prev,
-        coOwners: [
-          {
-            name: userData.name,
-            email: userData.email,
-            phone: userData.phone || 'N/A',
-            sqm: property.sqm || 1,
-            percentage: 60,
-            amount: property.amount || 50000
-          },
-          {
-            name: 'John Smith',
-            email: 'john.smith@example.com',
-            phone: '+234 801 234 5678',
-            sqm: 2,
-            percentage: 25,
-            amount: 20000
-          },
-          {
-            name: 'Sarah Johnson',
-            email: 'sarah.j@example.com',
-            phone: '+234 802 345 6789',
-            sqm: 1,
-            percentage: 15,
-            amount: 12000
-          }
-        ],
-        totalOwners: 3,
-        totalInvestment: 82000
-      }));
-    } finally {
-      setLoadingCoOwners(false);
-    }
-  };
-
-  const handleViewDocuments = (property) => {
-    setSelectedProperty(property);
-    setShowDocumentsModal(true);
-  };
-
-  const handleSignDeed = (document) => {
-    setSelectedDocument(document);
-    setShowDeedSignModal(true);
-  };
-
-  // Update available SQM after purchase
-  const updateAvailableSqm = (projectId, purchasedSqm) => {
-    setProjects(prevProjects => 
-      prevProjects.map(project => 
-        project.id === projectId 
-          ? { ...project, availableSqm: Math.max(0, project.availableSqm - purchasedSqm) }
-          : project
-      )
-    );
-  };
-
-  // Forum functions
-  const handleViewTopic = (topic) => {
-    setSelectedTopic(topic);
-    setShowTopicModal(true);
-  };
-
-  const handleAddReply = async () => {
-    if (!newReply.trim()) return;
-    
-    const reply = {
-      id: Date.now(),
-      author: userData.name || 'User',
-      content: newReply,
-      timestamp: 'Just now'
-    };
-    
-    // Add reply to the selected topic
-    const updatedForums = { ...forums };
-    const topic = updatedForums[activeForum].topics.find(t => t.id === selectedTopic.id);
-    if (topic) {
-      topic.replies.push(reply);
-      topic.lastActivity = 'Just now';
-      setForums(updatedForums);
-      setNewReply('');
-      toast.success('Reply added successfully!');
-    }
-  };
-
-  const handleCreateTopic = async () => {
-    if (!newTopicData.title.trim() || !newTopicData.content.trim()) return;
-    
-    const newTopic = {
-      id: Date.now(),
-      title: newTopicData.title,
-      author: userData.name || 'User',
-      content: newTopicData.content,
-      replies: [],
-      lastActivity: 'Just now',
-      category: newTopicData.category,
-      timestamp: 'Just now'
-    };
-    
-    // Add new topic to the active forum
-    const updatedForums = { ...forums };
-    updatedForums[activeForum].topics.unshift(newTopic);
-    setForums(updatedForums);
-    
-    // Reset form and close modal
-    setNewTopicData({ title: '', content: '', category: 'general' });
-    setShowNewTopicModal(false);
-    toast.success('Topic created successfully!');
-  };
-
-  const handleSignatureStart = (e) => {
-    setIsDrawing(true);
-    const canvas = signatureCanvas;
-    const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.strokeStyle = '#1f2937';
-    ctx.lineWidth = 2;
-  };
-
-  const handleSignatureMove = (e) => {
-    if (!isDrawing) return;
-    const canvas = signatureCanvas;
-    const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    ctx.lineTo(x, y);
-    ctx.stroke();
-  };
-
-  const handleSignatureEnd = () => {
-    setIsDrawing(false);
-    const canvas = signatureCanvas;
-    const dataURL = canvas.toDataURL();
-    setSignatureData(dataURL);
-  };
-
-  const clearSignature = () => {
-    const canvas = signatureCanvas;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setSignatureData(null);
-  };
-
-  // Generate PDF Receipt
-  const generateReceipt = (investmentData) => {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(20);
-    doc.text('PAYMENT RECEIPT', 105, 20, { align: 'center' });
-    
-    // Company Info
-    doc.setFontSize(12);
-    doc.text('Subx Real Estate Ownership Platform', 105, 35, { align: 'center' });
-    doc.text('Focal Point Property Development and Management Services Ltd.', 105, 42, { align: 'center' });
-    doc.text('Date: ' + new Date().toLocaleDateString(), 20, 55);
-    doc.text('Receipt No: ' + investmentData.paymentReference, 20, 62);
-    
-    // Payment Details
-    doc.setFontSize(14);
-    doc.text('Payment Details', 20, 80);
-    doc.setFontSize(12);
-    doc.text('Investor Name: ' + userData.name, 20, 90);
-    doc.text('Email: ' + userData.email, 20, 97);
-    doc.text('Project: ' + investmentData.projectTitle, 20, 104);
-    doc.text('Location: ' + investmentData.location, 20, 111);
-    doc.text('Land Area: ' + investmentData.sqm + ' sq.m', 20, 118);
-    doc.text('Amount Paid: ₦' + investmentData.amount.toLocaleString(), 20, 125);
-    doc.text('Payment Reference: ' + investmentData.paymentReference, 20, 132);
-    
-    // Footer
-    doc.setFontSize(10);
-    doc.text('Thank you for your ownership!', 105, 180, { align: 'center' });
-    doc.text('This receipt serves as proof of your ownership.', 105, 187, { align: 'center' });
-    
-    return doc;
-  };
-
-  // Generate Certificate of Ownership
-  const generateCertificate = (investmentData) => {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(24);
-    doc.text('CERTIFICATE OF OWNERSHIP', 105, 25, { align: 'center' });
-    
-    // Certificate Number
-    doc.setFontSize(12);
-    doc.text('Certificate No: ' + investmentData.paymentReference, 105, 35, { align: 'center' });
-    doc.text('Date Issued: ' + new Date().toLocaleDateString(), 105, 42, { align: 'center' });
-    
-    // Main Content
-    doc.setFontSize(14);
-    doc.text('This is to certify that:', 20, 60);
-    doc.setFontSize(12);
-    doc.text(userData.name, 20, 70);
-    doc.text('Email: ' + userData.email, 20, 77);
-    
-    doc.text('is the legal owner of:', 20, 90);
-    doc.text(investmentData.sqm + ' square meters', 20, 100);
-    doc.text('in the property known as:', 20, 107);
-    doc.text(investmentData.projectTitle, 20, 117);
-    doc.text('Located at: ' + investmentData.location, 20, 124);
-    
-    doc.text('Total Ownership Value: ₦' + investmentData.amount.toLocaleString(), 20, 140);
-    
-    // Legal Statement
-    doc.setFontSize(10);
-    doc.text('This certificate is issued by Focal Point Property Development and Management Services Ltd.', 20, 160);
-    doc.text('and serves as legal proof of ownership in the above-mentioned property.', 20, 167);
-    
-    // Signature
-    doc.text('Authorized Signature: _________________', 20, 190);
-    doc.text('Date: ' + new Date().toLocaleDateString(), 20, 197);
-    
-    return doc;
-  };
-
-  // Download Receipt
-  const handleDownloadReceipt = () => {
-    if (!paymentData) return;
-    
-    const doc = generateReceipt(paymentData);
-    doc.save(`receipt-${paymentData.paymentReference}.pdf`);
-    toast.success('Receipt downloaded successfully!');
-  };
-
-  // Download Certificate
-  const handleDownloadCertificate = () => {
-    if (!paymentData) return;
-    
-    const doc = generateCertificate(paymentData);
-    doc.save(`certificate-${paymentData.paymentReference}.pdf`);
-    toast.success('Certificate downloaded successfully!');
-  };
-
-  // Sign Deed of Assignment from Payment Success
-  const handleSignDeedFromPayment = () => {
-    setShowPaymentSuccess(false);
-    setShowDeedSignModal(true);
-    toast.info('Please sign your Deed of Assignment');
-  };
-
-  // Backend integration functions
-  const fetchUserData = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // First try to load from localStorage for immediate display
-      const savedUserData = localStorage.getItem('userProfileData');
-      if (savedUserData) {
-        try {
-          const parsedData = JSON.parse(savedUserData);
-          setUserData(parsedData);
-        } catch (e) {
-          console.log('Failed to parse saved user data');
-        }
-      }
-
-      // Try to load from backend
-      try {
-        const userIdentifier = user.email || user.uid;
-        const response = await apiCall(`/users/${userIdentifier}`);
-        if (response && Object.keys(response).length > 0) {
-          setUserData(response);
-          // Save to localStorage for persistence
-          localStorage.setItem('userProfileData', JSON.stringify(response));
-        }
-      } catch (backendError) {
-        console.log('Backend not available, using localStorage data');
-      }
-
-      // If no data available, use basic user info
-      if (!savedUserData && !userData.name) {
-        const basicData = {
-          name: user?.user_metadata?.name || localStorage.getItem('userName') || user?.email?.split('@')[0] || 'User',
-          email: user?.email || localStorage.getItem('userEmail') || '',
-          avatar: '/subx-logo/default-avatar.png',
-          portfolioValue: '₦0',
-          totalLandOwned: '0 sqm',
-          totalInvestments: 0,
-          recentActivity: [
-            {
-              id: 1,
-              title: 'Account Created',
-              amount: 'Welcome to Subx!',
-              date: new Date().toLocaleDateString(),
-              status: 'completed'
-            }
-          ]
-        };
-        setUserData(basicData);
-        localStorage.setItem('userProfileData', JSON.stringify(basicData));
-      }
+      const data = await apiCall(`/users/${user.email || user.id}`);
+      setUserData(data);
     } catch (error) {
       console.error('Failed to fetch user data:', error);
-      // Load from localStorage as fallback
-      const savedData = localStorage.getItem('userProfileData');
-      if (savedData) {
-        try {
-          setUserData(JSON.parse(savedData));
-        } catch (e) {
-          console.log('Failed to parse saved data');
-        }
-      }
     }
   };
 
-  const updateUserProfile = async (profileData) => {
+  const fetchUserProperties = async (user) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No authenticated user');
-
-      // Update local state immediately for better UX
-      const updatedUserData = {
-        ...userData,
-        name: profileData.name || userData.name,
-        email: profileData.email || userData.email,
-        phone: profileData.phone || userData.phone,
-        address: profileData.address || userData.address,
-        dateOfBirth: profileData.dateOfBirth || userData.dateOfBirth,
-        occupation: profileData.occupation || userData.occupation
-      };
-      
-      setUserData(updatedUserData);
-      
-      // Save to localStorage for persistence
-      localStorage.setItem('userProfileData', JSON.stringify(updatedUserData));
-      
-      // Also save individual fields to localStorage for compatibility
-      localStorage.setItem('userName', profileData.name || userData.name);
-      localStorage.setItem('userEmail', profileData.email || userData.email);
-      
-      // Try to save to backend
-      try {
-        const userIdentifier = user.email || user.uid;
-        const response = await apiCall(`/users/${userIdentifier}`, {
-          method: 'PUT',
-          body: JSON.stringify(profileData),
-        });
-        console.log('Profile updated in backend:', response);
-      } catch (backendError) {
-        console.log('Backend not available, saved to localStorage only');
-      }
-      
-      toast.success('Profile updated successfully!');
-      setIsEditingProfile(false);
+      const data = await apiCall(`/users/${user.email || user.id}/properties`);
+      setUserProperties(data);
     } catch (error) {
-      console.error('Failed to update profile:', error);
+      console.error('Failed to fetch properties:', error);
+    }
+  };
+
+  const fetchProjects = async () => {
+    try {
+      const data = await apiCall('/properties');
+      setProjects(data);
+    } catch (error) {
+      console.error('Failed to fetch projects:', error);
+    }
+  };
+
+  const fetchForumData = async () => {
+    try {
+      const [topics, categories] = await Promise.all([
+        apiCall('/forum/topics'),
+        apiCall('/forum/categories')
+      ]);
+      setForumTopics(topics);
+      setForumCategories(categories);
+    } catch (error) {
+      console.error('Failed to fetch forum data:', error);
+    }
+  };
+
+  const updateUserProfile = async (updateData) => {
+    try {
+      if (!user) return;
+
+      const data = await apiCall(`/users/${user.email || user.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData)
+      });
+
+      setUserData(data);
+      toast.success('Profile updated successfully!');
+    } catch (error) {
+      console.error('Backend update failed, but local state updated:', error);
       toast.error('Failed to update profile');
     }
   };
 
-  const handleProfilePictureChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setUserData(prev => ({
-          ...prev,
-          avatar: e.target.result
-        }));
-        toast.success('Profile picture updated!');
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const savePropertyDocument = async (propertyId, documentData) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No authenticated user');
-
-      const response = await apiCall(`/properties/${propertyId}/documents`, {
-        method: 'POST',
-        body: JSON.stringify(documentData),
-      });
-      console.log('Document saved to backend:', response);
-
-      toast.success('Document signed successfully!');
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to save document:', error);
-      toast.error('Failed to save document');
-      throw error;
-    }
-  };
-
-  const fetchUserProperties = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Use email for API calls to match our real users
-      const userIdentifier = user.email || user.uid;
-      const response = await apiCall(`/users/${userIdentifier}/properties`);
-      setUserProperties(response);
-    } catch (error) {
-      console.error('Failed to fetch properties:', error);
-      // Show empty state instead of mock data
-      setUserProperties([]);
-    }
-  };
-
-  // Fetch projects from backend
-  const fetchProjects = async () => {
-    try {
-      const response = await apiCall('/projects');
-      if (response && response.length > 0) {
-        setProjects(response);
-      }
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-      // Fallback to mock data
-      setProjects(mockProjects);
-    }
-  };
-
-  const handleSqmChange = (sqm) => {
-    setSelectedSqm(sqm);
-    setOwnershipAmount(`₦${(sqm * 5000).toLocaleString()}`);
-  };
-
   const handleOwnershipSubmit = async () => {
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('Please log in to make a payment');
-        return;
-      }
+      if (!user) return;
 
-      // Check if user is authenticated and verified
-      const isAuthenticated = localStorage.getItem('isAuthenticated');
-      if (!isAuthenticated) {
-        toast.error('Please log in to make a payment');
-        return;
-      }
-
-      // Check email verification
-      if (!user.email_confirmed_at) {
-        toast.error('Please verify your email before making a payment');
-        return;
-      }
-
-      // Check if we have required data
-      if (!selectedProject) {
-        toast.error('No project selected. Please try again.');
-        return;
-      }
-
-      if (!selectedSqm || selectedSqm < 1) {
-        toast.error('Please select a valid amount of sqm.');
-        return;
-      }
-
-      // Initialize Paystack payment
-      const amount = selectedSqm * 5000 * 100; // Convert to kobo
-      const email = userData.email || user.email;
-      const name = userData.name || user.displayName || 'User';
-      const reference = 'SUBX-' + Math.floor(Math.random() * 1000000000);
+      const { name, email, phone, amount, sqm } = ownershipForm;
       
-      console.log('Payment details:', { amount, email, name, reference, selectedSqm });
-      
-      if (!window.PaystackPop) {
-        console.error('PaystackPop not available');
-        toast.error('Payment gateway not loaded. Please refresh the page and try again.');
+      if (!name || !email || !phone || !amount || !sqm) {
+        toast.error('Please fill in all fields');
         return;
       }
 
-      console.log('Setting up Paystack handler...');
+      const reference = `SUBX_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-            try {
-        const handler = window.PaystackPop.setup({
-          key: paystackKey,
-          email: email,
-          amount: amount,
-          currency: 'NGN',
-          ref: reference,
-          label: name,
-          callback: function(response) {
-            // Handle payment success
-            console.log('Payment successful:', response);
-            
-            // Create investment record
+      const handler = window.PaystackPop.setup({
+        key: paystackKey,
+        email: email,
+        amount: parseFloat(amount) * 100, // Convert to kobo
+        currency: 'NGN',
+        ref: reference,
+        label: name,
+        callback: function(response) {
+          if (response.status === 'success') {
             const investmentData = {
-              investorId: user.email || user.uid,
-              projectTitle: selectedProject.title,
-              projectId: selectedProject.id,
-              sqm: selectedSqm,
-              amount: selectedSqm * 5000,
-              location: selectedProject.location,
-              description: selectedProject.description,
-              paymentReference: response.reference,
-              status: 'completed',
-              documents: [
-                { name: 'Group Purchase Agreement', type: 'pdf', url: '#', signed: true },
-                { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
-                { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: false }
-              ]
+              propertyId: selectedProject.id,
+              amount: parseFloat(amount),
+              paymentReference: reference,
+              sqm: parseFloat(sqm)
             };
-            
-            // Save investment to backend
-            apiCall('/investments', {
+
+            apiCall('/investments', { 
               method: 'POST',
-              body: JSON.stringify(investmentData),
+              body: JSON.stringify(investmentData) 
             })
-            .then((response) => {
-              console.log('Investment saved successfully:', response);
-              
-              // Update available SQM in backend
-              return apiCall(`/projects/${selectedProject.id}/update-sqm`, {
-                method: 'PUT',
-                body: JSON.stringify({ 
-                  purchasedSqm: selectedSqm,
-                  availableSqm: Math.max(0, selectedProject.availableSqm - selectedSqm)
-                }),
-              });
-            })
+            .then(() => Promise.all([fetchUserData(user), fetchUserProperties(user)]))
             .then(() => {
-              // Refresh user data and projects
-              return Promise.all([
-                fetchUserData(),
-                fetchUserProperties(),
-                fetchProjects()
-              ]);
-            })
-            .then(() => {
-              // Update available SQM in frontend
-              updateAvailableSqm(selectedProject.id, selectedSqm);
-              
-              // Show success modal with document options
               setPaymentData(investmentData);
               setShowOwnershipModal(false);
               setShowPaymentSuccess(true);
               toast.success('Payment successful! Download your documents below.');
             })
             .catch((error) => {
-              console.error('Failed to save investment to backend:', error);
+              console.error('Failed to create investment:', error);
               toast.error('Payment successful but failed to save investment. Please contact support.');
             });
-          },
-          onClose: function() {
-            toast.error('Payment cancelled');
           }
-        });
+        },
+        onClose: function() {
+          toast.error('Payment cancelled');
+        }
+      });
       
-      console.log('Opening Paystack iframe...');
       handler.openIframe();
-      
-    } catch (paystackError) {
-      console.error('Paystack setup error:', paystackError);
-      toast.error('Failed to setup payment. Please try again.');
-    }
-    
     } catch (error) {
-      console.error('Payment initialization error:', error);
+      console.error('Failed to initialize payment:', error);
       toast.error('Failed to initialize payment. Please try again.');
     }
   };
 
-  if (isLoading) {
+  const generateReceipt = (investment) => {
+    const doc = new jsPDF();
+    doc.setFontSize(20);
+    doc.text('Payment Receipt', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 40);
+    doc.text(`Reference: ${investment.paymentReference}`, 20, 50);
+    doc.text(`Amount: ₦${investment.amount.toLocaleString()}`, 20, 60);
+    doc.text(`Property: ${investment.projectTitle}`, 20, 70);
+    doc.text(`Size: ${investment.sqm} sqm`, 20, 80);
+    
+    doc.save(`receipt_${investment.paymentReference}.pdf`);
+  };
+
+  const generateCertificate = (investment) => {
+    const doc = new jsPDF();
+    doc.setFontSize(20);
+    doc.text('Certificate of Ownership', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`This certifies that ${userData.full_name || userData.email}`, 20, 40);
+    doc.text(`owns ${investment.sqm} square meters in ${investment.projectTitle}`, 20, 50);
+    doc.text(`Location: ${investment.location}`, 20, 60);
+    doc.text(`Purchase Date: ${new Date().toLocaleDateString()}`, 20, 70);
+    doc.text(`Certificate ID: ${investment.paymentReference}`, 20, 80);
+    
+    doc.save(`certificate_${investment.paymentReference}.pdf`);
+  };
+
+  const togglePlotExpansion = (plotId) => {
+    const newExpanded = new Set(expandedPlots);
+    if (newExpanded.has(plotId)) {
+      newExpanded.delete(plotId);
+    } else {
+      newExpanded.add(plotId);
+    }
+    setExpandedPlots(newExpanded);
+  };
+
+  const createNewTopic = async () => {
+    try {
+      if (!user) return;
+
+      await apiCall('/forum/topics', {
+        method: 'POST',
+        body: JSON.stringify(newTopic)
+      });
+
+      setNewTopic({ title: '', content: '', categoryId: '' });
+      setShowNewTopicModal(false);
+      await fetchForumData();
+      toast.success('Topic created successfully!');
+    } catch (error) {
+      toast.error('Failed to create topic');
+    }
+  };
+
+  const getAvailableSpots = () => {
+    return 10000 - (userData.total_investments || 0);
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Loading your dashboard...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <img src="/subx-logo/subx-logo-3.png" alt="Subx Logo" className="h-8 w-auto" />
+            <div>
               <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-gray-600">Welcome back, {userData.full_name || userData.email}</p>
             </div>
-            
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <img src={userData.avatar} alt="Profile" className="h-10 w-10 rounded-full object-cover" />
-                <div className="hidden md:block">
-                  <p className="text-sm font-medium text-gray-900">{userData.name}</p>
-                  <p className="text-xs text-gray-500">{userData.email}</p>
-                </div>
-                <button onClick={handleLogout} className="p-2 text-gray-400 hover:text-gray-600">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
+              <span className="text-sm text-gray-500">
+                Member since {userData.created_at ? new Date(userData.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently'}
+              </span>
+              <button
+                onClick={() => supabase.auth.signOut()}
+                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+              >
+                Sign Out
                 </button>
               </div>
             </div>
           </div>
         </div>
-      </header>
 
-      {/* Navigation */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <nav className="flex space-x-8 mt-6">
-          {[
-            { id: 'opportunities', label: 'Opportunities', icon: 'briefcase' },
-            { id: 'overview', label: 'Overview', icon: 'home' },
-            { id: 'investments', label: 'My Properties', icon: 'chart-bar' },
-            { id: 'documents', label: 'Documents', icon: 'document' },
-            { id: 'forum', label: 'Community', icon: 'users' },
-            { id: 'profile', label: 'Profile', icon: 'user' }
-          ].map((tab) => (
+      {/* Navigation Tabs */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            {['overview', 'my-properties', 'documents', 'co-owners', 'community'].map((tab) => (
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === tab.id
-                  ? 'border-indigo-500 text-indigo-600'
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === tab
+                    ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                {tab.icon === 'briefcase' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2h4a2 2 0 012 2z" />}
-                {tab.icon === 'home' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />}
-                {tab.icon === 'chart-bar' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />}
-                {tab.icon === 'document' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />}
-                {tab.icon === 'user' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />}
-                {tab.icon === 'users' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />}
-              </svg>
-              <span className="hidden sm:inline">{tab.label}</span>
+                {tab.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
             </button>
           ))}
         </nav>
       </div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AnimatePresence mode="wait">
+        {/* Tab Content */}
+        <div className="mt-6">
           {activeTab === 'overview' && (
-            <motion.div
-              key="overview"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
-            >
-              {/* Welcome Section */}
-              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 text-white">
-                <div className="flex items-center justify-between">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Portfolio Overview */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Portfolio Overview</h3>
+                <div className="space-y-4">
                   <div>
-                    <h2 className="text-3xl font-bold mb-2">Welcome back, {userData.name}! 👋</h2>
-                    <p className="text-indigo-100 text-lg">Your real estate portfolio is growing steadily.</p>
+                    <p className="text-sm text-gray-600">Total Investments</p>
+                    <p className="text-2xl font-bold text-gray-900">₦{userData.total_investments?.toLocaleString() || '0'}</p>
                   </div>
-                  <div className="hidden md:block">
-                    <img src={userData.avatar} alt="Profile" className="h-20 w-20 rounded-full object-cover border-4 border-white/20" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <motion.div whileHover={{ scale: 1.05 }} className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Land Portfolio Value</p>
-                      <p className="text-2xl font-bold text-gray-900">{userData.portfolioValue}</p>
+                    <p className="text-sm text-gray-600">Properties Owned</p>
+                    <p className="text-2xl font-bold text-gray-900">{userData.total_properties || 0}</p>
                     </div>
-                    <div className="p-3 bg-green-100 rounded-full">
-                      <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                      </svg>
-                    </div>
-                  </div>
-                </motion.div>
-
-                <motion.div whileHover={{ scale: 1.05 }} className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Total Land Owned</p>
-                      <p className="text-2xl font-bold text-gray-900">{userData.totalLandOwned}</p>
+                    <p className="text-sm text-gray-600">Growth Rate</p>
+                    <p className="text-2xl font-bold text-green-600">+{userData.total_investments > 0 ? '0.0' : '0.0'}%</p>
                     </div>
-                    <div className="p-3 bg-blue-100 rounded-full">
-                      <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
                     </div>
-                  </div>
-                </motion.div>
-
-                <motion.div whileHover={{ scale: 1.05 }} className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Sub-owned Properties</p>
-                      <p className="text-2xl font-bold text-gray-900">{userData.totalInvestments}</p>
-                    </div>
-                    <div className="p-3 bg-purple-100 rounded-full">
-                      <svg className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                  </div>
-                </motion.div>
-
-                <motion.div whileHover={{ scale: 1.05 }} className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Growth Rate</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {userData.totalInvestments > 0 ? '+0.0%' : '0.0%'}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-yellow-100 rounded-full">
-                      <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                      </svg>
-                    </div>
-                  </div>
-                </motion.div>
               </div>
 
               {/* Recent Activity */}
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200">
-                <div className="p-6 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-                </div>
-                <div className="p-6">
-                  <div className="space-y-4">
-                    {userData.recentActivity.map((activity) => (
-                      <motion.div
-                        key={activity.id}
-                        whileHover={{ scale: 1.02 }}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                      >
-                        <div className="flex items-center space-x-4">
-                          <div className={`p-2 rounded-full ${
-                            activity.status === 'completed' ? 'bg-green-100' : 'bg-yellow-100'
-                          }`}>
-                            <svg className={`h-5 w-5 ${
-                              activity.status === 'completed' ? 'text-green-600' : 'text-yellow-600'
-                            }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                            </svg>
-                          </div>
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+                <div className="space-y-3">
+                  {userProperties.slice(0, 3).map((property, index) => (
+                    <div key={index} className="flex items-center space-x-3">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                           <div>
-                            <p className="font-medium text-gray-900">{activity.title}</p>
-                            <p className="text-sm text-gray-500">{activity.amount}</p>
+                        <p className="text-sm font-medium text-gray-900">Purchased {property.size_sqm} sqm</p>
+                        <p className="text-xs text-gray-500">{property.properties?.name}</p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-500">{activity.date}</p>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            activity.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {activity.status}
-                          </span>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === 'opportunities' && (
-            <motion.div
-              key="opportunities"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
-            >
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900">Land Ownership Opportunities</h2>
-                <div className="flex space-x-2">
-                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                    Filter
-                  </button>
-                  <button className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">
-                    Sort
-                  </button>
+                  ))}
+                  {userProperties.length === 0 && (
+                    <p className="text-sm text-gray-500">No recent activity</p>
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.map((project, index) => (
-                  <motion.div
-                    key={project.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    whileHover={{ scale: 1.02 }}
-                    className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
-                  >
-                    <div className="relative">
-                      <img src={project.image} alt={project.title} className="w-full h-48 object-cover" />
-                      <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                        {project.status}
-                      </div>
-                    </div>
-                    
-                    <div className="p-6">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">{project.title}</h3>
-                      <p className="text-gray-600 mb-4">{project.description}</p>
-                      
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm text-gray-500">Location</p>
-                          <p className="font-medium text-gray-900">{project.location}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Price</p>
-                          <p className="font-medium text-gray-900">{project.price}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Available</p>
-                          <p className="font-medium text-gray-900">{project.availableSqm} sq.m</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Total</p>
-                          <p className="font-medium text-gray-900">{project.totalSqm} sq.m</p>
-                        </div>
-                      </div>
-
-                      <div className="flex space-x-3">
+              {/* Quick Actions */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                <div className="space-y-3">
                         <button 
-                          onClick={() => handleViewDetails(project)}
-                          className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                    onClick={() => setActiveTab('my-properties')}
+                    className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
                         >
-                          View Details
+                    View Properties
                         </button>
                         <button
-                          onClick={() => handleOwnNow(project)}
-                          className="flex-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                    onClick={() => setActiveTab('community')}
+                    className="w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
                         >
-                          Own Now
+                    Join Community
                         </button>
                       </div>
                     </div>
-                  </motion.div>
-                ))}
               </div>
-            </motion.div>
           )}
 
-          {activeTab === 'investments' && (
-            <motion.div
-              key="properties"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
-            >
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900">My Sub-owned Properties</h2>
-                <div className="flex space-x-2">
-                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                    <svg className="h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
-                    </svg>
-                    Filter
-                  </button>
-                  <button className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">
-                    <svg className="h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
-                    </svg>
-                    Sort
-                  </button>
+          {activeTab === 'my-properties' && (
+            <div className="bg-white rounded-lg shadow">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">My Properties</h3>
                 </div>
-              </div>
-
-              {/* Property Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-200">
-                  <div className="flex items-center justify-between">
+              <div className="p-6">
+                {userProperties.length > 0 ? (
+                  <div className="space-y-4">
+                    {userProperties.map((property, index) => (
+                      <div key={index} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Total Properties</p>
-                      <p className="text-2xl font-bold text-gray-900">{userData.totalInvestments}</p>
+                            <h4 className="font-semibold text-gray-900">{property.properties?.name}</h4>
+                            <p className="text-sm text-gray-600">{property.properties?.location}</p>
+                            <p className="text-sm text-gray-600">{property.size_sqm} sqm - ₦{property.purchase_price?.toLocaleString()}</p>
                     </div>
-                    <div className="p-3 bg-blue-100 rounded-full">
-                      <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Total Land Owned</p>
-                      <p className="text-2xl font-bold text-gray-900">{userData.totalLandOwned}</p>
-                    </div>
-                    <div className="p-3 bg-green-100 rounded-full">
-                      <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Portfolio Value</p>
-                      <p className="text-2xl font-bold text-gray-900">{userData.portfolioValue}</p>
-                    </div>
-                    <div className="p-3 bg-purple-100 rounded-full">
-                      <svg className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Growth Rate</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {userData.totalInvestments > 0 ? '+0.0%' : '0.0%'}
-                      </p>
-                      <p className="text-xs text-gray-500">Purchase to current value</p>
-                    </div>
-                    <div className="p-3 bg-yellow-100 rounded-full">
-                      <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {userData.recentActivity.filter(activity => activity.status === 'owned').map((property, index) => (
-                  <motion.div
-                    key={property.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    whileHover={{ scale: 1.02 }}
-                    className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
-                  >
-                    <div className="relative">
-                      <img src="/2-seasons/2seasons-logo.jpg" alt={property.title} className="w-full h-48 object-cover" />
-                      <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                        Owned
-                      </div>
-                      <div className="absolute top-4 left-4 bg-indigo-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                        {property.percentage || 25}% Share
-                      </div>
+                          <button
+                            onClick={() => togglePlotExpansion(property.id)}
+                            className="text-blue-500 hover:text-blue-700"
+                          >
+                            {expandedPlots.has(property.id) ? 'Hide Details' : 'Show Details'}
+                          </button>
                     </div>
                     
-                    <div className="p-6">
-                      <div className="flex justify-between items-start mb-4">
+                        {expandedPlots.has(property.id) && (
+                          <div className="mt-4 pt-4 border-t border-gray-200">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <h3 className="text-xl font-semibold text-gray-900 mb-1">{property.title}</h3>
-                          <p className="text-gray-600 text-sm">{property.location}</p>
+                                <h5 className="font-medium text-gray-900 mb-2">Property Details</h5>
+                                <p className="text-sm text-gray-600">Status: {property.status}</p>
+                                <p className="text-sm text-gray-600">Purchase Date: {new Date(property.purchase_date).toLocaleDateString()}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-indigo-600">{property.propertyValue}</p>
-                          <p className="text-sm text-gray-500">Current Value</p>
-                        </div>
+                        <div>
+                                <h5 className="font-medium text-gray-900 mb-2">Documents</h5>
+                                <div className="space-y-2">
+                        <button 
+                                    onClick={() => generateReceipt(property)}
+                                    className="block w-full text-left text-sm text-blue-600 hover:text-blue-800"
+                        >
+                                    📄 Download Receipt
+                        </button>
+                        <button
+                                    onClick={() => generateCertificate(property)}
+                                    className="block w-full text-left text-sm text-blue-600 hover:text-blue-800"
+                        >
+                                    🏆 Download Certificate
+                        </button>
                       </div>
-
-                      <p className="text-gray-600 mb-4">{property.description}</p>
-                      
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm text-gray-500">Your Share</p>
-                          <p className="font-medium text-gray-900">{property.sqm} sq.m</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Amount Paid</p>
-                          <p className="font-medium text-gray-900">{property.amount}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Next Payment</p>
-                          <p className="font-medium text-gray-900">{property.nextPayment}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Payment Date</p>
-                          <p className="font-medium text-gray-900">{property.paymentDate}</p>
-                        </div>
-                      </div>
-
-                      <div className="mb-4">
-                        <p className="text-sm text-gray-500 mb-2">Amenities</p>
-                        <div className="flex flex-wrap gap-2">
-                          {property.amenities?.slice(0, 3).map((amenity, idx) => (
-                            <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                              {amenity}
-                            </span>
+                    </div>
+              </div>
+              </div>
+                        )}
+                            </div>
                           ))}
-                          {property.amenities?.length > 3 && (
-                            <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                              +{property.amenities.length - 3} more
-                            </span>
-                          )}
                         </div>
-                      </div>
-
-                      <div className="flex space-x-3">
-                        <button 
-                          onClick={() => handleViewCoOwners(property)}
-                          className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 flex items-center justify-center"
-                        >
-                          <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          Co-owners
-                        </button>
-                        <button
-                          onClick={() => handleViewDocuments(property)}
-                          className="flex-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center justify-center"
-                        >
-                          <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                          </svg>
-                          Documents
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No properties owned yet.</p>
+                <button
+                      onClick={() => setActiveTab('overview')}
+                      className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                >
+                      Browse Properties
+                </button>
               </div>
-            </motion.div>
+                      )}
+                    </div>
+                    </div>
           )}
 
           {activeTab === 'documents' && (
-            <motion.div
-              key="documents"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
-            >
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900">My Documents</h2>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200">
-                <div className="p-6">
-                  {(userData.recentActivity && userData.recentActivity.filter(activity => activity.status === 'owned').length > 0) || 
-                   (userProperties && userProperties.length > 0) ? (
-                    <div className="space-y-6">
-                      {/* Show documents from recent activity */}
-                      {userData.recentActivity && userData.recentActivity.filter(activity => activity.status === 'owned').map((property) => (
-                        <div key={property.id} className="border-b border-gray-200 pb-6 last:border-b-0">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4">{property.title}</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {property.documents?.map((document, index) => (
-                              <div key={index} className="bg-gray-50 rounded-lg p-4">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center space-x-2">
-                                    <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                    </svg>
-                                    <span className="font-medium text-gray-900">{document.name}</span>
-                                  </div>
-                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                    document.signed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                  }`}>
-                                    {document.signed ? 'Signed' : 'Pending'}
-                                  </span>
-                                </div>
-                                <div className="flex space-x-2">
-                                  <button className="flex-1 px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                                    View
-                                  </button>
-                                  {!document.signed && (
-                                    <button 
-                                      onClick={() => handleSignDeed(document)}
-                                      className="flex-1 px-3 py-1 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
-                                    >
-                                      Sign
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+            <div className="bg-white rounded-lg shadow">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Documents</h3>
                           </div>
-                        </div>
-                      ))}
-                      
-                      {/* Show documents from user properties */}
-                      {userProperties && userProperties.map((property) => (
-                        <div key={property.id} className="border-b border-gray-200 pb-6 last:border-b-0">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4">{property.title}</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {property.documents?.map((document, index) => (
-                              <div key={index} className="bg-gray-50 rounded-lg p-4">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center space-x-2">
-                                    <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                    </svg>
-                                    <span className="font-medium text-gray-900">{document.name}</span>
-                                  </div>
-                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                    document.signed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                  }`}>
-                                    {document.signed ? 'Signed' : 'Pending'}
-                                  </span>
-                                </div>
-                                <div className="flex space-x-2">
-                                  <button className="flex-1 px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                                    View
-                                  </button>
-                                  {!document.signed && (
-                                    <button 
-                                      onClick={() => handleSignDeed(document)}
-                                      className="flex-1 px-3 py-1 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
-                                    >
-                                      Sign
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <h3 className="mt-4 text-lg font-medium text-gray-900">No documents yet</h3>
-                      <p className="mt-2 text-sm text-gray-500">Your property documents will appear here after you make investments.</p>
-                      <div className="mt-6">
-                        <button
-                          onClick={() => setActiveTab('opportunities')}
-                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-                        >
-                          Browse Investment Opportunities
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === 'profile' && (
-            <motion.div
-              key="profile"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
-            >
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900">My Profile</h2>
-                <button
-                  onClick={() => setIsEditingProfile(!isEditingProfile)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center"
-                >
-                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  {isEditingProfile ? 'Cancel' : 'Edit Profile'}
-                </button>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200">
-                <div className="p-6">
-                  <div className="flex items-center space-x-6 mb-6">
-                    <div className="relative">
-                      <img src={userData.avatar} alt="Profile" className="h-20 w-20 rounded-full object-cover" />
-                      {isEditingProfile && (
-                        <label className="absolute bottom-0 right-0 bg-indigo-600 text-white p-1 rounded-full cursor-pointer hover:bg-indigo-700">
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleProfilePictureChange}
-                            className="hidden"
-                          />
-                        </label>
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900">{userData.name}</h3>
-                      <p className="text-gray-600">{userData.email}</p>
-                    </div>
-                  </div>
-                  
-                  {!isEditingProfile ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-4">Account Information</h4>
-                        <div className="space-y-3">
+              <div className="p-6">
+                {userProperties.length > 0 ? (
+                  <div className="space-y-4">
+                    {userProperties.map((property, index) => (
+                      <div key={index} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start">
                           <div>
-                            <p className="text-sm text-gray-500">Full Name</p>
-                            <p className="font-medium text-gray-900">{userData.name}</p>
+                            <h4 className="font-semibold text-gray-900">{property.properties?.name}</h4>
+                            <p className="text-sm text-gray-600">{property.size_sqm} sqm</p>
                           </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Email Address</p>
-                            <p className="font-medium text-gray-900">{userData.email}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Phone Number</p>
-                            <p className="font-medium text-gray-900">{profileData.phone || 'Not provided'}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Address</p>
-                            <p className="font-medium text-gray-900">{profileData.address || 'Not provided'}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Date of Birth</p>
-                            <p className="font-medium text-gray-900">{profileData.dateOfBirth || 'Not provided'}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Occupation</p>
-                            <p className="font-medium text-gray-900">{profileData.occupation || 'Not provided'}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Member Since</p>
-                            <p className="font-medium text-gray-900">January 2024</p>
-                          </div>
-                        </div>
+                          <button
+                            onClick={() => togglePlotExpansion(property.id)}
+                            className="text-blue-500 hover:text-blue-700"
+                          >
+                            {expandedPlots.has(property.id) ? 'Hide Documents' : 'Show Documents'}
+                          </button>
                       </div>
                       
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-4">Land Portfolio Summary</h4>
-                        <div className="space-y-3">
-                          <div>
-                            <p className="text-sm text-gray-500">Total Properties</p>
-                            <p className="font-medium text-gray-900">{userData.totalInvestments}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Total Land Owned</p>
-                            <p className="font-medium text-gray-900">{userData.totalLandOwned}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Portfolio Value</p>
-                            <p className="font-medium text-gray-900">{userData.portfolioValue}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Growth Rate</p>
-                            <p className="font-medium text-gray-900">
-                              {userData.totalInvestments > 0 ? '+0.0%' : '0.0%'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <form onSubmit={(e) => {
-                      e.preventDefault();
-                      const updatedProfileData = {
-                        ...profileData,
-                        name: profileData.name || userData.name,
-                        email: profileData.email || userData.email
-                      };
-                      updateUserProfile(updatedProfileData);
-                    }} className="space-y-6">
+                        {expandedPlots.has(property.id) && (
+                          <div className="mt-4 pt-4 border-t border-gray-200">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <h4 className="font-semibold text-gray-900 mb-4">Personal Information</h4>
-                          <div className="space-y-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                              <input
-                                type="text"
-                                value={profileData.name}
-                                onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="Enter your full name"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                              <input
-                                type="email"
-                                value={profileData.email}
-                                onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="Enter your email"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                              <input
-                                type="tel"
-                                value={profileData.phone}
-                                onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="Enter your phone number"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                              <textarea
-                                value={profileData.address}
-                                onChange={(e) => setProfileData(prev => ({ ...prev, address: e.target.value }))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="Enter your address"
-                                rows={3}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                              <input
-                                type="date"
-                                value={profileData.dateOfBirth}
-                                onChange={(e) => setProfileData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Occupation</label>
-                              <input
-                                type="text"
-                                value={profileData.occupation}
-                                onChange={(e) => setProfileData(prev => ({ ...prev, occupation: e.target.value }))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="Enter your occupation"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-4">Land Portfolio Summary</h4>
+                                <h5 className="font-medium text-gray-900 mb-3">Download Documents</h5>
                           <div className="space-y-3">
-                            <div>
-                              <p className="text-sm text-gray-500">Total Properties</p>
-                              <p className="font-medium text-gray-900">{userData.totalInvestments}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Total Land Owned</p>
-                              <p className="font-medium text-gray-900">{userData.totalLandOwned}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Portfolio Value</p>
-                              <p className="font-medium text-gray-900">{userData.portfolioValue}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Growth Rate</p>
-                              <p className="font-medium text-gray-900">
-                                {userData.totalInvestments > 0 ? '+0.0%' : '0.0%'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-end space-x-4">
                         <button
-                          type="button"
-                          onClick={() => setIsEditingProfile(false)}
-                          className="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                                    onClick={() => generateReceipt(property)}
+                                    className="w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 flex items-center justify-center space-x-2"
                         >
-                          Cancel
+                                    <span>📄</span>
+                                    <span>Download Receipt</span>
                         </button>
                         <button
-                          type="submit"
-                          className="px-6 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                                    onClick={() => generateCertificate(property)}
+                                    className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center justify-center space-x-2"
                         >
-                          Save Changes
+                                    <span>🏆</span>
+                                    <span>Download Certificate</span>
                         </button>
                       </div>
-                    </form>
-                  )}
                 </div>
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === 'forum' && (
-            <motion.div
-              key="forum"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
-            >
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900">Community Forum</h2>
-                <button
-                  onClick={() => setShowNewTopicModal(true)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center"
-                >
-                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  New Topic
+                              
+                              <div>
+                                <h5 className="font-medium text-gray-900 mb-3">Sign Deed of Assignment</h5>
+                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                                  <p className="text-sm text-gray-600 mb-3">Deed signing will be available soon</p>
+                                  <button
+                                    disabled
+                                    className="bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed"
+                                  >
+                                    Coming Soon
                 </button>
               </div>
-
-              {/* Search Bar */}
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search topics..."
-                  value={forumSearchQuery}
-                  onChange={(e) => setForumSearchQuery(e.target.value)}
-                  className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-                <svg className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-
-              {/* Forum Topics */}
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200">
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">General Discussion</h3>
-                  {forums.general.topics.length === 0 ? (
-                    <div className="text-center py-8">
-                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">No topics yet</h3>
-                      <p className="mt-1 text-sm text-gray-500">Get started by creating the first topic!</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {forums.general.topics.map((topic) => (
-                        <div 
-                          key={topic.id} 
-                          className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                          onClick={() => handleViewTopic(topic)}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900 mb-1">{topic.title}</h4>
-                              <p className="text-sm text-gray-600 mb-2">{topic.content.substring(0, 100)}...</p>
-                              <div className="flex items-center space-x-4 text-sm text-gray-500">
-                                <span>By {topic.author}</span>
-                                <span>{topic.replies?.length || 0} replies</span>
-                                <span>{topic.lastActivity}</span>
-                              </div>
-                            </div>
-                            <div className="ml-4">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                {topic.category}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
-
-      {/* Ownership Modal */}
-      <AnimatePresence>
-        {showOwnershipModal && selectedProject && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl max-w-md w-full p-6"
-            >
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Own Land in {selectedProject.title}</h2>
-                <button onClick={() => setShowOwnershipModal(false)} className="text-gray-400 hover:text-gray-600">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              
-              <div className="space-y-6">
-                <div>
-                  <img src={selectedProject.image} alt={selectedProject.title} className="w-full h-48 object-cover rounded-lg mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{selectedProject.title}</h3>
-                  <p className="text-gray-600 mb-4">{selectedProject.description}</p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Square Meters (1 - 500)
-                  </label>
-                  <div className="flex items-center space-x-4">
-                    <input
-                      type="range"
-                      min="1"
-                      max="500"
-                      value={selectedSqm}
-                      onChange={(e) => handleSqmChange(parseInt(e.target.value))}
-                      className="flex-1"
-                    />
-                    <input
-                      type="number"
-                      min="1"
-                      max="500"
-                      value={selectedSqm}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        if (value && value >= 1 && value <= 500) {
-                          handleSqmChange(value);
-                        }
-                      }}
-                      onBlur={(e) => {
-                        const value = parseInt(e.target.value);
-                        if (!value || value < 1) {
-                          handleSqmChange(1);
-                        } else if (value > 500) {
-                          handleSqmChange(500);
-                        }
-                      }}
-                      className="w-20 px-2 py-1 text-center border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                    <span className="text-lg font-semibold text-gray-900 min-w-[60px]">
-                      sq.m
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">Price: ₦5,000 per square meter</p>
-                </div>
-                
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-medium text-gray-900">Total Ownership Cost:</span>
-                    <span className="text-2xl font-bold text-indigo-600">{ownershipAmount}</span>
                   </div>
                 </div>
-                
-                <div className="flex space-x-4">
-                  <button
-                    onClick={() => setShowOwnershipModal(false)}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleOwnershipSubmit}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
-                  >
-                    Confirm Ownership
-                  </button>
+                        )}
+                  </div>
+                    ))}
                 </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Co-owners Modal */}
-      <AnimatePresence>
-        {showCoOwnersModal && selectedProperty && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-            >
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4 sm:mb-6">
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Co-owners - {selectedProperty.title}</h2>
-                  <button onClick={() => setShowCoOwnersModal(false)} className="text-gray-400 hover:text-gray-600">
-                    <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                
-                {/* Summary Statistics */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-indigo-50 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-indigo-600">{selectedProperty.totalOwners || 0}</p>
-                    <p className="text-sm text-gray-600">Total Co-owners</p>
-                  </div>
-                  <div className="bg-green-50 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-green-600">₦{(selectedProperty.totalInvestment || 0).toLocaleString()}</p>
-                    <p className="text-sm text-gray-600">Total Investment</p>
-                  </div>
-                  <div className="bg-purple-50 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-purple-600">{selectedProperty.coOwners?.reduce((sum, owner) => sum + owner.sqm, 0) || 0}</p>
-                    <p className="text-sm text-gray-600">Total Sq.m Owned</p>
-                  </div>
-                </div>
-                
-                {loadingCoOwners ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                      <p className="text-gray-600">Loading co-owners data...</p>
-                    </div>
-                  </div>
                 ) : (
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Ownership Distribution</h3>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="w-48 h-48 mx-auto mb-4 relative">
-                        {/* Functional Pie Chart */}
-                        <svg className="w-full h-full" viewBox="0 0 100 100">
-                          {selectedProperty.coOwners?.map((owner, index) => {
-                            const totalOwners = selectedProperty.coOwners.length;
-                            const startAngle = (index / totalOwners) * 360;
-                            const endAngle = ((index + 1) / totalOwners) * 360;
-                            const radius = 40;
-                            const colors = ['#3B82F6', '#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#EF4444'];
-                            
-                            const x1 = 50 + radius * Math.cos((startAngle - 90) * Math.PI / 180);
-                            const y1 = 50 + radius * Math.sin((startAngle - 90) * Math.PI / 180);
-                            const x2 = 50 + radius * Math.cos((endAngle - 90) * Math.PI / 180);
-                            const y2 = 50 + radius * Math.sin((endAngle - 90) * Math.PI / 180);
-                            
-                            const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1;
-                            
-                            return (
-                              <path
-                                key={index}
-                                d={`M 50 50 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`}
-                                fill={colors[index % colors.length]}
-                                className="hover:opacity-80 transition-opacity cursor-pointer"
-                                title={`${owner.name}: ${owner.percentage}%`}
-                              />
-                            );
-                          })}
-                          <circle cx="50" cy="50" r="15" fill="white" />
-                        </svg>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        {selectedProperty.coOwners?.map((owner, index) => {
-                          const colors = ['#3B82F6', '#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#EF4444'];
-                          return (
-                            <div key={index} className="flex items-center space-x-2">
-                              <div 
-                                className="w-3 h-3 rounded-full" 
-                                style={{ backgroundColor: colors[index % colors.length] }}
-                              ></div>
-                              <span className="truncate">{owner.name}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Co-owners List</h3>
-                    <div className="space-y-3 max-h-64 overflow-y-auto">
-                      {selectedProperty.coOwners?.length > 0 ? (
-                        selectedProperty.coOwners.map((owner, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                            <div className="flex items-center space-x-3 min-w-0 flex-1">
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                <span className="text-xs sm:text-sm font-medium text-indigo-600">
-                                  {owner.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                </span>
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="font-medium text-gray-900 text-sm sm:text-base truncate">{owner.name}</p>
-                                <p className="text-xs sm:text-sm text-gray-500 truncate">{owner.email}</p>
-                                {owner.phone && (
-                                  <p className="text-xs sm:text-sm text-gray-500 truncate">{owner.phone}</p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right flex-shrink-0 ml-2">
-                              <p className="font-semibold text-indigo-600 text-sm sm:text-base">{owner.percentage}%</p>
-                              <p className="text-xs sm:text-sm text-gray-500">{owner.sqm} sq.m</p>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-8">
-                          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          <p className="mt-2 text-sm text-gray-500">No co-owners found</p>
-                          <p className="text-xs text-gray-400">This property is currently owned by you only</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No documents available yet.</p>
                 </div>
                 )}
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+          )}
 
-      {/* Documents Modal */}
-      <AnimatePresence>
-        {showDocumentsModal && selectedProperty && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-            >
+          {activeTab === 'co-owners' && (
+            <div className="bg-white rounded-lg shadow">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Co-owners</h3>
+                </div>
               <div className="p-6">
-                <div className="flex justify-between items-start mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Documents - {selectedProperty.title}</h2>
-                  <button onClick={() => setShowDocumentsModal(false)} className="text-gray-400 hover:text-gray-600">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                {projects.length > 0 ? (
+                  <div className="space-y-4">
+                    {projects.map((project) => {
+                      const coOwners = userProperties.filter(prop => 
+                        prop.property_id === project.id && prop.owner_id !== user?.id
+                      );
+                      
+                      return (
+                        <div key={project.id} className="border rounded-lg p-4">
+                          <h4 className="font-semibold text-gray-900 mb-3">{project.name}</h4>
+                          {coOwners.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {coOwners.map((coOwner, index) => (
+                                <div key={index} className="bg-gray-50 rounded-lg p-3">
+                                  <p className="font-medium text-gray-900">{coOwner.users?.full_name || 'Anonymous'}</p>
+                                  <p className="text-sm text-gray-600">{coOwner.size_sqm} sqm</p>
+                                  <p className="text-xs text-gray-500">Purchased {new Date(coOwner.purchase_date).toLocaleDateString()}</p>
+                        </div>
+                              ))}
+                      </div>
+                          ) : (
+                            <p className="text-gray-500">No co-owners for this property yet.</p>
+                          )}
+                    </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No properties available.</p>
+                            </div>
+                )}
+                            </div>
+                          </div>
+          )}
+
+          {activeTab === 'community' && (
+            <div className="bg-white rounded-lg shadow">
+              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900">Community Forum</h3>
+                <button
+                  onClick={() => setShowNewTopicModal(true)}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                >
+                  New Topic
                   </button>
                 </div>
-                
+              <div className="p-6">
+                {forumTopics.length > 0 ? (
                 <div className="space-y-4">
-                  {selectedProperty.documents?.map((document, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                          <svg className="h-8 w-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                          </svg>
+                    {forumTopics.map((topic) => (
+                      <div key={topic.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start">
                           <div>
-                            <h3 className="font-semibold text-gray-900">{document.name}</h3>
-                            <p className="text-sm text-gray-500">PDF Document</p>
+                            <h4 className="font-semibold text-gray-900">{topic.title}</h4>
+                            <p className="text-sm text-gray-600 mt-1">{topic.content.substring(0, 150)}...</p>
+                            <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                              <span>By {topic.users?.full_name || 'Anonymous'}</span>
+                              <span>{new Date(topic.created_at).toLocaleDateString()}</span>
+                              <span>{topic.views} views</span>
                           </div>
                         </div>
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                          document.signed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {document.signed ? 'Signed' : 'Pending Signature'}
+                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                            {topic.forum_categories?.name}
                         </span>
                       </div>
-                      
-                      <div className="flex space-x-3">
-                        <button className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-                          View Document
-                        </button>
-                        {!document.signed && (
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No forum topics yet.</p>
                           <button 
-                            onClick={() => handleSignDeed(document)}
-                            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                      onClick={() => setShowNewTopicModal(true)}
+                      className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
                           >
-                            Sign Document
+                      Start the First Topic
                           </button>
+                  </div>
                         )}
                       </div>
                     </div>
-                  ))}
+          )}
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* Deed Signing Modal */}
+      {/* Ownership Modal */}
       <AnimatePresence>
-        {showDeedSignModal && selectedDocument && (
+        {showOwnershipModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
             >
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Sign {selectedDocument.name}</h2>
-                <button onClick={() => setShowDeedSignModal(false)} className="text-gray-400 hover:text-gray-600">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              
-              <div className="space-y-6">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900 mb-2">Document Preview</h3>
-                  <p className="text-gray-600 mb-4">This is a preview of the {selectedDocument.name} document that you are about to sign.</p>
-                  <div className="bg-white border border-gray-200 rounded-lg p-4 min-h-[200px]">
-                    <p className="text-sm text-gray-600">
-                      <strong>DEED OF SALE</strong><br/><br/>
-                      This Deed of Sale is made on [Date] between:<br/><br/>
-                      <strong>SELLER:</strong> Focal Point Property Development and Management Services Ltd.<br/>
-                      <strong>BUYER:</strong> {userData.name}<br/><br/>
-                      For the purchase of land in 2 Seasons Estate, Ogun State, Nigeria.<br/><br/>
-                      <strong>PROPERTY DETAILS:</strong><br/>
-                      • Location: 2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state<br/>
-                      • Plot Number: {selectedProperty?.title?.split(' - ')[1] || '[Plot Number]'}<br/>
-                      • Square Meters: {selectedProperty?.sqm || '[SQM]'} sqm<br/>
-                      • Purchase Price: ₦{(selectedProperty?.amount || 0).toLocaleString()}<br/><br/>
-                      <strong>TERMS AND CONDITIONS:</strong><br/>
-                      1. The Seller hereby transfers ownership of the specified land to the Buyer<br/>
-                      2. The Buyer acknowledges receipt of the property and agrees to all terms<br/>
-                      3. This deed is legally binding and enforceable under Nigerian law<br/><br/>
-                      <strong>SIGNATURE SECTION:</strong><br/>
-                      Buyer Signature: _________________<br/>
-                      Date: _________________
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900 mb-4">Digital Signature</h3>
-                  <p className="text-gray-600 mb-4">Please sign in the box below using your mouse or touch screen.</p>
-                  
-                  <div className="border-2 border-gray-300 rounded-lg bg-white relative">
-                    <canvas
-                      ref={setSignatureCanvas}
-                      width={400}
-                      height={150}
-                      className="w-full h-[150px] cursor-crosshair block"
-                      onMouseDown={handleSignatureStart}
-                      onMouseMove={handleSignatureMove}
-                      onMouseUp={handleSignatureEnd}
-                      onMouseLeave={handleSignatureEnd}
-                      onTouchStart={(e) => {
-                        e.preventDefault();
-                        const touch = e.touches[0];
-                        const mouseEvent = new MouseEvent('mousedown', {
-                          clientX: touch.clientX,
-                          clientY: touch.clientY
-                        });
-                        handleSignatureStart(mouseEvent);
-                      }}
-                      onTouchMove={(e) => {
-                        e.preventDefault();
-                        const touch = e.touches[0];
-                        const mouseEvent = new MouseEvent('mousemove', {
-                          clientX: touch.clientX,
-                          clientY: touch.clientY
-                        });
-                        handleSignatureMove(mouseEvent);
-                      }}
-                      onTouchEnd={(e) => {
-                        e.preventDefault();
-                        handleSignatureEnd();
-                      }}
-                    />
-                    {!signatureData && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <p className="text-gray-400 text-sm">Sign here...</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Purchase Property</h3>
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  value={ownershipForm.name}
+                  onChange={(e) => setOwnershipForm({...ownershipForm, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={ownershipForm.email}
+                  onChange={(e) => setOwnershipForm({...ownershipForm, email: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="tel"
+                  placeholder="Phone"
+                  value={ownershipForm.phone}
+                  onChange={(e) => setOwnershipForm({...ownershipForm, phone: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="number"
+                  placeholder="Amount (₦)"
+                  value={ownershipForm.amount}
+                  onChange={(e) => setOwnershipForm({...ownershipForm, amount: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="number"
+                  placeholder="Square Meters"
+                  value={ownershipForm.sqm}
+                  onChange={(e) => setOwnershipForm({...ownershipForm, sqm: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex justify-between items-center mt-4">
+              <div className="flex space-x-3 mt-6">
                     <button
-                      onClick={clearSignature}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                    >
-                      Clear Signature
-                    </button>
-                    {signatureData && (
-                      <div className="flex items-center space-x-2">
-                        <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span className="text-sm text-green-600 font-medium">Signature Ready</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex space-x-4">
-                  <button
-                    onClick={() => setShowDeedSignModal(false)}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                  onClick={() => setShowOwnershipModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={() => {
-                      if (!signatureData) {
-                        toast.error('Please provide a signature before signing the document');
-                        return;
-                      }
-                      toast.success(`${selectedDocument.name} signed successfully!`);
-                      setShowDeedSignModal(false);
-                      setSignatureData(null);
-                      // Update document status
-                      setUserData(prev => ({
-                        ...prev,
-                        recentActivity: prev.recentActivity.map(activity => 
-                          activity.documents?.map(doc => 
-                            doc.name === selectedDocument.name ? { ...doc, signed: true } : doc
-                          )
-                        )
-                      }));
-                    }}
-                    disabled={!signatureData}
-                    className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg ${
-                      signatureData 
-                        ? 'text-white bg-indigo-600 hover:bg-indigo-700' 
-                        : 'text-gray-400 bg-gray-200 cursor-not-allowed'
-                    }`}
-                  >
-                    Sign Document
+                  onClick={handleOwnershipSubmit}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                >
+                  Proceed to Payment
                   </button>
-                </div>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Project Modal */}
-      <AnimatePresence>
-        {showProjectModal && selectedProject && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-            >
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedProject.title}</h2>
-                  <button onClick={() => setShowProjectModal(false)} className="text-gray-400 hover:text-gray-600">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div>
-                    <img src={selectedProject.image} alt={selectedProject.title} className="w-full h-64 object-cover rounded-lg" />
-                  </div>
-                  
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Project Details</h3>
-                      <p className="text-gray-600">{selectedProject.description}</p>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Location</p>
-                        <p className="font-medium text-gray-900">{selectedProject.location}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Price</p>
-                        <p className="font-medium text-gray-900">{selectedProject.price}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Available</p>
-                        <p className="font-medium text-gray-900">{selectedProject.availableSqm} sq.m</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Total</p>
-                        <p className="font-medium text-gray-900">{selectedProject.totalSqm} sq.m</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">About 2 Seasons Estate</h3>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-gray-700 mb-4">
-                          A regenerative, mixed-use lifestyle village in Ogun State — where wellness, tourism, creativity, and modern living converge.
-                        </p>
-                        
-                        <div className="space-y-4">
-                          <div>
-                            <h4 className="font-semibold text-gray-900 mb-2">🏡 Zones & Amenities</h4>
-                            <div className="space-y-3">
-                              <div>
-                                <h5 className="font-medium text-gray-800">1. Residential (35 acres)</h5>
-                                <ul className="text-sm text-gray-600 ml-4 space-y-1">
-                                  <li>• Gated homes with jogging & cycling lanes</li>
-                                  <li>• Landscaped streets, play areas</li>
-                                  <li>• Daycare/school & mini shopping mall</li>
-                                </ul>
-                              </div>
-                              
-                              <div>
-                                <h5 className="font-medium text-gray-800">2. Villas & Lakefront (15 acres)</h5>
-                                <ul className="text-sm text-gray-600 ml-4 space-y-1">
-                                  <li>• Short-stay villas & pods</li>
-                                  <li>• 4-acre artificial lake & waterfall</li>
-                                  <li>• Designed for tourism, Airbnb, and influencer retreats</li>
-                                </ul>
-                              </div>
-                              
-                              <div>
-                                <h5 className="font-medium text-gray-800">3. Wellness Village (12 acres)</h5>
-                                <ul className="text-sm text-gray-600 ml-4 space-y-1">
-                                  <li>• 5-acre farm + fruit forest</li>
-                                  <li>• Spa, massage rooms, yoga pavilion</li>
-                                  <li>• Sports zone (football, tennis, outdoor gym)</li>
-                                  <li>• Juice bars, tea house, plant-based restaurant</li>
-                                </ul>
-                              </div>
-                              
-                              <div>
-                                <h5 className="font-medium text-gray-800">4. Hygge Town</h5>
-                                <ul className="text-sm text-gray-600 ml-4 space-y-1">
-                                  <li>• 2 Seasons Sports academy</li>
-                                  <li>• Content & Streaming Village</li>
-                                  <li>• Modular studios & outdoor film sets</li>
-                                  <li>• Creator residencies, masterclass arenas</li>
-                                </ul>
-                              </div>
-                              
-                              <div>
-                                <h5 className="font-medium text-gray-800">5. Green Infrastructure</h5>
-                                <ul className="text-sm text-gray-600 ml-4 space-y-1">
-                                  <li>• Perimeter walking loop</li>
-                                  <li>• Eco-conscious, regenerative systems</li>
-                                  <li>• Ogun's first sustainable tourism + content hub</li>
-                                </ul>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Documents</h3>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <svg className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            </svg>
-                            <span className="font-medium text-gray-900">Group Purchase Agreement</span>
-                          </div>
-                          <span className="text-sm text-gray-500">PDF</span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <svg className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            </svg>
-                            <span className="font-medium text-gray-900">Deed of Sale (per owner)</span>
-                          </div>
-                          <span className="text-sm text-gray-500">PDF</span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <svg className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            </svg>
-                            <span className="font-medium text-gray-900">Co-ownership Certificate</span>
-                          </div>
-                          <span className="text-sm text-gray-500">PDF</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-6 flex justify-end space-x-4">
-                  <button
-                    onClick={() => setShowProjectModal(false)}
-                    className="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                  >
-                    Close
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowProjectModal(false);
-                      handleOwnNow(selectedProject);
-                    }}
-                    className="px-6 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
-                  >
-                    Own Now
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Payment Success Modal */}
-      <PaymentSuccessModal
-        open={showPaymentSuccess}
-        onClose={() => setShowPaymentSuccess(false)}
-        onDownloadReceipt={handleDownloadReceipt}
-        onDownloadCertificate={handleDownloadCertificate}
-        onSignDeed={handleSignDeedFromPayment}
-      />
 
       {/* New Topic Modal */}
       <AnimatePresence>
@@ -2502,187 +693,68 @@ export default function UserDashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl max-w-2xl w-full p-6"
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
             >
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Create New Topic</h2>
-                <button onClick={() => setShowNewTopicModal(false)} className="text-gray-400 hover:text-gray-600">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Topic</h3>
+                        <div className="space-y-4">
+                <select
+                  value={newTopic.categoryId}
+                  onChange={(e) => setNewTopic({...newTopic, categoryId: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Category</option>
+                  {forumCategories.map((category) => (
+                    <option key={category.id} value={category.id}>{category.name}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  placeholder="Topic Title"
+                  value={newTopic.title}
+                  onChange={(e) => setNewTopic({...newTopic, title: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <textarea
+                  placeholder="Topic Content"
+                  value={newTopic.content}
+                  onChange={(e) => setNewTopic({...newTopic, content: e.target.value})}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                              </div>
+              <div className="flex space-x-3 mt-6">
+                  <button
+                  onClick={() => setShowNewTopicModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  >
+                  Cancel
+                  </button>
+                  <button
+                  onClick={createNewTopic}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                >
+                  Create Topic
+                  </button>
               </div>
-              
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                handleCreateTopic();
-              }} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Topic Title
-                  </label>
-                  <input
-                    type="text"
-                    value={newTopicData.title}
-                    onChange={(e) => setNewTopicData(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Enter topic title"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category
-                  </label>
-                  <select
-                    value={newTopicData.category}
-                    onChange={(e) => setNewTopicData(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    <option value="general">General Discussion</option>
-                    <option value="investment">Investment Tips</option>
-                    <option value="market">Market Analysis</option>
-                    <option value="legal">Legal Questions</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Content
-                  </label>
-                  <textarea
-                    value={newTopicData.content}
-                    onChange={(e) => setNewTopicData(prev => ({ ...prev, content: e.target.value }))}
-                    rows={6}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Write your topic content..."
-                    required
-                  />
-                </div>
-                
-                <div className="flex justify-end space-x-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowNewTopicModal(false)}
-                    className="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
-                  >
-                    Create Topic
-                  </button>
-                </div>
-              </form>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Topic View Modal */}
-      <AnimatePresence>
-        {showTopicModal && selectedTopic && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-            >
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedTopic.title}</h2>
-                  <button onClick={() => setShowTopicModal(false)} className="text-gray-400 hover:text-gray-600">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                
-                {/* Topic Content */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-indigo-600">{selectedTopic.author.split(' ').map(n => n[0]).join('')}</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{selectedTopic.author}</p>
-                      <p className="text-sm text-gray-500">{selectedTopic.timestamp}</p>
-                    </div>
-                  </div>
-                  <p className="text-gray-700">{selectedTopic.content}</p>
-                </div>
-                
-                {/* Replies */}
-                <div className="space-y-4 mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">Replies ({selectedTopic.replies?.length || 0})</h3>
-                  
-                  {selectedTopic.replies && selectedTopic.replies.length > 0 ? (
-                    selectedTopic.replies.map((reply) => (
-                      <div key={reply.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                            <span className="text-xs font-medium text-gray-600">{reply.author.split(' ').map(n => n[0]).join('')}</span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">{reply.author}</p>
-                            <p className="text-sm text-gray-500">{reply.timestamp}</p>
-                          </div>
-                        </div>
-                        <p className="text-gray-700">{reply.content}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <p>No replies yet. Be the first to respond!</p>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Add Reply */}
-                <div className="border-t pt-6">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Add Your Reply</h4>
-                  <div className="flex space-x-4">
-                    <input
-                      type="text"
-                      value={newReply}
-                      onChange={(e) => setNewReply(e.target.value)}
-                      placeholder="Write your reply..."
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                    <button
-                      onClick={handleAddReply}
-                      disabled={!newReply.trim()}
-                      className={`px-6 py-2 text-sm font-medium rounded-lg ${
-                        newReply.trim()
-                          ? 'text-white bg-indigo-600 hover:bg-indigo-700'
-                          : 'text-gray-400 bg-gray-200 cursor-not-allowed'
-                      }`}
-                    >
-                      Reply
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Payment Success Modal */}
+      <PaymentSuccessModal
+        isOpen={showPaymentSuccess}
+        onClose={() => setShowPaymentSuccess(false)}
+        paymentData={paymentData}
+        onDownloadReceipt={() => generateReceipt(paymentData)}
+        onDownloadCertificate={() => generateCertificate(paymentData)}
+      />
     </div>
   );
 } 

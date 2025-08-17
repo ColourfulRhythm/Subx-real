@@ -52,13 +52,13 @@ export default function LandingPage() {
     // Fetch real user count from backend
     const fetchUserCount = async () => {
       try {
-        const response = await fetch('/api/users/count');
+        // Use the correct backend URL
+        const response = await fetch('https://subxbackend-production.up.railway.app/api/users/count');
         const data = await response.json();
-        if (data.success) {
-          const totalUsers = data.totalUsers || 0;
-          setSpotsLeft(Math.max(0, 10000 - totalUsers));
+        if (data.count !== undefined) {
+          setSpotsLeft(Math.max(0, 10000 - data.count));
           // Store in localStorage for fallback
-          localStorage.setItem('totalUsers', totalUsers.toString());
+          localStorage.setItem('totalUsers', data.count.toString());
         } else {
           // Fallback to localStorage
           const totalUsers = parseInt(localStorage.getItem('totalUsers') || '0');

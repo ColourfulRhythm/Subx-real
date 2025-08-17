@@ -8,28 +8,42 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const authHeader = req.headers.get("Authorization") || "";
-    const jwt = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabase.auth.getUser(jwt);
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    const { user } = await req.json();
+    if (!user?.id || !user?.email) {
+      return new Response(JSON.stringify({ error: "Invalid user data" }), { status: 400 });
     }
 
-    const payload = await req.json().catch(() => ({}));
-    const full_name = payload.full_name ?? user.user_metadata?.name ?? user.email?.split('@')[0] ?? 'User';
-    const phone = payload.phone ?? null;
-    const nin = payload.nin ?? null;
+    // Check if user profile already exists
+    const { data: existingProfile } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .single();
 
-    const { error: upsertError } = await supabase
-      .from("users")
-      .upsert({ id: user.id, full_name, phone, nin }, { onConflict: "id" });
-
-    if (upsertError) {
-      return new Response(JSON.stringify({ error: upsertError.message }), { status: 400 });
+    if (existingProfile) {
+      return new Response(JSON.stringify({ message: "Profile already exists" }), { status: 200 });
     }
 
-    return new Response(JSON.stringify({ ok: true }), { headers: { "content-type": "application/json" } });
+    // Create user profile
+    const { error } = await supabase
+      .from('users')
+      .insert({
+        id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0],
+        created_at: new Date().toISOString()
+      });
+
+    if (error) {
+      console.error('Error creating user profile:', error);
+      return new Response(JSON.stringify({ error: error.message }), { status: 400 });
+    }
+
+    return new Response(JSON.stringify({ message: "Profile created successfully" }), { 
+      headers: { 'content-type': 'application/json' } 
+    });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e?.message || "Server error" }), { status: 500 });
+    console.error('Error in create_user_profile:', e);
+    return new Response(JSON.stringify({ error: e?.message || 'Server error' }), { status: 500 });
   }
 });
