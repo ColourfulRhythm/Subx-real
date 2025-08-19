@@ -41,19 +41,19 @@ WHERE id = 1;
 
 -- Insert missing plots if they don't exist
 INSERT INTO projects (title, description, location, total_sqm, price_per_sqm, amenities, image_urls)
-SELECT '2 Seasons - Plot 79', 'Exclusive residential plot with lakefront views', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Lakefront'], ARRAY['/2-seasons/2seasons-logo.jpg']
+SELECT '2 Seasons - Plot 79', 'Premium residential plot in 2 Seasons Estate - Gated community with jogging & cycling lanes', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Gated community', 'Jogging lanes', 'Cycling lanes'], ARRAY['/2-seasons/2seasons-logo.jpg']
 WHERE NOT EXISTS (SELECT 1 FROM projects WHERE title = '2 Seasons - Plot 79');
 
 INSERT INTO projects (title, description, location, total_sqm, price_per_sqm, amenities, image_urls)
-SELECT '2 Seasons - Plot 81', 'Premium plot in the wellness village with spa access', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Wellness center', 'Spa access'], ARRAY['/2-seasons/2seasons-logo.jpg']
+SELECT '2 Seasons - Plot 81', 'Premium residential plot near wellness hub - Proximity to wellness facilities', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Proximity to wellness hub'], ARRAY['/2-seasons/2seasons-logo.jpg']
 WHERE NOT EXISTS (SELECT 1 FROM projects WHERE title = '2 Seasons - Plot 81');
 
 INSERT INTO projects (title, description, location, total_sqm, price_per_sqm, amenities, image_urls)
-SELECT '2 Seasons - Plot 84', 'Family-oriented plot near community facilities', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Community center', 'Playground'], ARRAY['/2-seasons/2seasons-logo.jpg']
+SELECT '2 Seasons - Plot 84', 'Family-oriented residential plot near community facilities - Daycare/school & mini shopping mall', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Daycare/school proximity', 'Mini shopping mall', 'Play areas'], ARRAY['/2-seasons/2seasons-logo.jpg']
 WHERE NOT EXISTS (SELECT 1 FROM projects WHERE title = '2 Seasons - Plot 84');
 
 INSERT INTO projects (title, description, location, total_sqm, price_per_sqm, amenities, image_urls)
-SELECT '2 Seasons - Plot 87', 'Executive plot with premium amenities', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Executive lounge', 'Premium parking'], ARRAY['/2-seasons/2seasons-logo.jpg']
+SELECT '2 Seasons - Plot 87', 'Premium residential plot in landscaped streets - Play areas and community amenities', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Landscaped streets', 'Play areas'], ARRAY['/2-seasons/2seasons-logo.jpg']
 WHERE NOT EXISTS (SELECT 1 FROM projects WHERE title = '2 Seasons - Plot 87');
 
 -- Step 4: Check what investments already exist for Plot 77

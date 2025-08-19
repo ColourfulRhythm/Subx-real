@@ -29,7 +29,7 @@ SET image_urls = ARRAY['https://subx-real-minfuxhpz-colourfulrhythms-projects.ve
 WHERE title LIKE '%Plot 84%';
 
 UPDATE projects 
-SET image_urls = ARRAY['https://subx-real-minfuxhpz-colourfulrhythms-projects.vercel.app/2seasons-logo.jpg']
+SET image_urls = ARRAY['https://subx-real-minfuxhpz-colourfulrhythms-projects.vercel.app/2-seasons/2seasons-logo.jpg']
 WHERE title LIKE '%Plot 87%';
 
 -- Show the updated image URLs
@@ -51,15 +51,15 @@ SET image_urls = ARRAY[
 ]
 WHERE title LIKE '%Plot 77%';
 
--- Update Plot 79 to have lakefront images
+-- Update Plot 79 to have residential estate images (NOT lakefront)
 UPDATE projects 
 SET image_urls = ARRAY[
     'https://subx-real-minfuxhpz-colourfulrhythms-projects.vercel.app/2-seasons/2seasons-logo.jpg',
-    'https://subx-real-minfuxhpz-colourfulrhythms-projects.vercel.app/2-seasons/drone-image.jpg'
+    'https://subx-real-minfuxhpz-colourfulrhythms-projects.vercel.app/2-seasons/site-plans.jpg'
 ]
 WHERE title LIKE '%Plot 79%';
 
--- Update Plot 81 to have wellness images
+-- Update Plot 81 to have wellness hub images (proximity to wellness hub)
 UPDATE projects 
 SET image_urls = ARRAY[
     'https://subx-real-minfuxhpz-colourfulrhythms-projects.vercel.app/2-seasons/2seasons-logo.jpg',
@@ -67,19 +67,19 @@ SET image_urls = ARRAY[
 ]
 WHERE title LIKE '%Plot 81%';
 
--- Update Plot 84 to have community images
+-- Update Plot 84 to have community images (play areas, daycare/school)
 UPDATE projects 
 SET image_urls = ARRAY[
-    'https://subx-real-minfuxhpz-colourfulrhythms-projects.vercel.app/2seasons-logo.jpg',
+    'https://subx-real-minfuxhpz-colourfulrhythms-projects.vercel.app/2-seasons/2seasons-logo.jpg',
     'https://subx-real-minfuxhpz-colourfulrhythms-projects.vercel.app/2-seasons/site-plans.jpg'
 ]
 WHERE title LIKE '%Plot 84%';
 
--- Update Plot 87 to have executive images
+-- Update Plot 87 to have residential estate images
 UPDATE projects 
 SET image_urls = ARRAY[
     'https://subx-real-minfuxhpz-colourfulrhythms-projects.vercel.app/2-seasons/2seasons-logo.jpg',
-    'https://subx-real-minfuxhpz-colourfulrhythms-projects.vercel.app/2-seasons/plot-cornerpiece.jpg'
+    'https://subx-real-minfuxhpz-colourfulrhythms-projects.vercel.app/2-seasons/2seasons-map.jpg'
 ]
 WHERE title LIKE '%Plot 87%';
 
