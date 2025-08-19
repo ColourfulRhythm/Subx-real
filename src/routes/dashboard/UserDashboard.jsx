@@ -271,73 +271,22 @@ export default function UserDashboard() {
           totalInvestment: data.totalInvestment
         }));
       } else {
-        console.log('No co-owners found, using mock data');
-        // Use mock data as fallback with multiple co-owners for testing
+        // No co-owners found - show empty state
         setSelectedProperty(prev => ({
           ...prev,
-          coOwners: [
-            {
-              name: userData.name,
-              email: userData.email,
-              phone: userData.phone || 'N/A',
-              sqm: property.sqm || 1,
-              percentage: 60,
-              amount: property.amount || 50000
-            },
-            {
-              name: 'John Smith',
-              email: 'john.smith@example.com',
-              phone: '+234 801 234 5678',
-              sqm: 2,
-              percentage: 25,
-              amount: 20000
-            },
-            {
-              name: 'Sarah Johnson',
-              email: 'sarah.j@example.com',
-              phone: '+234 802 345 6789',
-              sqm: 1,
-              percentage: 15,
-              amount: 12000
-            }
-          ],
-          totalOwners: 3,
-          totalInvestment: 82000
+          coOwners: [],
+          totalOwners: 0,
+          totalInvestment: 0
         }));
       }
     } catch (error) {
       console.error('Error fetching co-owners:', error);
-      // Use mock data as fallback with multiple co-owners for testing
+      // Show empty state on error
       setSelectedProperty(prev => ({
         ...prev,
-        coOwners: [
-          {
-            name: userData.name,
-            email: userData.email,
-            phone: userData.phone || 'N/A',
-            sqm: property.sqm || 1,
-            percentage: 60,
-            amount: property.amount || 50000
-          },
-          {
-            name: 'John Smith',
-            email: 'john.smith@example.com',
-            phone: '+234 801 234 5678',
-            sqm: 2,
-            percentage: 25,
-            amount: 20000
-          },
-          {
-            name: 'Sarah Johnson',
-            email: 'sarah.j@example.com',
-            phone: '+234 802 345 6789',
-            sqm: 1,
-            percentage: 15,
-            amount: 12000
-          }
-        ],
-        totalOwners: 3,
-        totalInvestment: 82000
+        coOwners: [],
+        totalOwners: 0,
+        totalInvestment: 0
       }));
     } finally {
       setLoadingCoOwners(false);
@@ -807,8 +756,8 @@ export default function UserDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Use email for API calls to match our real users
-      const userIdentifier = user.email || user.uid;
+      // Use user ID (UUID) for API calls instead of email
+      const userIdentifier = user.id;
       const response = await apiCall(`/users/${userIdentifier}/properties`);
       setUserProperties(response);
     } catch (error) {
