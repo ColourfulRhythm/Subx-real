@@ -72,33 +72,59 @@ INSERT INTO projects (title, description, location, total_sqm, price_per_sqm, am
 ON CONFLICT (id) DO NOTHING;
 
 -- Insert ONLY real investments for existing users (Plot 77 only)
-INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, payment_reference, created_at) VALUES
--- Christopher Onuoha - 7 sqm in Plot 77
-('00000000-0000-0000-0000-000000000001', 1, 7, 35000.00, 'completed', 'CHRIS_ONUOHA_001', NOW()),
--- Kingkwa Enang Oyama - 35 sqm in Plot 77  
-('00000000-0000-0000-0000-000000000002', 1, 35, 175000.00, 'completed', 'KINGKWA_OYAMA_001', NOW()),
--- Iwuozor Chika - 7 sqm in Plot 77
-('00000000-0000-0000-0000-000000000003', 1, 7, 35000.00, 'completed', 'IWUOZOR_CHIKA_001', NOW()),
--- Tolulope Olugbode - 1 sqm in Plot 77
-('00000000-0000-0000-0000-000000000004', 1, 1, 5000.00, 'completed', 'TOLULOPE_OLUGBODE_001', NOW())
-ON CONFLICT DO NOTHING;
+INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, payment_reference, created_at)
+SELECT '00000000-0000-0000-0000-000000000001', 1, 7, 35000.00, 'completed', 'CHRIS_ONUOHA_001', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM investments WHERE user_id = '00000000-0000-0000-0000-000000000001' AND project_id = 1);
+
+INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, payment_reference, created_at)
+SELECT '00000000-0000-0000-0000-000000000002', 1, 35, 175000.00, 'completed', 'KINGKWA_OYAMA_001', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM investments WHERE user_id = '00000000-0000-0000-0000-000000000002' AND project_id = 1);
+
+INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, payment_reference, created_at)
+SELECT '00000000-0000-0000-0000-000000000003', 1, 7, 35000.00, 'completed', 'IWUOZOR_CHIKA_001', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM investments WHERE user_id = '00000000-0000-0000-0000-000000000003' AND project_id = 1);
+
+INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, payment_reference, created_at)
+SELECT '00000000-0000-0000-0000-000000000004', 1, 1, 5000.00, 'completed', 'TOLULOPE_OLUGBODE_001', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM investments WHERE user_id = '00000000-0000-0000-0000-000000000004' AND project_id = 1);
 
 -- Insert forum topics (these will be linked to real users when they sign up)
-INSERT INTO forum_topics (user_id, title, content, category, created_at) VALUES
-(NULL, 'Welcome to Subx Community!', 'Welcome to our community! Feel free to discuss real estate investment strategies, ask questions, and connect with other investors.', 'general', NOW()),
-(NULL, 'Investment Tips for Beginners', 'I''m new to real estate investment. Any tips for someone just starting out? What should I focus on first?', 'investment', NOW()),
-(NULL, 'Best Locations for Investment in 2025', 'What are your thoughts on the best locations for real estate investment this year? I''m particularly interested in emerging markets.', 'investment', NOW()),
-(NULL, 'Property Management Best Practices', 'Share your experiences and tips for managing real estate investments effectively.', 'property_management', NOW()),
-(NULL, 'Community Building', 'How can we strengthen our community and support each other in our investment goals?', 'community', NOW())
-ON CONFLICT DO NOTHING;
+INSERT INTO forum_topics (user_id, title, content, category, created_at)
+SELECT NULL, 'Welcome to Subx Community!', 'Welcome to our community! Feel free to discuss real estate investment strategies, ask questions, and connect with other investors.', 'general', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM forum_topics WHERE title = 'Welcome to Subx Community!');
+
+INSERT INTO forum_topics (user_id, title, content, category, created_at)
+SELECT NULL, 'Investment Tips for Beginners', 'I''m new to real estate investment. Any tips for someone just starting out? What should I focus on first?', 'investment', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM forum_topics WHERE title = 'Investment Tips for Beginners');
+
+INSERT INTO forum_topics (user_id, title, content, category, created_at)
+SELECT NULL, 'Best Locations for Investment in 2025', 'What are your thoughts on the best locations for real estate investment this year? I''m particularly interested in emerging markets.', 'investment', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM forum_topics WHERE title = 'Best Locations for Investment in 2025');
+
+INSERT INTO forum_topics (user_id, title, content, category, created_at)
+SELECT NULL, 'Property Management Best Practices', 'Share your experiences and tips for managing real estate investments effectively.', 'property_management', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM forum_topics WHERE title = 'Property Management Best Practices');
+
+INSERT INTO forum_topics (user_id, title, content, category, created_at)
+SELECT NULL, 'Community Building', 'How can we strengthen our community and support each other in our investment goals?', 'community', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM forum_topics WHERE title = 'Community Building');
 
 -- Insert forum replies (these will be linked to real users when they sign up)
-INSERT INTO forum_replies (topic_id, user_id, content, created_at) VALUES
-(1, NULL, 'Welcome everyone! Great to be part of this community.', NOW()),
-(1, NULL, 'Thanks for the warm welcome! Looking forward to learning from everyone.', NOW()),
-(2, NULL, 'Start with smaller investments and gradually increase as you learn.', NOW()),
-(3, NULL, 'I think emerging markets in Ogun State show great potential.', NOW())
-ON CONFLICT DO NOTHING;
+INSERT INTO forum_replies (topic_id, user_id, content, created_at)
+SELECT 1, NULL, 'Welcome everyone! Great to be part of this community.', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM forum_replies WHERE topic_id = 1 AND content = 'Welcome everyone! Great to be part of this community.');
+
+INSERT INTO forum_replies (topic_id, user_id, content, created_at)
+SELECT 1, NULL, 'Thanks for the warm welcome! Looking forward to learning from everyone.', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM forum_replies WHERE topic_id = 1 AND content = 'Thanks for the warm welcome! Looking forward to learning from everyone.');
+
+INSERT INTO forum_replies (topic_id, user_id, content, created_at)
+SELECT 2, NULL, 'Start with smaller investments and gradually increase as you learn.', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM forum_replies WHERE topic_id = 2 AND content = 'Start with smaller investments and gradually increase as you learn.');
+
+INSERT INTO forum_replies (topic_id, user_id, content, created_at)
+SELECT 3, NULL, 'I think emerging markets in Ogun State show great potential.', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM forum_replies WHERE topic_id = 3 AND content = 'I think emerging markets in Ogun State show great potential.');
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;

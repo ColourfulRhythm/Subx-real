@@ -49,24 +49,38 @@ ON CONFLICT (title) DO NOTHING;
 
 -- Step 4: Ensure we have the required investments for Plot 77
 -- First, check if we need to create placeholder user profiles
-INSERT INTO user_profiles (id, full_name, phone, created_at) VALUES
-('00000000-0000-0000-0000-000000000001', 'Christopher Onuoha', '+234 801 234 5678', NOW()),
-('00000000-0000-0000-0000-000000000002', 'Kingkwa Enang Oyama', '+234 802 345 6789', NOW()),
-('00000000-0000-0000-0000-000000000003', 'Iwuozor Chika', '+234 803 456 7890', NOW()),
-('00000000-0000-0000-0000-000000000004', 'Tolulope Olugbode', '+234 804 567 8901', NOW())
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO user_profiles (id, full_name, phone, created_at)
+SELECT '00000000-0000-0000-0000-000000000001', 'Christopher Onuoha', '+234 801 234 5678', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM user_profiles WHERE id = '00000000-0000-0000-0000-000000000001');
+
+INSERT INTO user_profiles (id, full_name, phone, created_at)
+SELECT '00000000-0000-0000-0000-000000000002', 'Kingkwa Enang Oyama', '+234 802 345 6789', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM user_profiles WHERE id = '00000000-0000-0000-0000-000000000002');
+
+INSERT INTO user_profiles (id, full_name, phone, created_at)
+SELECT '00000000-0000-0000-0000-000000000003', 'Iwuozor Chika', '+234 803 456 7890', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM user_profiles WHERE id = '00000000-0000-0000-0000-000000000003');
+
+INSERT INTO user_profiles (id, full_name, phone, created_at)
+SELECT '00000000-0000-0000-0000-000000000004', 'Tolulope Olugbode', '+234 707 167 0649', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM user_profiles WHERE id = '00000000-0000-0000-0000-000000000004');
 
 -- Now ensure we have the investments for Plot 77
-INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, payment_reference, created_at) VALUES
--- Christopher Onuoha - 7 sqm in Plot 77
-('00000000-0000-0000-0000-000000000001', 1, 7, 35000.00, 'completed', 'CHRIS_ONUOHA_001', NOW()),
--- Kingkwa Enang Oyama - 35 sqm in Plot 77  
-('00000000-0000-0000-0000-000000000002', 1, 35, 175000.00, 'completed', 'KINGKWA_OYAMA_001', NOW()),
--- Iwuozor Chika - 7 sqm in Plot 77
-('00000000-0000-0000-0000-000000000003', 1, 7, 35000.00, 'completed', 'IWUOZOR_CHIKA_001', NOW()),
--- Tolulope Olugbode - 1 sqm in Plot 77
-('00000000-0000-0000-0000-000000000004', 1, 1, 5000.00, 'completed', 'TOLULOPE_OLUGBODE_001', NOW())
-ON CONFLICT DO NOTHING;
+INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, payment_reference, created_at)
+SELECT '00000000-0000-0000-0000-000000000001', 1, 7, 35000.00, 'completed', 'CHRIS_ONUOHA_001', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM investments WHERE user_id = '00000000-0000-0000-0000-000000000001' AND project_id = 1);
+
+INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, payment_reference, created_at)
+SELECT '00000000-0000-0000-0000-000000000002', 1, 35, 175000.00, 'completed', 'KINGKWA_OYAMA_001', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM investments WHERE user_id = '00000000-0000-0000-0000-000000000002' AND project_id = 1);
+
+INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, payment_reference, created_at)
+SELECT '00000000-0000-0000-0000-000000000003', 1, 7, 35000.00, 'completed', 'IWUOZOR_CHIKA_001', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM investments WHERE user_id = '00000000-0000-0000-0000-000000000003' AND project_id = 1);
+
+INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, payment_reference, created_at)
+SELECT '00000000-0000-0000-0000-000000000004', 1, 1, 5000.00, 'completed', 'TOLULOPE_OLUGBODE_001', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM investments WHERE user_id = '00000000-0000-0000-0000-000000000004' AND project_id = 1);
 
 -- Step 5: Clean up forum data (remove orphaned topics and replies)
 DELETE FROM forum_topics WHERE user_id NOT IN (SELECT id FROM user_profiles);
