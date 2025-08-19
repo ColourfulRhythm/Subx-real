@@ -52,7 +52,8 @@ ON CONFLICT (title) DO NOTHING;
 INSERT INTO user_profiles (id, full_name, phone, created_at) VALUES
 ('00000000-0000-0000-0000-000000000001', 'Christopher Onuoha', '+234 801 234 5678', NOW()),
 ('00000000-0000-0000-0000-000000000002', 'Kingkwa Enang Oyama', '+234 802 345 6789', NOW()),
-('00000000-0000-0000-0000-000000000003', 'Iwuozor Chika', '+234 803 456 7890', NOW())
+('00000000-0000-0000-0000-000000000003', 'Iwuozor Chika', '+234 803 456 7890', NOW()),
+('00000000-0000-0000-0000-000000000004', 'Tolulope Olugbode', '+234 804 567 8901', NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- Now ensure we have the investments for Plot 77
@@ -62,7 +63,9 @@ INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, pay
 -- Kingkwa Enang Oyama - 35 sqm in Plot 77  
 ('00000000-0000-0000-0000-000000000002', 1, 35, 175000.00, 'completed', 'KINGKWA_OYAMA_001', NOW()),
 -- Iwuozor Chika - 7 sqm in Plot 77
-('00000000-0000-0000-0000-000000000003', 1, 7, 35000.00, 'completed', 'IWUOZOR_CHIKA_001', NOW())
+('00000000-0000-0000-0000-000000000003', 1, 7, 35000.00, 'completed', 'IWUOZOR_CHIKA_001', NOW()),
+-- Tolulope Olugbode - 1 sqm in Plot 77
+('00000000-0000-0000-0000-000000000004', 1, 1, 5000.00, 'completed', 'TOLULOPE_OLUGBODE_001', NOW())
 ON CONFLICT DO NOTHING;
 
 -- Step 5: Clean up forum data (remove orphaned topics and replies)
@@ -117,3 +120,29 @@ FROM investments i
 JOIN user_profiles up ON i.user_id = up.id
 WHERE i.project_id = 1 AND i.status = 'completed'
 ORDER BY i.amount DESC;
+
+-- Show updated totals including Tolulope
+SELECT '=== UPDATED PLOT 77 TOTALS ===' as info;
+SELECT 
+    'Total Purchased SQM' as metric,
+    SUM(i.sqm_purchased) as value
+FROM investments i
+WHERE i.project_id = 1 AND i.status = 'completed'
+UNION ALL
+SELECT 
+    'Total Investment Amount' as metric,
+    SUM(i.amount) as value
+FROM investments i
+WHERE i.project_id = 1 AND i.status = 'completed'
+UNION ALL
+SELECT 
+    'Available SQM' as metric,
+    (500 - SUM(i.sqm_purchased)) as value
+FROM investments i
+WHERE i.project_id = 1 AND i.status = 'completed'
+UNION ALL
+SELECT 
+    'Total Co-owners' as metric,
+    COUNT(DISTINCT i.user_id) as value
+FROM investments i
+WHERE i.project_id = 1 AND i.status = 'completed';

@@ -72,13 +72,15 @@ INSERT INTO projects (title, description, location, total_sqm, price_per_sqm, am
 ON CONFLICT (id) DO NOTHING;
 
 -- Insert ONLY real investments for existing users (Plot 77 only)
-INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, payment_reference) VALUES
+INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, payment_reference, created_at) VALUES
 -- Christopher Onuoha - 7 sqm in Plot 77
-('00000000-0000-0000-0000-000000000001', 1, 7, 35000.00, 'completed', 'CHRIS_ONUOHA_001'),
+('00000000-0000-0000-0000-000000000001', 1, 7, 35000.00, 'completed', 'CHRIS_ONUOHA_001', NOW()),
 -- Kingkwa Enang Oyama - 35 sqm in Plot 77  
-('00000000-0000-0000-0000-000000000002', 1, 35, 175000.00, 'completed', 'KINGKWA_OYAMA_001'),
+('00000000-0000-0000-0000-000000000002', 1, 35, 175000.00, 'completed', 'KINGKWA_OYAMA_001', NOW()),
 -- Iwuozor Chika - 7 sqm in Plot 77
-('00000000-0000-0000-0000-000000000003', 1, 7, 35000.00, 'completed', 'IWUOZOR_CHIKA_001')
+('00000000-0000-0000-0000-000000000003', 1, 7, 35000.00, 'completed', 'IWUOZOR_CHIKA_001', NOW()),
+-- Tolulope Olugbode - 1 sqm in Plot 77
+('00000000-0000-0000-0000-000000000004', 1, 1, 5000.00, 'completed', 'TOLULOPE_OLUGBODE_001', NOW())
 ON CONFLICT DO NOTHING;
 
 -- Insert forum topics (these will be linked to real users when they sign up)
@@ -181,13 +183,21 @@ SELECT
 FROM investments i
 WHERE i.project_id = 1;
 
-SELECT 'Available SQM for Plot 77:' as status;
+-- Show updated available SQM projection for Plot 77
+SELECT '=== PLOT 77 AVAILABLE SQM PROJECTION ===' as info;
 SELECT 
-    p.title,
-    p.total_sqm as total_sqm,
-    COALESCE(SUM(i.sqm_purchased), 0) as purchased_sqm,
-    (p.total_sqm - COALESCE(SUM(i.sqm_purchased), 0)) as available_sqm
-FROM projects p
-LEFT JOIN investments i ON p.id = i.project_id AND i.status = 'completed'
-WHERE p.id = 1
-GROUP BY p.id, p.title, p.total_sqm;
+    'Plot 77' as title,
+    500 as total_sqm,
+    SUM(sqm_purchased) as projected_purchased_sqm,
+    (500 - SUM(sqm_purchased)) as projected_available_sqm
+FROM temp_unverified_users;
+
+-- Show updated co-ownership breakdown including Tolulope
+SELECT '=== UPDATED PLOT 77 CO-OWNERSHIP BREAKDOWN ===' as info;
+SELECT 
+    full_name,
+    sqm_purchased,
+    amount,
+    ROUND((sqm_purchased::DECIMAL / 500::DECIMAL) * 100, 1) as projected_ownership_percentage
+FROM temp_unverified_users
+ORDER BY amount DESC;
