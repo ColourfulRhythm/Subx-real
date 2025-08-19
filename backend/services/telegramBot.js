@@ -6,6 +6,12 @@ class TelegramBotService {
     this.botToken = process.env.TELEGRAM_BOT_TOKEN || '8466268446:AAFRwpiD416wgLzhbP0awxUJ73-zcHuCOiQ';
     this.chatId = process.env.TELEGRAM_CHAT_ID || '-1002635491419';
     this.apiUrl = `https://api.telegram.org/bot${this.botToken}`;
+    
+    console.log('Telegram Bot initialized with:', {
+      botToken: this.botToken ? '***' + this.botToken.slice(-4) : 'NOT_SET',
+      chatId: this.chatId,
+      apiUrl: this.apiUrl
+    });
   }
 
   // Generate a hash for user identification
@@ -28,8 +34,7 @@ class TelegramBotService {
     try {
       const response = await axios.post(`${this.apiUrl}/sendMessage`, {
         chat_id: this.chatId,
-        text: text,
-        parse_mode: 'HTML'
+        text: text
       });
 
       console.log('Telegram message sent successfully:', response.data);
@@ -48,15 +53,13 @@ class TelegramBotService {
       const amount = investmentData.amount.toLocaleString();
       const projectTitle = investmentData.projectTitle;
 
-      const message = `🎉 <b>New Subx Purchase!</b> 🚀
+      const message = `🎉 User ${userHash} just bought ${sqm} sqm of land! Welcome to Subx! 🚀
 
-👤 User: <code>${userHash}</code>
 🏠 Property: ${projectTitle}
-📏 Square Meters: ${sqm} sqm
 💰 Amount: ₦${amount}
 📍 Location: ${investmentData.location}
 
-Welcome to the Subx family! 🏘️✨`;
+Join us at: https://www.subxhq.com/signup/investor`;
 
       await this.sendMessage(message);
       
@@ -78,15 +81,10 @@ Welcome to the Subx family! 🏘️✨`;
   async sendWelcomeMessage(userData) {
     try {
       const userHash = this.generateUserHash(userData.id || userData.email, userData.email);
-      const maskedEmail = this.maskEmail(userData.email);
       
-      const message = `👋 <b>New Subx Member!</b> 🌟
+      const message = `👋 New Subx member ${userHash} just joined! Welcome to Subx! 🚀
 
-👤 User: <code>${userHash}</code>
-📧 Email: ${maskedEmail}
-📅 Joined: ${new Date().toLocaleDateString()}
-
-Welcome to Subx Real Estate! 🏠✨`;
+Join us at: https://www.subxhq.com/signup/investor`;
 
       await this.sendMessage(message);
       

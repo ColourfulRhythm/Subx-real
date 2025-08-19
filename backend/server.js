@@ -19,6 +19,7 @@ import { verificationRouter } from './routes/verification.js';
 import { activitiesRouter } from './routes/activities.js';
 import axios from 'axios';
 import { documentsRouter } from './routes/documents.js';
+import { forumRouter } from './routes/forum.js';
 import { Investor } from './models/Investor.js';
 import { Connection } from './models/Connection.js';
 import nodemailer from 'nodemailer';
@@ -199,6 +200,7 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/verification', verificationRouter);
 app.use('/api/activities', activitiesRouter);
 app.use('/api/documents', documentsRouter);
+app.use('/api/forum', forumRouter);
 
 // Configure multer for image uploads
 const storage = multer.diskStorage({
@@ -584,10 +586,72 @@ app.post('/api/projects', supabaseAuthMiddleware, upload.array('images', 5), asy
 
 app.get('/api/projects', async (req, res) => {
   try {
-    const projects = await Project.find().populate('developerId', 'name company');
-    res.json(projects);
+    // Fetch all projects from Supabase
+    const { data: projects, error: projectsError } = await supabase
+      .from('projects')
+      .select('*')
+      .order('id');
+
+    if (projectsError) {
+      console.error('Error fetching projects:', projectsError);
+      return res.status(500).json({ error: 'Failed to fetch projects' });
+    }
+
+    // Fetch investments for each project to calculate available sq.m
+    const { data: investments, error: investmentsError } = await supabase
+      .from('investments')
+      .select('project_id, sqm_purchased')
+      .eq('status', 'completed');
+
+    if (investmentsError) {
+      console.error('Error fetching investments:', investmentsError);
+      // Don't fail if investments table is empty
+    }
+
+          // Calculate available sq.m for each project
+      const projectsWithAvailableSqm = projects.map(project => {
+        let availableSqm;
+        
+                // For all plots, calculate available SQM dynamically from investments
+        const plotInvestments = investments ? investments.filter(inv => inv.project_id === project.id && inv.status === 'completed') : [];
+        const totalPurchasedSqm = plotInvestments.reduce((sum, inv) => sum + (inv.sqm_purchased || 0), 0);
+        availableSqm = Math.max(0, project.total_sqm - totalPurchasedSqm);
+      
+      return {
+        id: project.id,
+        title: project.title,
+        description: project.description,
+        location: project.location,
+        totalSqm: project.total_sqm,
+        availableSqm: availableSqm,
+        price: `₦${project.price_per_sqm.toLocaleString()}/sq.m`,
+        price_per_sqm: project.price_per_sqm,
+        status: availableSqm > 0 ? 'Available' : 'Sold Out',
+        amenities: project.amenities || [],
+        imageUrls: project.image_urls || [],
+        type: 'residential',
+        propertyType: 'residential',
+        priceRange: `₦${project.price_per_sqm.toLocaleString()} - ₦${project.price_per_sqm.toLocaleString()} per sqm`,
+        targetMarket: 'Middle to high-income individuals',
+        completionDate: '2025-12-31T00:00:00.000Z',
+        roi: '15-20% annually',
+        riskLevel: 'low',
+        minInvestment: project.price_per_sqm,
+        maxInvestment: project.total_sqm * project.price_per_sqm,
+        soldUnits: project.total_sqm - availableSqm,
+        startDate: '2024-01-01T00:00:00.000Z',
+        expectedCompletion: '2025-12-31T00:00:00.000Z',
+        investors: plotInvestments.length,
+        totalInvestment: `₦${(project.total_sqm - availableSqm) * project.price_per_sqm}`,
+        createdAt: project.created_at,
+        updatedAt: project.updated_at
+      };
+    });
+
+    res.json(projectsWithAvailableSqm);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch projects' });
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1510,6 +1574,8 @@ app.post('/api/investments', async (req, res) => {
     res.status(500).json({ error: 'Failed to create investment' });
   }
 });
+
+
 
 // Paystack verification endpoint
 app.get('/api/verify-paystack/:reference', async (req, res) => {

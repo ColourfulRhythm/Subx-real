@@ -136,88 +136,13 @@ export default function UserDashboard() {
     dateOfBirth: '',
     occupation: ''
   });
+  const [expandedPlots, setExpandedPlots] = useState([]);
 
   // Forum state
   const [forumSearchQuery, setForumSearchQuery] = useState('');
   const [forumTopics, setForumTopics] = useState([]);
-  const [forums, setForums] = useState({
-    general: {
-      title: 'General Discussion',
-      topics: [
-        {
-          id: 1,
-          title: 'Welcome to Subx Community!',
-          author: 'Subx Team',
-          content: 'Welcome to our community! Feel free to discuss real estate investment strategies, ask questions, and connect with other investors.',
-          replies: [
-            { id: 1, author: 'John Doe', content: 'Great to be here! Looking forward to learning from everyone.', timestamp: '2 hours ago' },
-            { id: 2, author: 'Sarah Johnson', content: 'This is exactly what I needed. Thanks Subx Team!', timestamp: '1 hour ago' },
-            { id: 3, author: 'Mike Chen', content: 'Excited to start my real estate journey with Subx!', timestamp: '45 minutes ago' },
-            { id: 4, author: 'Emma Wilson', content: 'The platform looks amazing. Can\'t wait to explore more.', timestamp: '30 minutes ago' },
-            { id: 5, author: 'David Brown', content: 'Already learning so much from the community!', timestamp: '15 minutes ago' }
-          ],
-          lastActivity: '15 minutes ago',
-          category: 'general',
-          timestamp: '3 hours ago'
-        },
-        {
-          id: 2,
-          title: 'Investment Tips for Beginners',
-          author: 'Sarah Johnson',
-          content: 'I\'m new to real estate investment. Any tips for someone just starting out? What should I focus on first?',
-          replies: [
-            { id: 1, author: 'Mike Chen', content: 'Start small! Even 1 sqm is a great beginning. Focus on understanding the market first.', timestamp: '1 day ago' },
-            { id: 2, author: 'Emma Wilson', content: 'Research the location thoroughly. Location is everything in real estate.', timestamp: '1 day ago' },
-            { id: 3, author: 'David Brown', content: 'Don\'t rush into decisions. Take your time to understand the investment.', timestamp: '23 hours ago' },
-            { id: 4, author: 'John Doe', content: 'Consider starting with smaller plots to get comfortable with the process.', timestamp: '22 hours ago' },
-            { id: 5, author: 'Lisa Park', content: 'Network with other investors. The community here is very helpful!', timestamp: '21 hours ago' },
-            { id: 6, author: 'Alex Turner', content: 'Set realistic expectations. Real estate is a long-term investment.', timestamp: '20 hours ago' },
-            { id: 7, author: 'Maria Garcia', content: 'Learn about the legal aspects. Understanding contracts is crucial.', timestamp: '19 hours ago' },
-            { id: 8, author: 'Tom Anderson', content: 'Start with areas you know or can easily research.', timestamp: '18 hours ago' },
-            { id: 9, author: 'Rachel Green', content: 'Don\'t invest more than you can afford to lose.', timestamp: '17 hours ago' },
-            { id: 10, author: 'Chris Martin', content: 'Keep learning! The market changes constantly.', timestamp: '16 hours ago' },
-            { id: 11, author: 'Sophie Turner', content: 'Consider the potential for development in the area.', timestamp: '15 hours ago' },
-            { id: 12, author: 'James Bond', content: 'Patience is key. Good investments take time to mature.', timestamp: '14 hours ago' }
-          ],
-          lastActivity: '14 hours ago',
-          category: 'investment',
-          timestamp: '2 days ago'
-        },
-        {
-          id: 3,
-          title: 'Best Locations for Investment in 2025',
-          author: 'Mike Chen',
-          content: 'What are your thoughts on the best locations for real estate investment this year? I\'m particularly interested in emerging markets.',
-          replies: [
-            { id: 1, author: 'Emma Wilson', content: 'Ogun State is showing great potential with the new developments.', timestamp: '5 hours ago' },
-            { id: 2, author: 'David Brown', content: 'I agree! The infrastructure improvements are making it very attractive.', timestamp: '4 hours ago' },
-            { id: 3, author: 'Lisa Park', content: 'Lagos outskirts are also worth considering for long-term growth.', timestamp: '3 hours ago' }
-          ],
-          lastActivity: '3 hours ago',
-          category: 'investment',
-          timestamp: '6 hours ago'
-        }
-      ]
-    },
-    investment: {
-      title: 'Investment Strategies',
-      topics: [
-        {
-          id: 4,
-          title: 'Diversification Strategies',
-          author: 'Emma Wilson',
-          content: 'How do you diversify your real estate portfolio? Looking for strategies to spread risk.',
-          replies: [
-            { id: 1, author: 'David Brown', content: 'I invest in different locations and plot sizes to spread risk.', timestamp: '1 day ago' },
-            { id: 2, author: 'Mike Chen', content: 'Consider different types of properties too - residential, commercial, etc.', timestamp: '1 day ago' }
-          ],
-          lastActivity: '1 day ago',
-          category: 'investment',
-          timestamp: '2 days ago'
-        }
-      ]
-    }
-  });
+  const [forumReplies, setForumReplies] = useState([]);
+  const [loadingForum, setLoadingForum] = useState(false);
   const [activeForum, setActiveForum] = useState('general');
   const [showNewTopicModal, setShowNewTopicModal] = useState(false);
   const [showTopicModal, setShowTopicModal] = useState(false);
@@ -250,6 +175,10 @@ export default function UserDashboard() {
       navigate('/login');
       return;
     }
+
+    // Fetch forum topics and projects
+    fetchForumTopics();
+    fetchProjects();
 
     // Check verification status - temporarily disabled for development
     const checkVerificationStatus = async () => {
@@ -425,6 +354,55 @@ export default function UserDashboard() {
     setShowDeedSignModal(true);
   };
 
+  const togglePlotDocuments = (plotId) => {
+    setExpandedPlots(prev => 
+      prev.includes(plotId) 
+        ? prev.filter(id => id !== plotId)
+        : [...prev, plotId]
+    );
+  };
+
+  const handleViewDocument = (document) => {
+    // Open document in new tab or modal
+    if (document.url) {
+      window.open(document.url, '_blank');
+    } else {
+      toast.error('Document not available');
+    }
+  };
+
+  const handleDownloadReceipt = (property, document) => {
+    // Generate and download receipt
+    const doc = new jsPDF();
+    doc.setFontSize(20);
+    doc.text('Subx Investment Receipt', 20, 20);
+    doc.setFontSize(12);
+    doc.text(`Property: ${property.title}`, 20, 40);
+    doc.text(`Document: ${document.name}`, 20, 50);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 60);
+    doc.text(`User: ${userData.name}`, 20, 70);
+    doc.text(`Email: ${userData.email}`, 20, 80);
+    
+    doc.save(`receipt-${property.title}-${document.name}.pdf`);
+    toast.success('Receipt downloaded successfully!');
+  };
+
+  // Fetch real project data with dynamic available sq.m
+  const fetchProjects = async () => {
+    try {
+      const response = await fetch('/api/projects');
+      const data = await response.json();
+      
+      if (data.success) {
+        setProjects(data.projects);
+      } else {
+        console.error('Failed to fetch projects:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    }
+  };
+
   // Update available SQM after purchase
   const updateAvailableSqm = (projectId, purchasedSqm) => {
     setProjects(prevProjects => 
@@ -437,56 +415,112 @@ export default function UserDashboard() {
   };
 
   // Forum functions
-  const handleViewTopic = (topic) => {
+  const fetchForumTopics = async () => {
+    setLoadingForum(true);
+    try {
+      const response = await fetch('/api/forum/topics');
+      const data = await response.json();
+      
+      if (data.success) {
+        setForumTopics(data.topics);
+      } else {
+        console.error('Failed to fetch forum topics:', data.error);
+        setForumTopics([]);
+      }
+    } catch (error) {
+      console.error('Error fetching forum topics:', error);
+      setForumTopics([]);
+    } finally {
+      setLoadingForum(false);
+    }
+  };
+
+  const fetchTopicReplies = async (topicId) => {
+    try {
+      const response = await fetch(`/api/forum/replies?topic_id=${topicId}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setForumReplies(data.replies);
+      } else {
+        console.error('Failed to fetch replies:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching replies:', error);
+    }
+  };
+
+  const handleViewTopic = async (topic) => {
     setSelectedTopic(topic);
     setShowTopicModal(true);
+    await fetchTopicReplies(topic.id);
   };
 
   const handleAddReply = async () => {
-    if (!newReply.trim()) return;
+    if (!newReply.trim() || !selectedTopic) return;
     
-    const reply = {
-      id: Date.now(),
-      author: userData.name || 'User',
-      content: newReply,
-      timestamp: 'Just now'
-    };
-    
-    // Add reply to the selected topic
-    const updatedForums = { ...forums };
-    const topic = updatedForums[activeForum].topics.find(t => t.id === selectedTopic.id);
-    if (topic) {
-      topic.replies.push(reply);
-      topic.lastActivity = 'Just now';
-      setForums(updatedForums);
-      setNewReply('');
-      toast.success('Reply added successfully!');
+    try {
+      const response = await fetch('/api/forum/replies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: newReply,
+          topic_id: selectedTopic.id,
+          user_id: localStorage.getItem('userId')
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setNewReply('');
+        await fetchTopicReplies(selectedTopic.id);
+        toast.success('Reply added successfully!');
+      } else {
+        toast.error('Failed to add reply');
+      }
+    } catch (error) {
+      console.error('Error adding reply:', error);
+      toast.error('Failed to add reply');
     }
   };
 
   const handleCreateTopic = async () => {
     if (!newTopicData.title.trim() || !newTopicData.content.trim()) return;
     
-    const newTopic = {
-      id: Date.now(),
-      title: newTopicData.title,
-      author: userData.name || 'User',
-      content: newTopicData.content,
-      replies: [],
-      lastActivity: 'Just now',
-      category: newTopicData.category,
-      timestamp: 'Just now'
-    };
-    
-    // Add new topic to the active forum
-    const updatedForums = { ...forums };
-    updatedForums[activeForum].topics.unshift(newTopic);
-    setForums(updatedForums);
-    
-    // Reset form and close modal
-    setNewTopicData({ title: '', content: '', category: 'general' });
-    setShowNewTopicModal(false);
-    toast.success('Topic created successfully!');
+    try {
+      const response = await fetch('/api/forum/topics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newTopicData.title,
+          content: newTopicData.content,
+          category: newTopicData.category,
+          user_id: localStorage.getItem('userId')
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setNewTopicData({ title: '', content: '', category: 'general' });
+        setShowNewTopicModal(false);
+        // Add a small delay to ensure the modal closes before refreshing
+        setTimeout(async () => {
+          await fetchForumTopics();
+        }, 100);
+        toast.success('Channel created successfully!');
+      } else {
+        toast.error('Failed to create channel');
+      }
+    } catch (error) {
+      console.error('Error creating topic:', error);
+      toast.error('Failed to create channel');
+    }
   };
 
   const handleSignatureStart = (e) => {
@@ -604,14 +638,7 @@ export default function UserDashboard() {
     return doc;
   };
 
-  // Download Receipt
-  const handleDownloadReceipt = () => {
-    if (!paymentData) return;
-    
-    const doc = generateReceipt(paymentData);
-    doc.save(`receipt-${paymentData.paymentReference}.pdf`);
-    toast.success('Receipt downloaded successfully!');
-  };
+
 
   // Download Certificate
   const handleDownloadCertificate = () => {
@@ -791,19 +818,7 @@ export default function UserDashboard() {
     }
   };
 
-  // Fetch projects from backend
-  const fetchProjects = async () => {
-    try {
-      const response = await apiCall('/projects');
-      if (response && response.length > 0) {
-        setProjects(response);
-      }
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-      // Fallback to mock data
-      setProjects(mockProjects);
-    }
-  };
+
 
   const handleSqmChange = (sqm) => {
     setSelectedSqm(sqm);
@@ -1436,39 +1451,67 @@ export default function UserDashboard() {
                       {/* Show documents from recent activity */}
                       {userData.recentActivity && userData.recentActivity.filter(activity => activity.status === 'owned').map((property) => (
                         <div key={property.id} className="border-b border-gray-200 pb-6 last:border-b-0">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4">{property.title}</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {property.documents?.map((document, index) => (
-                              <div key={index} className="bg-gray-50 rounded-lg p-4">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center space-x-2">
-                                    <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                    </svg>
-                                    <span className="font-medium text-gray-900">{document.name}</span>
-                                  </div>
-                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                    document.signed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                  }`}>
-                                    {document.signed ? 'Signed' : 'Pending'}
-                                  </span>
-                                </div>
-                                <div className="flex space-x-2">
-                                  <button className="flex-1 px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                                    View
-                                  </button>
-                                  {!document.signed && (
-                                    <button 
-                                      onClick={() => handleSignDeed(document)}
-                                      className="flex-1 px-3 py-1 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
-                                    >
-                                      Sign
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+                          <div 
+                            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-3 rounded-lg"
+                            onClick={() => togglePlotDocuments(property.id)}
+                          >
+                            <h3 className="text-lg font-semibold text-gray-900">{property.title}</h3>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-gray-500">{property.documents?.length || 0} documents</span>
+                              <svg 
+                                className={`h-5 w-5 text-gray-500 transform transition-transform ${expandedPlots.includes(property.id) ? 'rotate-180' : ''}`} 
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </div>
                           </div>
+                          
+                          {expandedPlots.includes(property.id) && (
+                            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {property.documents?.map((document, index) => (
+                                <div key={index} className="bg-gray-50 rounded-lg p-4">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center space-x-2">
+                                      <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                      </svg>
+                                      <span className="font-medium text-gray-900">{document.name}</span>
+                                    </div>
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                      document.signed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                    }`}>
+                                      {document.signed ? 'Signed' : 'Pending'}
+                                    </span>
+                                  </div>
+                                  <div className="flex space-x-2">
+                                    <button 
+                                      onClick={() => handleViewDocument(document)}
+                                      className="flex-1 px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
+                                    >
+                                      View
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDownloadReceipt(property, document)}
+                                      className="flex-1 px-3 py-1 text-sm font-medium text-green-700 bg-green-50 border border-green-300 rounded hover:bg-green-100"
+                                    >
+                                      Download
+                                    </button>
+                                    {!document.signed && (
+                                      <button 
+                                        onClick={() => handleSignDeed(document)}
+                                        className="flex-1 px-3 py-1 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
+                                      >
+                                        Sign
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ))}
                       
@@ -1609,8 +1652,13 @@ export default function UserDashboard() {
                             <p className="font-medium text-gray-900">{profileData.occupation || 'Not provided'}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Member Since</p>
-                            <p className="font-medium text-gray-900">January 2024</p>
+                                            <p className="text-sm text-gray-500">Member Since</p>
+                <p className="font-medium text-gray-900">
+                  {userData.createdAt ? new Date(userData.createdAt).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long' 
+                  }) : 'Recently'}
+                </p>
                           </div>
                         </div>
                       </div>
@@ -1771,23 +1819,34 @@ export default function UserDashboard() {
               className="space-y-6"
             >
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900">Community Forum</h2>
-                <button
-                  onClick={() => setShowNewTopicModal(true)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center"
-                >
-                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  New Topic
-                </button>
+                <h2 className="text-2xl font-bold text-gray-900">Community Channels</h2>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={fetchForumTopics}
+                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 flex items-center"
+                  >
+                    <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                  </button>
+                  <button
+                    onClick={() => setShowNewTopicModal(true)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center"
+                  >
+                    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    New Channel
+                  </button>
+                </div>
               </div>
 
               {/* Search Bar */}
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Search topics..."
+                  placeholder="Search channels..."
                   value={forumSearchQuery}
                   onChange={(e) => setForumSearchQuery(e.target.value)}
                   className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -1797,41 +1856,80 @@ export default function UserDashboard() {
                 </svg>
               </div>
 
-              {/* Forum Topics */}
+              {/* Telegram-style Channel List */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-200">
                 <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">General Discussion</h3>
-                  {forums.general.topics.length === 0 ? (
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Channels</h3>
+                  {loadingForum ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                      <span className="ml-3 text-gray-600">Loading channels...</span>
+                    </div>
+                  ) : forumTopics.length === 0 ? (
                     <div className="text-center py-8">
                       <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">No topics yet</h3>
-                      <p className="mt-1 text-sm text-gray-500">Get started by creating the first topic!</p>
+                      <h3 className="mt-2 text-sm font-medium text-gray-900">No channels yet</h3>
+                      <p className="mt-1 text-sm text-gray-500">Get started by creating the first channel!</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {forums.general.topics.map((topic) => (
+                    <div className="space-y-0">
+                      {forumTopics
+                        .filter(topic => 
+                          !forumSearchQuery || 
+                          topic.title.toLowerCase().includes(forumSearchQuery.toLowerCase()) ||
+                          topic.content.toLowerCase().includes(forumSearchQuery.toLowerCase())
+                        )
+                        .sort((a, b) => new Date(b.created_at || b.lastActivity) - new Date(a.created_at || a.lastActivity))
+                        .map((topic) => (
                         <div 
                           key={topic.id} 
-                          className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                          className="flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0"
                           onClick={() => handleViewTopic(topic)}
                         >
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900 mb-1">{topic.title}</h4>
-                              <p className="text-sm text-gray-600 mb-2">{topic.content.substring(0, 100)}...</p>
-                              <div className="flex items-center space-x-4 text-sm text-gray-500">
-                                <span>By {topic.author}</span>
-                                <span>{topic.replies?.length || 0} replies</span>
-                                <span>{topic.lastActivity}</span>
-                              </div>
+                          {/* Channel Avatar */}
+                          <div className="flex-shrink-0 mr-4">
+                            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                              <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                              </svg>
                             </div>
-                            <div className="ml-4">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                {topic.category}
+                          </div>
+
+                          {/* Channel Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-medium text-gray-900 truncate">{topic.title}</h4>
+                              <span className="text-xs text-gray-500 ml-2">
+                                {topic.created_at ? 
+                                  new Date(topic.created_at).toLocaleDateString() : 
+                                  topic.lastActivity || 'Recently'
+                                }
                               </span>
                             </div>
+                            <p className="text-sm text-gray-600 truncate mt-1">
+                              {topic.content.length > 80 ? topic.content.substring(0, 80) + '...' : topic.content}
+                            </p>
+                            <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
+                              <span className="flex items-center">
+                                <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                {topic.users?.full_name || 'Anonymous'}
+                              </span>
+                              <span className="flex items-center">
+                                <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </svg>
+                                {topic.forum_replies?.[0]?.count || 0} messages
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Channel Status Indicator */}
+                          <div className="flex-shrink-0 ml-3">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                           </div>
                         </div>
                       ))}
@@ -2168,7 +2266,8 @@ export default function UserDashboard() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative"
+              style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
             >
               <div className="flex justify-between items-start mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">Sign {selectedDocument.name}</h2>
@@ -2189,7 +2288,7 @@ export default function UserDashboard() {
                       This Deed of Sale is made on [Date] between:<br/><br/>
                       <strong>SELLER:</strong> Focal Point Property Development and Management Services Ltd.<br/>
                       <strong>BUYER:</strong> {userData.name}<br/><br/>
-                      For the purchase of land in 2 Seasons Estate, Ogun State, Nigeria.<br/><br/>
+                      For the purchase of land in 2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state.<br/><br/>
                       <strong>PROPERTY DETAILS:</strong><br/>
                       • Location: 2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state<br/>
                       • Plot Number: {selectedProperty?.title?.split(' - ')[1] || '[Plot Number]'}<br/>
@@ -2511,7 +2610,7 @@ export default function UserDashboard() {
               className="bg-white rounded-2xl max-w-2xl w-full p-6"
             >
               <div className="flex justify-between items-start mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Create New Topic</h2>
+                                  <h2 className="text-2xl font-bold text-gray-900">Create New Channel</h2>
                 <button onClick={() => setShowNewTopicModal(false)} className="text-gray-400 hover:text-gray-600">
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2525,7 +2624,7 @@ export default function UserDashboard() {
               }} className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Topic Title
+                    Channel Name
                   </label>
                   <input
                     type="text"
@@ -2563,7 +2662,7 @@ export default function UserDashboard() {
                     onChange={(e) => setNewTopicData(prev => ({ ...prev, content: e.target.value }))}
                     rows={6}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Write your topic content..."
+                    placeholder="Write your channel description..."
                     required
                   />
                 </div>
@@ -2580,7 +2679,7 @@ export default function UserDashboard() {
                     type="submit"
                     className="px-6 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
                   >
-                    Create Topic
+                    Create Channel
                   </button>
                 </div>
               </form>
@@ -2606,7 +2705,7 @@ export default function UserDashboard() {
             >
               <div className="p-6">
                 <div className="flex justify-between items-start mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedTopic.title}</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">#{selectedTopic.title}</h2>
                   <button onClick={() => setShowTopicModal(false)} className="text-gray-400 hover:text-gray-600">
                     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

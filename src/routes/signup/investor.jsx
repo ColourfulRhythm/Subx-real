@@ -31,6 +31,20 @@ export default function InvestorSignup() {
     setIsLoading(true)
     setError('')
     try {
+      // First check if user already exists
+      const { data: existingUser, error: checkError } = await supabase.auth.admin.listUsers()
+      
+      if (checkError) {
+        console.error('Error checking existing users:', checkError)
+      } else {
+        const userExists = existingUser.users.some(user => user.email === data.email)
+        if (userExists) {
+          setError('An account with this email already exists. Please try logging in instead.')
+          setIsLoading(false)
+          return
+        }
+      }
+
       // Create user with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
@@ -45,7 +59,11 @@ export default function InvestorSignup() {
       })
 
       if (authError) {
-        setError(authError.message)
+        if (authError.message.includes('already registered')) {
+          setError('An account with this email already exists. Please try logging in instead.')
+        } else {
+          setError(authError.message)
+        }
         return
       }
 
@@ -70,6 +88,11 @@ export default function InvestorSignup() {
 
         // Show verification message
         alert('Account created successfully! Please check your email and verify your account before logging in.')
+        
+        // Increment user count for landing page counter
+        if (window.incrementSubxUserCount) {
+          window.incrementSubxUserCount();
+        }
         
         // Navigate to login page
         navigate('/login')
