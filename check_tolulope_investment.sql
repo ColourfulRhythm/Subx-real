@@ -142,13 +142,11 @@ BEGIN
                 id,
                 full_name,
                 phone,
-                user_type,
                 created_at
             ) VALUES (
                 tolulope_auth_id,
                 'Tolulope Olugbode',
                 '+2348034567890',
-                'investor',
                 NOW()
             );
             
@@ -186,7 +184,6 @@ SELECT
     up.full_name,
     au.email,
     up.phone,
-    up.user_type,
     up.created_at
 FROM user_profiles up
 LEFT JOIN auth.users au ON up.id = au.id
