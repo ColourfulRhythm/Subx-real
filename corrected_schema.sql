@@ -1,0 +1,193 @@
+-- CORRECTED Supabase Schema for Subx Application
+-- Only includes REAL plots: Plot 77, Plot 79, Plot 81, Plot 84, Plot 87
+-- Removes unwanted sample data like Kobape Gardens and Victoria Island
+
+-- Create projects table
+CREATE TABLE IF NOT EXISTS projects (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  location VARCHAR(255) NOT NULL,
+  total_sqm INTEGER NOT NULL,
+  price_per_sqm DECIMAL(10,2) NOT NULL,
+  status VARCHAR(50) DEFAULT 'active',
+  amenities TEXT[],
+  image_urls TEXT[],
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create investments table
+CREATE TABLE IF NOT EXISTS investments (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+  sqm_purchased INTEGER NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  status VARCHAR(50) DEFAULT 'pending',
+  payment_reference VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create forum_topics table
+CREATE TABLE IF NOT EXISTS forum_topics (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  category VARCHAR(100) DEFAULT 'general',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create forum_replies table
+CREATE TABLE IF NOT EXISTS forum_replies (
+  id SERIAL PRIMARY KEY,
+  topic_id INTEGER REFERENCES forum_topics(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create user_profiles table (extends auth.users)
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  full_name VARCHAR(255),
+  phone VARCHAR(50),
+  bio TEXT,
+  investment_interests TEXT[],
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Insert ONLY REAL plot data (no sample data)
+INSERT INTO projects (title, description, location, total_sqm, price_per_sqm, amenities, image_urls) VALUES
+('2 Seasons - Plot 77', 'Premium residential plot in 2 Seasons Estate', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage'], ARRAY['/2-seasons/2seasons-logo.jpg']),
+('2 Seasons - Plot 79', 'Exclusive residential plot with lakefront views', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Lakefront'], ARRAY['/2-seasons/2seasons-logo.jpg']),
+('2 Seasons - Plot 81', 'Premium plot in the wellness village with spa access', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Wellness center', 'Spa access'], ARRAY['/2-seasons/2seasons-logo.jpg']),
+('2 Seasons - Plot 84', 'Family-oriented plot near community facilities', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Community center', 'Playground'], ARRAY['/2-seasons/2seasons-logo.jpg']),
+('2 Seasons - Plot 87', 'Executive plot with premium amenities', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Executive lounge', 'Premium parking'], ARRAY['/2-seasons/2seasons-logo.jpg'])
+ON CONFLICT (id) DO NOTHING;
+
+-- Insert ONLY real investments for existing users (Plot 77 only)
+INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, payment_reference) VALUES
+-- Christopher Onuoha - 7 sqm in Plot 77
+('00000000-0000-0000-0000-000000000001', 1, 7, 35000.00, 'completed', 'CHRIS_ONUOHA_001'),
+-- Kingkwa Enang Oyama - 35 sqm in Plot 77  
+('00000000-0000-0000-0000-000000000002', 1, 35, 175000.00, 'completed', 'KINGKWA_OYAMA_001'),
+-- Iwuozor Chika - 7 sqm in Plot 77
+('00000000-0000-0000-0000-000000000003', 1, 7, 35000.00, 'completed', 'IWUOZOR_CHIKA_001')
+ON CONFLICT DO NOTHING;
+
+-- Insert forum topics (these will be linked to real users when they sign up)
+INSERT INTO forum_topics (title, content, category, created_at) VALUES
+('Welcome to Subx Community!', 'Welcome to our community! Feel free to discuss real estate investment strategies, ask questions, and connect with other investors.', 'general', NOW()),
+('Investment Tips for Beginners', 'I''m new to real estate investment. Any tips for someone just starting out? What should I focus on first?', 'investment', NOW()),
+('Best Locations for Investment in 2025', 'What are your thoughts on the best locations for real estate investment this year? I''m particularly interested in emerging markets.', 'investment', NOW()),
+('Property Management Best Practices', 'Share your experiences and tips for managing real estate investments effectively.', 'property_management', NOW()),
+('Community Building', 'How can we strengthen our community and support each other in our investment goals?', 'community', NOW())
+ON CONFLICT DO NOTHING;
+
+-- Insert forum replies (these will be linked to real users when they sign up)
+INSERT INTO forum_replies (topic_id, content, created_at) VALUES
+('Welcome everyone! Great to be part of this community.', NOW()),
+('Thanks for the warm welcome! Looking forward to learning from everyone.', NOW()),
+('Start with smaller investments and gradually increase as you learn.', NOW()),
+('I think emerging markets in Ogun State show great potential.', NOW())
+ON CONFLICT DO NOTHING;
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE investments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forum_topics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forum_replies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for projects (public read access)
+CREATE POLICY "Projects are viewable by everyone" ON projects
+  FOR SELECT USING (true);
+
+-- Create RLS policies for investments
+CREATE POLICY "Users can view their own investments" ON investments
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own investments" ON investments
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Create RLS policies for forum_topics
+CREATE POLICY "Forum topics are viewable by everyone" ON forum_topics
+  FOR SELECT USING (true);
+
+CREATE POLICY "Users can create forum topics" ON forum_topics
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own forum topics" ON forum_topics
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- Create RLS policies for forum_replies
+CREATE POLICY "Forum replies are viewable by everyone" ON forum_replies
+  FOR SELECT USING (true);
+
+CREATE POLICY "Users can create forum replies" ON forum_replies
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own forum replies" ON forum_replies
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- Create RLS policies for user_profiles
+CREATE POLICY "Users can view their own profile" ON user_profiles
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can update their own profile" ON user_profiles
+  FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert their own profile" ON user_profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Create function to automatically create user profile on signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.user_profiles (id, full_name, phone)
+  VALUES (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'phone');
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger for new user signup
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_investments_user_id ON investments(user_id);
+CREATE INDEX IF NOT EXISTS idx_investments_project_id ON investments(project_id);
+CREATE INDEX IF NOT EXISTS idx_forum_topics_user_id ON forum_topics(user_id);
+CREATE INDEX IF NOT EXISTS idx_forum_replies_topic_id ON forum_replies(user_id);
+
+-- Verify the data
+SELECT '=== CORRECTED SCHEMA VERIFICATION ===' as info;
+
+SELECT 'Real Plots Created:' as status;
+SELECT id, title, total_sqm, price_per_sqm FROM projects ORDER BY id;
+
+SELECT 'Plot 77 Investments:' as status;
+SELECT 
+    i.sqm_purchased,
+    i.amount,
+    i.status
+FROM investments i
+WHERE i.project_id = 1;
+
+SELECT 'Available SQM for Plot 77:' as status;
+SELECT 
+    p.title,
+    p.total_sqm as total_sqm,
+    COALESCE(SUM(i.sqm_purchased), 0) as purchased_sqm,
+    (p.total_sqm - COALESCE(SUM(i.sqm_purchased), 0)) as available_sqm
+FROM projects p
+LEFT JOIN investments i ON p.id = i.project_id AND i.status = 'completed'
+WHERE p.id = 1
+GROUP BY p.id, p.title, p.total_sqm;
