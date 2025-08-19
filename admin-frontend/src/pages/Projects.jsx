@@ -45,9 +45,10 @@ export default function Projects() {
     setError('');
     try {
       const response = await getProjects();
-      setProjects(response.data);
+      setProjects(response.data.projects || []);
     } catch (error) {
       setError('Error fetching projects');
+      setProjects([]);
     } finally {
       setLoading(false);
     }
@@ -93,7 +94,7 @@ export default function Projects() {
           formData.append(key, value);
         }
       });
-      await updateProject(editProject._id, formData);
+      await updateProject(editProject.id, formData);
       setShowEdit(false);
       setEditProject(null);
       setForm({ title: '', description: '', location: '', type: '', developerId: '', status: 'planning', unitsTotal: '', unitsAvailable: '', unitsPrice: '', images: [] });
@@ -153,6 +154,11 @@ export default function Projects() {
 
   if (error) {
     return <div className="text-red-500 text-center mt-8">{error}</div>;
+  }
+
+  // Ensure projects is an array before filtering
+  if (!Array.isArray(projects)) {
+    return <div className="text-gray-500 text-center mt-8">No projects available</div>;
   }
 
   const filteredProjects = projects.filter(project => {
@@ -216,7 +222,7 @@ export default function Projects() {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredProjects.map((project) => (
                 <tr
-                  key={project._id}
+                  key={project.id}
                   className="cursor-pointer hover:bg-gray-50"
                   onClick={() => openEditModal(project)}
                 >
@@ -247,7 +253,7 @@ export default function Projects() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       className="btn btn-xs btn-danger"
-                      onClick={e => { e.stopPropagation(); handleDelete(project._id); }}
+                      onClick={e => { e.stopPropagation(); handleDelete(project.id); }}
                     >
                       Delete
                     </button>

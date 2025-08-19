@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../hooks/useAuth';
+import * as adminApi from '../api/admin';
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [stats, setStats] = useState({
     totalDevelopers: 0,
     totalInvestors: 0,
@@ -18,46 +18,48 @@ export default function Dashboard() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (isAuthenticated) {
+      fetchDashboardData();
+    }
+  }, [isAuthenticated]);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch all data in parallel
+      // Fetch all data in parallel using admin API functions
       const [statsRes, projectsRes, investmentsRes, verificationsRes] = await Promise.allSettled([
-        axios.get('/api/admin/stats'),
-        axios.get('/api/admin/recent-projects'),
-        axios.get('/api/admin/recent-investments'),
-        axios.get('/api/verification/admin/pending')
+        adminApi.getStats(),
+        adminApi.getRecentProjects(),
+        adminApi.getRecentInvestments(),
+        adminApi.getPendingVerifications()
       ]);
 
       // Handle stats
       if (statsRes.status === 'fulfilled') {
-        setStats(statsRes.value.data);
+        setStats(statsRes.value.data.stats);
       } else {
         console.error('Failed to fetch stats:', statsRes.reason);
       }
 
       // Handle recent projects
       if (projectsRes.status === 'fulfilled') {
-        setRecentProjects(projectsRes.value.data);
+        setRecentProjects(projectsRes.value.data.projects);
       } else {
         console.error('Failed to fetch recent projects:', projectsRes.reason);
       }
 
       // Handle recent investments
       if (investmentsRes.status === 'fulfilled') {
-        setRecentInvestments(investmentsRes.value.data);
+        setRecentInvestments(investmentsRes.value.data.investments);
       } else {
         console.error('Failed to fetch recent investments:', investmentsRes.reason);
       }
 
       // Handle pending verifications
       if (verificationsRes.status === 'fulfilled') {
-        setPendingVerifications(verificationsRes.value.data);
+        setPendingVerifications(verificationsRes.value.data.verifications);
       } else {
         console.error('Failed to fetch pending verifications:', verificationsRes.reason);
       }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as adminApi from '../api/admin';
 
@@ -8,13 +8,32 @@ export function useAuth() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
+  // Check if user is authenticated on mount
+  useEffect(() => {
+    const token = localStorage.getItem('adminToken');
+    if (token) {
+      // Verify token is still valid by getting profile
+      adminApi.getProfile()
+        .then(res => {
+          setUser(res.data.profile);
+          setIsAuthenticated(true);
+        })
+        .catch(() => {
+          // Token is invalid, clear it
+          localStorage.removeItem('adminToken');
+          setIsAuthenticated(false);
+          setUser(null);
+        });
+    }
+  }, []);
+
   const login = async (email, password) => {
     setLoading(true);
     try {
       const res = await adminApi.login(email, password);
-      const { token, admin } = res.data;
+      const { token, user: userData } = res.data;
       localStorage.setItem('adminToken', token);
-      setUser(admin);
+      setUser(userData);
       setIsAuthenticated(true);
       return true;
     } catch (error) {

@@ -14,6 +14,18 @@ export const login = (email, password) =>
 export const getProfile = () =>
   axios.get(`${API_BASE}/profile`, { headers: getAuthHeaders() });
 
+export const getStats = () =>
+  axios.get(`${API_BASE}/stats`, { headers: getAuthHeaders() });
+
+export const getRecentProjects = () =>
+  axios.get(`${API_BASE}/recent-projects`, { headers: getAuthHeaders() });
+
+export const getRecentInvestments = () =>
+  axios.get(`${API_BASE}/recent-investments`, { headers: getAuthHeaders() });
+
+export const getPendingVerifications = () =>
+  axios.get('/api/verification/admin/pending', { headers: getAuthHeaders() });
+
 export const getUsers = () =>
   axios.get(`${API_BASE}/users`, { headers: getAuthHeaders() });
 

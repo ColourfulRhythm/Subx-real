@@ -8,7 +8,14 @@ export default function Users() {
   const [search, setSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: '', email: '', password: '', role: 'investor', phone: '', bio: '' });
+  const [createForm, setCreateForm] = useState({ 
+    full_name: '', 
+    email: '', 
+    password: '', 
+    user_type: 'investor', 
+    phone: '', 
+    bio: '' 
+  });
   const [createError, setCreateError] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -23,9 +30,10 @@ export default function Users() {
     setError('');
     try {
       const response = await getUsers();
-      setUsers(response.data);
+      setUsers(response.data.users || []);
     } catch (error) {
       setError('Error fetching users');
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -33,8 +41,8 @@ export default function Users() {
 
   const handleStatusToggle = async (user) => {
     try {
-      await updateUserStatus(user._id, !user.isActive);
-      setSuccessMsg(`User ${user.isActive ? 'suspended' : 'activated'} successfully.`);
+      await updateUserStatus(user.id, !user.is_active);
+      setSuccessMsg(`User ${user.is_active ? 'suspended' : 'activated'} successfully.`);
       fetchUsers();
     } catch (err) {
       setError('Failed to update user status');
@@ -49,7 +57,14 @@ export default function Users() {
     try {
       await createUser(createForm);
       setShowCreate(false);
-      setCreateForm({ name: '', email: '', password: '', role: 'investor', phone: '', bio: '' });
+      setCreateForm({ 
+        full_name: '', 
+        email: '', 
+        password: '', 
+        user_type: 'investor', 
+        phone: '', 
+        bio: '' 
+      });
       setSuccessMsg('User created successfully.');
       fetchUsers();
     } catch (err) {
@@ -61,8 +76,8 @@ export default function Users() {
 
   const filteredUsers = users.filter(
     (user) =>
-      user.name.toLowerCase().includes(search.toLowerCase()) ||
-      user.email.toLowerCase().includes(search.toLowerCase())
+      user.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      user.email?.toLowerCase().includes(search.toLowerCase())
   );
 
   if (loading) {
@@ -75,6 +90,11 @@ export default function Users() {
 
   if (error) {
     return <div className="text-red-500 text-center mt-8">{error}</div>;
+  }
+
+  // Ensure users is an array before filtering
+  if (!Array.isArray(users)) {
+    return <div className="text-gray-500 text-center mt-8">No users available</div>;
   }
 
   return (
@@ -114,26 +134,26 @@ export default function Users() {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredUsers.map((user) => (
                 <tr
-                  key={user._id}
+                  key={user.id}
                   className="cursor-pointer hover:bg-gray-50"
                   onClick={() => setSelectedUser(user)}
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.full_name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{user.role}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{user.user_type}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
-                      {user.isActive ? 'Active' : 'Suspended'}
+                      {user.is_active ? 'Active' : 'Suspended'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
-                      className={`btn btn-xs ${user.isActive ? 'btn-danger' : 'btn-success'}`}
+                      className={`btn btn-xs ${user.is_active ? 'btn-danger' : 'btn-success'}`}
                       onClick={e => { e.stopPropagation(); handleStatusToggle(user); }}
                     >
-                      {user.isActive ? 'Suspend' : 'Activate'}
+                      {user.is_active ? 'Suspend' : 'Activate'}
                     </button>
                   </td>
                 </tr>
@@ -153,13 +173,13 @@ export default function Users() {
               &times;
             </button>
             <h2 className="text-xl font-bold mb-4">User Details</h2>
-            <div className="mb-2"><span className="font-semibold">Name:</span> {selectedUser.name}</div>
+            <div className="mb-2"><span className="font-semibold">Name:</span> {selectedUser.full_name}</div>
             <div className="mb-2"><span className="font-semibold">Email:</span> {selectedUser.email}</div>
-            <div className="mb-2"><span className="font-semibold">Role:</span> {selectedUser.role}</div>
-            <div className="mb-2"><span className="font-semibold">Status:</span> {selectedUser.isActive ? 'Active' : 'Suspended'}</div>
+            <div className="mb-2"><span className="font-semibold">Role:</span> {selectedUser.user_type}</div>
+            <div className="mb-2"><span className="font-semibold">Status:</span> {selectedUser.is_active ? 'Active' : 'Suspended'}</div>
             <div className="mb-2"><span className="font-semibold">Phone:</span> {selectedUser.phone || '-'}</div>
             <div className="mb-2"><span className="font-semibold">Bio:</span> {selectedUser.bio || '-'}</div>
-            <div className="mb-2"><span className="font-semibold">Created:</span> {new Date(selectedUser.createdAt).toLocaleString()}</div>
+            <div className="mb-2"><span className="font-semibold">Created:</span> {new Date(selectedUser.created_at).toLocaleString()}</div>
           </div>
         </div>
       )}
@@ -179,8 +199,8 @@ export default function Users() {
                 type="text"
                 className="w-full border border-gray-300 rounded px-3 py-2"
                 placeholder="Name"
-                value={createForm.name}
-                onChange={e => setCreateForm({ ...createForm, name: e.target.value })}
+                value={createForm.full_name}
+                onChange={e => setCreateForm({ ...createForm, full_name: e.target.value })}
                 required
               />
               <input
@@ -201,8 +221,8 @@ export default function Users() {
               />
               <select
                 className="w-full border border-gray-300 rounded px-3 py-2"
-                value={createForm.role}
-                onChange={e => setCreateForm({ ...createForm, role: e.target.value })}
+                value={createForm.user_type}
+                onChange={e => setCreateForm({ ...createForm, user_type: e.target.value })}
                 required
               >
                 <option value="investor">Investor</option>

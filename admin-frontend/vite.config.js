@@ -7,10 +7,10 @@ export default defineConfig({
     port: 3002,
     strictPort: false,
     proxy: {
-      '/api': {
-        target: process.env.NODE_ENV === 'production' 
-          ? 'https://subxbackend-production.up.railway.app'
-          : 'http://localhost:30001',
+              '/api': {
+          target: process.env.NODE_ENV === 'production' 
+            ? 'https://subxbackend-production.up.railway.app'
+            : 'http://localhost:30002',
         changeOrigin: true,
         secure: false,
         ws: true,
