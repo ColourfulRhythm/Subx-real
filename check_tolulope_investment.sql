@@ -7,15 +7,16 @@ SELECT '=== CHECKING IF TOLULOPE EXISTS ===' as info;
 -- Check if Tolulope exists in user_profiles
 SELECT 'Tolulope in user_profiles:' as status;
 SELECT 
-    id,
-    full_name,
-    email,
-    phone,
-    created_at
-FROM user_profiles 
-WHERE email = 'kingflamebeats@gmail.com' 
-   OR full_name ILIKE '%Tolulope%' 
-   OR full_name ILIKE '%Olugbode%';
+    up.id,
+    up.full_name,
+    au.email,
+    up.phone,
+    up.created_at
+FROM user_profiles up
+LEFT JOIN auth.users au ON up.id = au.id
+WHERE au.email = 'kingflamebeats@gmail.com' 
+   OR up.full_name ILIKE '%Tolulope%' 
+   OR up.full_name ILIKE '%Olugbode%';
 
 -- Check if Tolulope exists in auth.users
 SELECT 'Tolulope in auth.users:' as status;
@@ -36,11 +37,12 @@ SELECT
     i.status,
     p.title as project_title,
     up.full_name,
-    up.email
+    au.email
 FROM investments i
 LEFT JOIN projects p ON i.project_id = p.id
 LEFT JOIN user_profiles up ON i.user_id = up.id
-WHERE up.email = 'kingflamebeats@gmail.com' 
+LEFT JOIN auth.users au ON up.id = au.id
+WHERE au.email = 'kingflamebeats@gmail.com' 
    OR up.full_name ILIKE '%Tolulope%'
    OR up.full_name ILIKE '%Olugbode%';
 
@@ -200,11 +202,12 @@ SELECT
     i.status,
     p.title as project_title,
     up.full_name,
-    up.email
+    au.email
 FROM investments i
 LEFT JOIN projects p ON i.project_id = p.id
 LEFT JOIN user_profiles up ON i.user_id = up.id
-WHERE up.email = 'kingflamebeats@gmail.com';
+LEFT JOIN auth.users au ON up.id = au.id
+WHERE au.email = 'kingflamebeats@gmail.com';
 
 -- Show updated Plot 77 co-ownership
 SELECT '=== UPDATED PLOT 77 CO-OWNERSHIP ===' as info;
