@@ -68,9 +68,10 @@ DECLARE
     plot77_project_id INTEGER;
 BEGIN
     -- Get Tolulope's user ID
-    SELECT id INTO tolulope_user_id 
-    FROM user_profiles 
-    WHERE email = 'kingflamebeats@gmail.com';
+    SELECT up.id INTO tolulope_user_id 
+    FROM user_profiles up
+    LEFT JOIN auth.users au ON up.id = au.id
+    WHERE au.email = 'kingflamebeats@gmail.com';
     
     -- Get Plot 77 project ID
     SELECT id INTO plot77_project_id 
@@ -140,14 +141,12 @@ BEGIN
             INSERT INTO user_profiles (
                 id,
                 full_name,
-                email,
                 phone,
                 user_type,
                 created_at
             ) VALUES (
                 tolulope_auth_id,
                 'Tolulope Olugbode',
-                'kingflamebeats@gmail.com',
                 '+2348034567890',
                 'investor',
                 NOW()
@@ -185,12 +184,13 @@ SELECT 'Tolulope final status:' as status;
 SELECT 
     up.id,
     up.full_name,
-    up.email,
+    au.email,
     up.phone,
     up.user_type,
     up.created_at
 FROM user_profiles up
-WHERE up.email = 'kingflamebeats@gmail.com';
+LEFT JOIN auth.users au ON up.id = au.id
+WHERE au.email = 'kingflamebeats@gmail.com';
 
 -- Check Tolulope's final investment
 SELECT 'Tolulope final investment:' as status;
