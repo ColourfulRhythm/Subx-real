@@ -20,6 +20,7 @@ import { activitiesRouter } from './routes/activities.js';
 import axios from 'axios';
 import { documentsRouter } from './routes/documents.js';
 import { forumRouter } from './routes/forum.js';
+import { referralRouter } from './routes/referral.js';
 import { Investor } from './models/Investor.js';
 import { Connection } from './models/Connection.js';
 import nodemailer from 'nodemailer';
@@ -201,6 +202,7 @@ app.use('/api/verification', verificationRouter);
 app.use('/api/activities', activitiesRouter);
 app.use('/api/documents', documentsRouter);
 app.use('/api/forum', forumRouter);
+app.use('/api/referral', referralRouter);
 
 // Configure multer for image uploads
 const storage = multer.diskStorage({
@@ -1738,6 +1740,58 @@ app.get('/api/verify-paystack/:reference', async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ success: false, message: 'Verification failed', error: error.message });
+  }
+});
+
+// Paystack webhook handler for referral rewards
+app.post('/api/webhook/paystack', async (req, res) => {
+  try {
+    const { event, data } = req.body;
+    
+    // Verify webhook signature (you should implement this for security)
+    // const signature = req.headers['x-paystack-signature'];
+    // if (!verifyWebhookSignature(signature, req.body)) {
+    //   return res.status(400).json({ error: 'Invalid signature' });
+    // }
+    
+    if (event === 'charge.success') {
+      const { reference, amount, customer } = data;
+      
+      // Find the investment/purchase record
+      const { data: investment, error: investmentError } = await supabase
+        .from('investments')
+        .select('*')
+        .eq('payment_reference', reference)
+        .single();
+      
+      if (investmentError || !investment) {
+        console.error('Investment not found for reference:', reference);
+        return res.status(404).json({ error: 'Investment not found' });
+      }
+      
+      // Process referral reward
+      try {
+        const { data: rewardProcessed, error: rewardError } = await supabase
+          .rpc('process_referral_reward', {
+            p_referred_user_id: investment.user_id,
+            p_purchase_id: investment.id,
+            p_purchase_amount: amount / 100 // Convert from kobo to naira
+          });
+        
+        if (rewardError) {
+          console.error('Error processing referral reward:', rewardError);
+        } else if (rewardProcessed) {
+          console.log('Referral reward processed successfully for user:', investment.user_id);
+        }
+      } catch (rewardError) {
+        console.error('Error in referral reward processing:', rewardError);
+      }
+    }
+    
+    res.json({ received: true });
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).json({ error: 'Webhook processing failed' });
   }
 });
 

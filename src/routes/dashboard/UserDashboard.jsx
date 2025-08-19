@@ -961,6 +961,7 @@ export default function UserDashboard() {
             { id: 'investments', label: 'My Properties', icon: 'chart-bar' },
             { id: 'documents', label: 'Documents', icon: 'document' },
             { id: 'forum', label: 'Community', icon: 'users' },
+            { id: 'invite-earn', label: 'Invite & Earn', icon: 'gift' },
             { id: 'profile', label: 'Profile', icon: 'user' }
           ].map((tab) => (
             <button
@@ -979,6 +980,7 @@ export default function UserDashboard() {
                 {tab.icon === 'document' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />}
                 {tab.icon === 'user' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />}
                 {tab.icon === 'users' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />}
+                {tab.icon === 'gift' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />}
               </svg>
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
@@ -1520,6 +1522,47 @@ export default function UserDashboard() {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'invite-earn' && (
+            <motion.div
+              key="invite-earn"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-6"
+            >
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-900">Invite & Earn</h2>
+              </div>
+
+              {/* Redirect to InviteEarn component */}
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+                <div className="p-6">
+                  <div className="text-center">
+                    <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                      <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Referral Program</h3>
+                    <p className="text-gray-600 mb-6">
+                      Share Subx with friends and earn 5% of their first purchase. 
+                      Build your passive income through referrals!
+                    </p>
+                    <button
+                      onClick={() => navigate('/invite-earn')}
+                      className="px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg hover:from-blue-600 hover:to-purple-700 flex items-center mx-auto"
+                    >
+                      <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                      Go to Invite & Earn
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>

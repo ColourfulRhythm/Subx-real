@@ -22,6 +22,7 @@ import CookiePolicy from './routes/legal/CookiePolicy'
 import About from './routes/About'
 import VerificationSuccess from './routes/auth/VerificationSuccess'
 import ToastProvider from './components/ToastProvider'
+import InviteEarn from './pages/InviteEarn'
 
 const ProtectedRoute = ({ children, requiredUserType }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated')
@@ -219,6 +220,13 @@ const App = () => {
               <PageTransition>
                 <PropertyDetails />
               </PageTransition>
+            } />
+            <Route path="/invite-earn" element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <InviteEarn />
+                </PageTransition>
+              </ProtectedRoute>
             } />
           </Routes>
         </Router>

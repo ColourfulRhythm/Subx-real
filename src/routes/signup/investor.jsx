@@ -12,6 +12,7 @@ const schema = yup.object().shape({
   name: yup.string().required('Name is required').min(2, 'Name must be at least 2 characters'),
   email: yup.string().email('Invalid email').required('Email is required'),
   password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
+  referral_code: yup.string().optional(),
   terms: yup.bool().oneOf([true], 'You must agree to the terms'),
 })
 
@@ -78,6 +79,27 @@ export default function InvestorSignup() {
 
         if (profileError) {
           console.warn('Profile creation warning:', profileError)
+        }
+
+        // Set referral code if provided
+        if (data.referral_code) {
+          try {
+            const token = authData.session?.access_token;
+            if (token) {
+              await fetch('/api/referral/set-referral', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  referral_code: data.referral_code
+                })
+              });
+            }
+          } catch (referralError) {
+            console.warn('Referral code setting warning:', referralError);
+          }
         }
 
         // Store user info in localStorage (but not authenticated yet)
@@ -279,6 +301,22 @@ export default function InvestorSignup() {
                 </button>
               </div>
               {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
+            </div>
+
+            {/* Referral Code field - optional */}
+            <div>
+              <label htmlFor="referral_code" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Referral Code <span className="text-gray-500">(Optional)</span>
+              </label>
+              <input
+                {...register('referral_code')}
+                type="text"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                placeholder="Enter referral code (e.g., SUBX-AB12CD)"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Have a friend's referral code? Enter it here to earn rewards when they make their first purchase.
+              </p>
             </div>
 
             <div className="flex items-center">
