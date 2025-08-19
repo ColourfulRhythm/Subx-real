@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 -- Insert ONLY REAL plot data (no sample data)
 INSERT INTO projects (title, description, location, total_sqm, price_per_sqm, amenities, image_urls) VALUES
 ('2 Seasons - Plot 77', 'Premium residential plot in 2 Seasons Estate', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage'], ARRAY['/2-seasons/2seasons-logo.jpg']),
-('2 Seasons - Plot 79', 'Exclusive residential plot with lakefront views', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Lakefront'], ARRAY['/2-seasons/2seasons-logo.jpg']),
+('2 Seasons - Plot 79', 'Exclusive residential', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Lakefront'], ARRAY['/2-seasons/2seasons-logo.jpg']),
 ('2 Seasons - Plot 81', 'Premium plot in the wellness village with spa access', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Wellness center', 'Spa access'], ARRAY['/2-seasons/2seasons-logo.jpg']),
 ('2 Seasons - Plot 84', 'Family-oriented plot near community facilities', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Community center', 'Playground'], ARRAY['/2-seasons/2seasons-logo.jpg']),
 ('2 Seasons - Plot 87', 'Executive plot with premium amenities', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Executive lounge', 'Premium parking'], ARRAY['/2-seasons/2seasons-logo.jpg'])
@@ -82,20 +82,20 @@ INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, pay
 ON CONFLICT DO NOTHING;
 
 -- Insert forum topics (these will be linked to real users when they sign up)
-INSERT INTO forum_topics (title, content, category, created_at) VALUES
-('Welcome to Subx Community!', 'Welcome to our community! Feel free to discuss real estate investment strategies, ask questions, and connect with other investors.', 'general', NOW()),
-('Investment Tips for Beginners', 'I''m new to real estate investment. Any tips for someone just starting out? What should I focus on first?', 'investment', NOW()),
-('Best Locations for Investment in 2025', 'What are your thoughts on the best locations for real estate investment this year? I''m particularly interested in emerging markets.', 'investment', NOW()),
-('Property Management Best Practices', 'Share your experiences and tips for managing real estate investments effectively.', 'property_management', NOW()),
-('Community Building', 'How can we strengthen our community and support each other in our investment goals?', 'community', NOW())
+INSERT INTO forum_topics (user_id, title, content, category, created_at) VALUES
+(NULL, 'Welcome to Subx Community!', 'Welcome to our community! Feel free to discuss real estate investment strategies, ask questions, and connect with other investors.', 'general', NOW()),
+(NULL, 'Investment Tips for Beginners', 'I''m new to real estate investment. Any tips for someone just starting out? What should I focus on first?', 'investment', NOW()),
+(NULL, 'Best Locations for Investment in 2025', 'What are your thoughts on the best locations for real estate investment this year? I''m particularly interested in emerging markets.', 'investment', NOW()),
+(NULL, 'Property Management Best Practices', 'Share your experiences and tips for managing real estate investments effectively.', 'property_management', NOW()),
+(NULL, 'Community Building', 'How can we strengthen our community and support each other in our investment goals?', 'community', NOW())
 ON CONFLICT DO NOTHING;
 
 -- Insert forum replies (these will be linked to real users when they sign up)
-INSERT INTO forum_replies (topic_id, content, created_at) VALUES
-('Welcome everyone! Great to be part of this community.', NOW()),
-('Thanks for the warm welcome! Looking forward to learning from everyone.', NOW()),
-('Start with smaller investments and gradually increase as you learn.', NOW()),
-('I think emerging markets in Ogun State show great potential.', NOW())
+INSERT INTO forum_replies (topic_id, user_id, content, created_at) VALUES
+(1, NULL, 'Welcome everyone! Great to be part of this community.', NOW()),
+(1, NULL, 'Thanks for the warm welcome! Looking forward to learning from everyone.', NOW()),
+(2, NULL, 'Start with smaller investments and gradually increase as you learn.', NOW()),
+(3, NULL, 'I think emerging markets in Ogun State show great potential.', NOW())
 ON CONFLICT DO NOTHING;
 
 -- Enable Row Level Security (RLS)
