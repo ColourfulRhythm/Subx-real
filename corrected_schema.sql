@@ -63,13 +63,25 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 );
 
 -- Insert ONLY REAL plot data (no sample data)
-INSERT INTO projects (title, description, location, total_sqm, price_per_sqm, amenities, image_urls) VALUES
-('2 Seasons - Plot 77', 'Premium residential plot in 2 Seasons Estate', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage'], ARRAY['/2-seasons/2seasons-logo.jpg']),
-('2 Seasons - Plot 79', 'Exclusive residential', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Lakefront'], ARRAY['/2-seasons/2seasons-logo.jpg']),
-('2 Seasons - Plot 81', 'Premium plot in the wellness village with spa access', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Wellness center', 'Spa access'], ARRAY['/2-seasons/2seasons-logo.jpg']),
-('2 Seasons - Plot 84', 'Family-oriented plot near community facilities', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Community center', 'Playground'], ARRAY['/2-seasons/2seasons-logo.jpg']),
-('2 Seasons - Plot 87', 'Executive plot with premium amenities', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Executive lounge', 'Premium parking'], ARRAY['/2-seasons/2seasons-logo.jpg'])
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO projects (title, description, location, total_sqm, price_per_sqm, amenities, image_urls)
+SELECT '2 Seasons - Plot 77', 'Premium residential plot in 2 Seasons Estate', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage'], ARRAY['/2-seasons/2seasons-logo.jpg']
+WHERE NOT EXISTS (SELECT 1 FROM projects WHERE title = '2 Seasons - Plot 77');
+
+INSERT INTO projects (title, description, location, total_sqm, price_per_sqm, amenities, image_urls)
+SELECT '2 Seasons - Plot 79', 'Exclusive residential plot with lakefront views', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Lakefront'], ARRAY['/2-seasons/2seasons-logo.jpg']
+WHERE NOT EXISTS (SELECT 1 FROM projects WHERE title = '2 Seasons - Plot 79');
+
+INSERT INTO projects (title, description, location, total_sqm, price_per_sqm, amenities, image_urls)
+SELECT '2 Seasons - Plot 81', 'Premium plot in the wellness village with spa access', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Wellness center', 'Spa access'], ARRAY['/2-seasons/2seasons-logo.jpg']
+WHERE NOT EXISTS (SELECT 1 FROM projects WHERE title = '2 Seasons - Plot 81');
+
+INSERT INTO projects (title, description, location, total_sqm, price_per_sqm, amenities, image_urls)
+SELECT '2 Seasons - Plot 84', 'Family-oriented plot near community facilities', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Community center', 'Playground'], ARRAY['/2-seasons/2seasons-logo.jpg']
+WHERE NOT EXISTS (SELECT 1 FROM projects WHERE title = '2 Seasons - Plot 84');
+
+INSERT INTO projects (title, description, location, total_sqm, price_per_sqm, amenities, image_urls)
+SELECT '2 Seasons - Plot 87', 'Executive plot with premium amenities', '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state', 500, 5000.00, ARRAY['Road access', 'Security', 'Drainage', 'Executive lounge', 'Premium parking'], ARRAY['/2-seasons/2seasons-logo.jpg']
+WHERE NOT EXISTS (SELECT 1 FROM projects WHERE title = '2 Seasons - Plot 87');
 
 -- Insert ONLY real investments for existing users (Plot 77 only)
 INSERT INTO investments (user_id, project_id, sqm_purchased, amount, status, payment_reference, created_at)
