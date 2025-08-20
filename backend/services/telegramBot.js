@@ -81,14 +81,21 @@ Join us at: https://www.subxhq.com/signup/investor`;
   async sendWelcomeMessage(userData) {
     try {
       const userHash = this.generateUserHash(userData.id || userData.email, userData.email);
+      const maskedEmail = this.maskEmail(userData.email);
+      const referralCode = userData.referral_code || 'N/A';
       
-      const message = `👋 New Subx member ${userHash} just joined! Welcome to Subx! 🚀
+      const message = `👋 <b>New Subx Member!</b> 🌟
 
-Join us at: https://www.subxhq.com/signup/investor`;
+👤 User: <code>${userHash}</code>
+📧 Email: ${maskedEmail}
+🎫 Referral Code: <code>${referralCode}</code>
+📅 Joined: ${new Date().toLocaleDateString()}
+
+Welcome to Subx Real Estate! 🏠✨`;
 
       await this.sendMessage(message);
       
-      console.log('Welcome message sent to Telegram:', { userHash, email: userData.email });
+      console.log('Welcome message sent to Telegram:', { userHash, email: userData.email, referralCode });
       return true;
     } catch (error) {
       console.error('Failed to send welcome message:', error);

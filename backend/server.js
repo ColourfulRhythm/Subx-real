@@ -708,10 +708,20 @@ app.post('/api/investors', async (req, res) => {
 
     // Send Telegram welcome notification (in background)
     try {
+      // Get user's referral code from Supabase
+      const { data: userProfile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('referral_code')
+        .eq('user_id', investor.supabase_id)
+        .single();
+      
+      const referralCode = userProfile?.referral_code || 'N/A';
+      
       await telegramBot.sendWelcomeMessage({
         id: investor._id,
         email: investor.email,
-        name: investor.name
+        name: investor.name,
+        referral_code: referralCode
       });
       console.log('Telegram welcome notification sent successfully');
     } catch (telegramError) {
@@ -777,10 +787,20 @@ app.post('/api/investors/login', async (req, res) => {
       
       // Send Telegram welcome notification for new user (in background)
       try {
+        // Get user's referral code from Supabase
+        const { data: userProfile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('referral_code')
+          .eq('user_id', supaUser.id)
+          .single();
+        
+        const referralCode = userProfile?.referral_code || 'N/A';
+        
         await telegramBot.sendWelcomeMessage({
           id: investor._id,
           email: investor.email,
-          name: investor.name
+          name: investor.name,
+          referral_code: referralCode
         });
         console.log('Telegram welcome notification sent for new login user');
       } catch (telegramError) {

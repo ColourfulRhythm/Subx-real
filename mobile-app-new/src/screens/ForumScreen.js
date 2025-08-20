@@ -12,66 +12,54 @@ import { Text, Input, Icon, Avatar } from 'react-native-elements';
 import api from '../services/api';
 
 const ForumScreen = ({ navigation }) => {
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [quotedMessage, setQuotedMessage] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const flatListRef = useRef(null);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  return (
+    <View style={styles.container}>
+      <View style={styles.content}>
+        {/* Icon */}
+        <View style={styles.iconContainer}>
+          <Icon name="forum" type="material" size={48} color="#3B82F6" />
+        </View>
 
-  useEffect(() => {
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 5000);
-    return () => clearInterval(interval);
-  }, []);
+        {/* Title */}
+        <Text h3 style={styles.title}>
+          🚧 Forum Coming Soon! 🚧
+        </Text>
 
-  const fetchMessages = async () => {
-    try {
-      const response = await api.get('/forum/messages');
-      setMessages(response.data);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-    }
-  };
+        {/* Description */}
+        <Text style={styles.description}>
+          We're building an amazing community forum where you can connect with other investors, 
+          share insights, and discuss real estate opportunities.
+        </Text>
 
-  const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+        {/* Features Preview */}
+        <View style={styles.featuresContainer}>
+          <Text style={styles.featuresTitle}>What's Coming:</Text>
+          <View style={styles.featureItem}>
+            <Icon name="check-circle" type="material" size={16} color="#10B981" />
+            <Text style={styles.featureText}>Community discussions</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Icon name="check-circle" type="material" size={16} color="#10B981" />
+            <Text style={styles.featureText}>Investment tips & strategies</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Icon name="check-circle" type="material" size={16} color="#10B981" />
+            <Text style={styles.featureText}>Real estate market insights</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Icon name="check-circle" type="material" size={16} color="#10B981" />
+            <Text style={styles.featureText}>Networking opportunities</Text>
+          </View>
+        </View>
 
-    try {
-      const messageData = {
-        content: newMessage,
-        quotedMessageId: quotedMessage?.id,
-      };
-
-      const response = await api.post('/forum/messages', messageData);
-      setMessages([...messages, response.data]);
-      setNewMessage('');
-      setQuotedMessage(null);
-      flatListRef.current?.scrollToEnd();
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
-  };
-
-  const handleQuote = (message) => {
-    setQuotedMessage(message);
-    Animated.sequence([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.delay(2000),
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const renderMessage = ({ item }) => (
+        {/* CTA */}
+        <Text style={styles.ctaText}>
+          We'll notify you when the forum is ready!
+        </Text>
+      </View>
+    </View>
+  );
+}; (
     <View style={styles.messageContainer}>
       {item.quotedMessage && (
         <View style={styles.quotedMessage}>
@@ -208,120 +196,65 @@ const ForumScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#f5f5f5',
   },
-  header: {
-    padding: 15,
-    backgroundColor: '#1A1A1A',
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A2A2A',
-  },
-  headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  messagesList: {
-    padding: 15,
-  },
-  messageContainer: {
-    marginBottom: 20,
-  },
-  quotedMessage: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#00FF9D',
-  },
-  quotedContent: {
+  content: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
-  quotedName: {
-    color: '#00FF9D',
-    fontSize: 12,
-    marginBottom: 2,
+  iconContainer: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#EBF4FF',
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
   },
-  quotedText: {
-    color: '#888888',
-    fontSize: 12,
+  title: {
+    textAlign: 'center',
+    marginBottom: 16,
+    color: '#1F2937',
   },
-  messageContent: {
-    backgroundColor: '#1A1A1A',
+  description: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#6B7280',
+    lineHeight: 24,
+    marginBottom: 24,
+    paddingHorizontal: 20,
+  },
+  featuresContainer: {
+    backgroundColor: '#F9FAFB',
+    padding: 20,
     borderRadius: 12,
-    padding: 15,
+    marginBottom: 24,
+    width: '100%',
+    maxWidth: 300,
   },
-  messageHeader: {
+  featuresTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
   },
-  avatar: {
-    marginRight: 8,
-  },
-  senderName: {
-    color: '#FFFFFF',
+  featureText: {
     fontSize: 14,
-    fontWeight: 'bold',
-    flex: 1,
+    color: '#6B7280',
+    marginLeft: 8,
   },
-  timestamp: {
-    color: '#666666',
+  ctaText: {
     fontSize: 12,
-  },
-  messageText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  messageActions: {
-    flexDirection: 'row',
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#2A2A2A',
-    paddingTop: 12,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 20,
-  },
-  actionText: {
-    color: '#888888',
-    fontSize: 12,
-    marginLeft: 4,
-  },
-  inputContainer: {
-    backgroundColor: '#1A1A1A',
-    borderTopWidth: 1,
-    borderTopColor: '#2A2A2A',
-    padding: 10,
-  },
-  inputWrapper: {
-    paddingHorizontal: 0,
-  },
-  input: {
-    color: '#FFFFFF',
-    fontSize: 16,
-  },
-  quotePreview: {
-    backgroundColor: '#1A1A1A',
-    borderTopWidth: 1,
-    borderTopColor: '#2A2A2A',
-    padding: 10,
-  },
-  quotePreviewContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  quotePreviewText: {
-    color: '#888888',
-    fontSize: 14,
-    flex: 1,
-  },
-  quotePreviewClose: {
-    padding: 5,
+    color: '#9CA3AF',
+    textAlign: 'center',
   },
 });
 

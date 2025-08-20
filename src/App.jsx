@@ -14,6 +14,7 @@ import UserDashboard from './routes/dashboard/UserDashboard'
 import CleanDashboard from './routes/dashboard/CleanDashboard'
 import Messaging from './routes/messaging/Messaging'
 import ForumTopic from './routes/ForumTopic'
+import ForumComingSoon from './components/ForumComingSoon'
 import Features from './routes/Features'
 import FAQ from './routes/FAQ'
 import Privacy from './routes/legal/Privacy'
@@ -212,7 +213,7 @@ const App = () => {
               path="/forum/:topicId"
               element={
                 <ProtectedRoute>
-                  <ForumTopic />
+                  <ForumComingSoon />
                 </ProtectedRoute>
               }
             />

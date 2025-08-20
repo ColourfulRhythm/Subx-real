@@ -1948,65 +1948,56 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
     return (
       <div className="max-w-4xl mx-auto p-4 sm:p-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-          <div className="p-4 sm:p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Forum</h2>
-              <button
-                onClick={() => setShowNewTopicModal(true)}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm sm:text-base"
-              >
-                New Topic
-              </button>
-            </div>
-            
-            {forums.general.topics.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-gray-400 dark:text-gray-500 mb-4">
-                  <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No topics yet</h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-4">
-                  Be the first to start a discussion! Topics will appear here once users begin creating them.
-                </p>
-                <button
-                  onClick={() => setShowNewTopicModal(true)}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  Create First Topic
-                </button>
+          <div className="p-8 text-center">
+            {/* Icon */}
+            <div className="mb-6">
+              <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
               </div>
-            ) : (
-                        <div className="space-y-4">
-              {forums.general.topics.map((topic) => (
-                <div
-                  key={topic.id}
-                  className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 sm:p-6 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => navigate(`/forum/${topic.id}`)}
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate">
-                        {topic.title}
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
-                        {topic.content}
-                      </p>
-                    </div>
-                    <div className="mt-2 sm:mt-0 sm:ml-4 flex items-center space-x-4">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {topic.replies?.length || 0} replies
-                              </span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {topic.views} views
-                              </span>
-                    </div>
-                  </div>
-                            </div>
-                          ))}
-                        </div>
-            )}
+            </div>
+
+            {/* Title */}
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              🚧 Forum Coming Soon! 🚧
+            </h2>
+
+            {/* Description */}
+            <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-md mx-auto">
+              We're building an amazing community forum where you can connect with other investors, 
+              share insights, and discuss real estate opportunities.
+            </p>
+
+            {/* Features Preview */}
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6 max-w-sm mx-auto">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
+                What's Coming:
+              </h3>
+              <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-2">
+                <li className="flex items-center justify-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Community discussions
+                </li>
+                <li className="flex items-center justify-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Investment tips & strategies
+                </li>
+                <li className="flex items-center justify-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Real estate market insights
+                </li>
+                <li className="flex items-center justify-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Networking opportunities
+                </li>
+              </ul>
+            </div>
+
+            {/* CTA */}
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              We'll notify you when the forum is ready!
+            </p>
           </div>
         </div>
       </div>

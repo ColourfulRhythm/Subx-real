@@ -34,10 +34,12 @@ Welcome to the Subx family! 🏘️✨`;
       case 'welcome':
         const welcomeHash = generateUserHash(data.id || data.email, data.email);
         const maskedEmail = maskEmail(data.email);
+        const referralCode = data.referral_code || 'N/A';
         message = `👋 <b>New Subx Member!</b> 🌟
 
 👤 User: <code>${welcomeHash}</code>
 📧 Email: ${maskedEmail}
+🎫 Referral Code: <code>${referralCode}</code>
 📅 Joined: ${new Date().toLocaleDateString()}
 
 Welcome to Subx Real Estate! 🏠✨`;

@@ -2028,95 +2028,61 @@ export default function UserDashboard() {
               exit={{ opacity: 0, y: -20 }}
               className="space-y-6"
             >
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900">Community Channels</h2>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={fetchForumTopics}
-                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 flex items-center"
-                  >
-                    <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Refresh
-                  </button>
-                <button
-                  onClick={() => setShowNewTopicModal(true)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center"
-                >
-                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                    New Channel
-                </button>
-                </div>
-              </div>
-
-              {/* Search Bar */}
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search channels..."
-                  value={forumSearchQuery}
-                  onChange={(e) => setForumSearchQuery(e.target.value)}
-                  className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-                <svg className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-
-              {/* Telegram-style Channel List */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-200">
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Channels</h3>
-                  {loadingForum ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                      <span className="ml-3 text-gray-600">Loading channels...</span>
-                    </div>
-                  ) : forumTopics.length === 0 ? (
-                    <div className="text-center py-8">
-                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="p-8 text-center">
+                  {/* Icon */}
+                  <div className="mb-6">
+                    <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                      <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">No channels yet</h3>
-                      <p className="mt-1 text-sm text-gray-500">Get started by creating the first channel!</p>
                     </div>
-                  ) : (
-                    <div className="space-y-0">
-                      {forumTopics
-                        .filter(topic => 
-                          !forumSearchQuery || 
-                          topic.title.toLowerCase().includes(forumSearchQuery.toLowerCase()) ||
-                          topic.content.toLowerCase().includes(forumSearchQuery.toLowerCase())
-                        )
-                        .sort((a, b) => new Date(b.created_at || b.lastActivity) - new Date(a.created_at || a.lastActivity))
-                        .map((topic) => (
-                        <div 
-                          key={topic.id} 
-                          className="flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0"
-                          onClick={() => handleViewTopic(topic)}
-                        >
-                          {/* Channel Avatar */}
-                          <div className="flex-shrink-0 mr-4">
-                            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-                              <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                              </svg>
-                              </div>
-                            </div>
+                  </div>
 
-                          {/* Channel Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-medium text-gray-900 truncate">{topic.title}</h4>
-                              <span className="text-xs text-gray-500 ml-2">
-                                {topic.created_at ? 
-                                  new Date(topic.created_at).toLocaleDateString() : 
-                                  topic.lastActivity || 'Recently'
-                                }
-                              </span>
+                  {/* Title */}
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                    🚧 Forum Coming Soon! 🚧
+                  </h2>
+
+                  {/* Description */}
+                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                    We're building an amazing community forum where you can connect with other investors, 
+                    share insights, and discuss real estate opportunities.
+                  </p>
+
+                  {/* Features Preview */}
+                  <div className="bg-gray-50 rounded-lg p-4 mb-6 max-w-sm mx-auto">
+                    <h3 className="font-semibold text-gray-900 mb-3">
+                      What's Coming:
+                    </h3>
+                    <ul className="text-sm text-gray-600 space-y-2">
+                      <li className="flex items-center justify-center">
+                        <span className="text-green-500 mr-2">✓</span>
+                        Community discussions
+                      </li>
+                      <li className="flex items-center justify-center">
+                        <span className="text-green-500 mr-2">✓</span>
+                        Investment tips & strategies
+                      </li>
+                      <li className="flex items-center justify-center">
+                        <span className="text-green-500 mr-2">✓</span>
+                        Real estate market insights
+                      </li>
+                      <li className="flex items-center justify-center">
+                        <span className="text-green-500 mr-2">✓</span>
+                        Networking opportunities
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* CTA */}
+                  <p className="text-xs text-gray-500">
+                    We'll notify you when the forum is ready!
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
                             </div>
                             <p className="text-sm text-gray-600 truncate mt-1">
                               {topic.content.length > 80 ? topic.content.substring(0, 80) + '...' : topic.content}
