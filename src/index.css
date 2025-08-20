@@ -8,3 +8,10 @@ body {
   min-width: 320px;
   min-height: 100vh;
 }
+
+/* Custom breakpoint for extra small screens */
+@media (min-width: 475px) {
+  .xs\:inline {
+    display: inline;
+  }
+}

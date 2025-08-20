@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   Share2, 
   Copy, 
@@ -10,17 +11,21 @@ import {
   CheckCircle,
   ArrowRight,
   Gift,
-  Star
+  Star,
+  ArrowLeft
 } from 'lucide-react';
 import axios from 'axios';
+import { supabase } from '../supabase';
 
 const InviteEarn = () => {
+  const navigate = useNavigate();
   const [referralStats, setReferralStats] = useState(null);
   const [referralHistory, setReferralHistory] = useState([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [leaderboard, setLeaderboard] = useState([]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchReferralData();
@@ -28,27 +33,112 @@ const InviteEarn = () => {
 
   const fetchReferralData = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
+      console.log('Starting to fetch referral data...');
+      
+      // Get current Supabase session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        setError('Authentication error: ' + sessionError.message);
+        return;
+      }
+      
+      if (!session) {
+        console.log('No active session, redirecting to login');
+        setError('Please sign in to access referral features');
+        setTimeout(() => navigate('/login'), 2000);
+        return;
+      }
 
-      // Fetch referral stats
-      const statsResponse = await axios.get('/api/referral/stats', { headers });
-      setReferralStats(statsResponse.data.stats);
+      console.log('Session found, user:', session.user.email);
 
-      // Fetch referral history
-      const historyResponse = await axios.get('/api/referral/history', { headers });
-      setReferralHistory(historyResponse.data.history);
+      const headers = { 
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      };
 
-      // Fetch wallet balance
-      const balanceResponse = await axios.get('/api/referral/wallet/balance', { headers });
-      setWalletBalance(balanceResponse.data.wallet_balance);
+      console.log('Fetching referral stats...');
+      // Fetch referral stats directly from database
+      const { data: statsData, error: statsError } = await supabase
+        .rpc('get_user_referral_stats', { p_user_id: session.user.id });
+      console.log('Stats response:', statsData);
+      
+      if (statsError) {
+        console.error('Error fetching stats:', statsError);
+        // Fallback: get basic user info
+        const { data: userProfile } = await supabase
+          .from('user_profiles')
+          .select('referral_code, wallet_balance')
+          .eq('id', session.user.id)
+          .single();
+        
+        const fallbackStats = {
+          referral_code: userProfile?.referral_code || null,
+          total_referrals: 0,
+          total_earned: 0,
+          wallet_balance: userProfile?.wallet_balance || 0,
+          referred_users: []
+        };
+        setReferralStats(fallbackStats);
+      } else {
+        setReferralStats(statsData);
+      }
 
-      // Fetch leaderboard
-      const leaderboardResponse = await axios.get('/api/referral/leaderboard?limit=10');
-      setLeaderboard(leaderboardResponse.data.leaderboard);
+      console.log('Fetching referral history...');
+      // Fetch referral history (using direct Supabase query for now)
+      const { data: historyData } = await supabase
+        .rpc('get_user_referral_history', { p_user_id: session.user.id });
+      console.log('History response:', historyData);
+      setReferralHistory(historyData || []);
+
+      console.log('Fetching wallet balance...');
+      // Fetch wallet balance (using direct Supabase query)
+      const { data: balanceData } = await supabase
+        .from('user_profiles')
+        .select('wallet_balance')
+        .eq('id', session.user.id)
+        .single();
+      console.log('Balance response:', balanceData);
+      setWalletBalance(balanceData?.wallet_balance || 0);
+
+      console.log('Fetching leaderboard...');
+      // Fetch leaderboard directly from database
+      const { data: leaderboardData, error: leaderboardError } = await supabase
+        .rpc('get_referral_leaderboard', { p_limit: 10 });
+      console.log('Leaderboard response:', leaderboardData);
+      
+      if (leaderboardError) {
+        console.error('Error fetching leaderboard:', leaderboardError);
+        setLeaderboard([]);
+      } else {
+        setLeaderboard(leaderboardData || []);
+      }
+
+      console.log('All data fetched successfully!');
 
     } catch (error) {
       console.error('Error fetching referral data:', error);
+      console.error('Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      
+      let errorMessage = 'Failed to load referral data';
+      
+      if (error.response?.status === 401) {
+        errorMessage = 'Please sign in to access referral features';
+        setTimeout(() => navigate('/login'), 2000);
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Referral service not found';
+      } else if (error.response?.status >= 500) {
+        errorMessage = 'Server error, please try again later';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -68,13 +158,13 @@ const InviteEarn = () => {
 
   const shareReferralCode = async () => {
     if (referralStats?.referral_code) {
-      const shareText = `Join Subx and start your property investment journey! Use my referral code: ${referralStats.referral_code}`;
+      const shareText = `Join Subx and start your property ownership journey! Use my referral code: ${referralStats.referral_code}`;
       const shareUrl = `https://subxhq.com?ref=${referralStats.referral_code}`;
       
       if (navigator.share) {
         try {
           await navigator.share({
-            title: 'Join Subx - Property Investment Platform',
+            title: 'Join Subx - Property Ownership Platform',
             text: shareText,
             url: shareUrl
           });
@@ -109,9 +199,50 @@ const InviteEarn = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <svg className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Data</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              fetchReferralData();
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
+        {/* Back Button */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="mb-6"
+        >
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            <span className="font-medium">Back to Dashboard</span>
+          </button>
+        </motion.div>
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

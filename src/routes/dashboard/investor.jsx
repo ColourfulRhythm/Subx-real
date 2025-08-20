@@ -1532,6 +1532,9 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
               <div className="relative w-full md:w-1/2 aspect-video md:aspect-square">
                 <img
                   src={project.images && project.images[0] ? project.images[0] : '/2-seasons/2seasons-logo.jpg'}
+                onError={(e) => {
+                  e.target.src = '/2-seasons/2seasons-logo.jpg';
+                }}
                   alt={project.title}
                   className="w-full h-full object-cover"
                   onError={(e) => {

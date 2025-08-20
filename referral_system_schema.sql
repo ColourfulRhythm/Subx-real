@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS referral_rewards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   referrer_id UUID NOT NULL REFERENCES auth.users(id),
   referred_user_id UUID NOT NULL REFERENCES auth.users(id),
-  purchase_id UUID NOT NULL REFERENCES investments(id), -- Using investments table as purchases
+  purchase_id INTEGER NOT NULL REFERENCES investments(id), -- Using investments table as purchases
   amount DECIMAL(12,2) NOT NULL,
   status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'failed')),
   created_at TIMESTAMP DEFAULT NOW(),
@@ -77,7 +77,7 @@ $$ LANGUAGE plpgsql;
 -- 7. Function to process referral reward
 CREATE OR REPLACE FUNCTION process_referral_reward(
   p_referred_user_id UUID,
-  p_purchase_id UUID,
+  p_purchase_id INTEGER,
   p_purchase_amount DECIMAL(12,2)
 )
 RETURNS BOOLEAN AS $$
@@ -306,7 +306,7 @@ $$ LANGUAGE plpgsql;
 -- 16. Create function to get referral leaderboard
 CREATE OR REPLACE FUNCTION get_referral_leaderboard(p_limit INTEGER DEFAULT 10)
 RETURNS TABLE (
-  rank INTEGER,
+  rank BIGINT,
   user_id UUID,
   full_name VARCHAR,
   referral_code VARCHAR(12),

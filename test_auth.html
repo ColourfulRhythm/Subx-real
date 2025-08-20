@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Test</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Authentication Test</h1>
+    <div id="status">Checking authentication...</div>
+    <div id="user-info"></div>
+    <div id="test-results"></div>
+
+    <script>
+        const supabaseUrl = 'https://hclguhbswctxfahhzrrr.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjbGd1aGJzd2N0eGZhaGh6cnJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3NjU2ODcsImV4cCI6MjA3MDM0MTY4N30.y2ILgUZLd_pJ9rAuRVGTHIIkh1sfhvXRnRlCt4DUzyQ';
+        
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        async function checkAuth() {
+            const statusDiv = document.getElementById('status');
+            const userInfoDiv = document.getElementById('user-info');
+            const testResultsDiv = document.getElementById('test-results');
+
+            try {
+                // Check current session
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    statusDiv.innerHTML = `<span style="color: red;">Error: ${error.message}</span>`;
+                    return;
+                }
+
+                if (!session) {
+                    statusDiv.innerHTML = '<span style="color: orange;">Not signed in</span>';
+                    userInfoDiv.innerHTML = '<p>Please sign in to test referral features</p>';
+                    return;
+                }
+
+                statusDiv.innerHTML = '<span style="color: green;">Signed in ✓</span>';
+                userInfoDiv.innerHTML = `
+                    <h3>User Info:</h3>
+                    <p><strong>Email:</strong> ${session.user.email}</p>
+                    <p><strong>ID:</strong> ${session.user.id}</p>
+                    <p><strong>Token:</strong> ${session.access_token.substring(0, 20)}...</p>
+                `;
+
+                // Test referral API
+                testResultsDiv.innerHTML = '<h3>Testing Referral API...</h3>';
+                
+                try {
+                    const response = await fetch('http://localhost:30002/api/referral/stats', {
+                        headers: {
+                            'Authorization': `Bearer ${session.access_token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        testResultsDiv.innerHTML += '<p style="color: green;">✓ Referral API working</p>';
+                        testResultsDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    } else {
+                        testResultsDiv.innerHTML += `<p style="color: red;">✗ API Error: ${response.status} ${response.statusText}</p>`;
+                    }
+                } catch (apiError) {
+                    testResultsDiv.innerHTML += `<p style="color: red;">✗ API Error: ${apiError.message}</p>`;
+                }
+
+            } catch (error) {
+                statusDiv.innerHTML = `<span style="color: red;">Error: ${error.message}</span>`;
+            }
+        }
+
+        // Run the test
+        checkAuth();
+    </script>
+</body>
+</html>

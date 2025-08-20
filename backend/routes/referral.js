@@ -35,15 +35,38 @@ const authenticateUser = async (req, res, next) => {
 // Get user's referral stats
 router.get('/stats', authenticateUser, async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .rpc('get_user_referral_stats', { p_user_id: req.user.id });
+    console.log('Fetching referral stats for user:', req.user.id);
+    
+    // First, check if user has a referral code
+    const { data: userProfile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('referral_code, wallet_balance')
+      .eq('id', req.user.id)
+      .single();
 
-    if (error) {
-      console.error('Error fetching referral stats:', error);
-      return res.status(500).json({ error: 'Failed to fetch referral stats' });
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      return res.status(500).json({ error: 'Failed to fetch user profile' });
     }
 
-    res.json({ success: true, stats: data });
+    // Get referral stats from the function
+    const { data: statsData, error: statsError } = await supabase
+      .rpc('get_user_referral_stats', { p_user_id: req.user.id });
+
+    if (statsError) {
+      console.error('Error fetching referral stats:', statsError);
+      // Fallback: create basic stats structure
+      const fallbackStats = {
+        referral_code: userProfile?.referral_code || null,
+        total_referrals: 0,
+        total_earned: 0,
+        wallet_balance: userProfile?.wallet_balance || 0,
+        referred_users: []
+      };
+      return res.json({ success: true, stats: fallbackStats });
+    }
+
+    res.json({ success: true, stats: statsData });
   } catch (error) {
     console.error('Error in referral stats:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -261,6 +284,8 @@ router.post('/wallet/apply', authenticateUser, async (req, res) => {
 // Get user's current wallet balance
 router.get('/wallet/balance', authenticateUser, async (req, res) => {
   try {
+    console.log('Fetching wallet balance for user:', req.user.id);
+    
     const { data, error } = await supabase
       .from('user_profiles')
       .select('wallet_balance')
@@ -269,12 +294,13 @@ router.get('/wallet/balance', authenticateUser, async (req, res) => {
 
     if (error) {
       console.error('Error fetching wallet balance:', error);
-      return res.status(500).json({ error: 'Failed to fetch wallet balance' });
+      // Return 0 balance if user not found
+      return res.json({ success: true, wallet_balance: 0 });
     }
 
     res.json({ 
       success: true, 
-      wallet_balance: data.wallet_balance || 0
+      wallet_balance: data?.wallet_balance || 0
     });
   } catch (error) {
     console.error('Error in wallet balance:', error);

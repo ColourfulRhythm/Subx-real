@@ -5,6 +5,7 @@ import bodyParser from 'body-parser';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { supabase } from './supabase.js';
+import { referralRouter } from './routes/referral.js';
 
 const app = express();
 const port = process.env.PORT || 30002;
@@ -818,6 +819,9 @@ app.put('/api/admin/settings', verifyAdminToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to update settings' });
   }
 });
+
+// Add referral routes
+app.use('/api/referral', referralRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

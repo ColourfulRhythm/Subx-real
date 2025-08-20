@@ -47,7 +47,7 @@ export default async function handler(req, res) {
         message: 'No co-owners found for this property' 
       });
     }
-
+    
     // Transform the function data to match expected format
     const coOwners = coOwnersData.map((owner, index) => ({
       id: `placeholder-${index + 1}`,
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
 
     const totalAmount = coOwnersData.reduce((sum, owner) => sum + owner.amount, 0);
     const totalSqm = coOwnersData.reduce((sum, owner) => sum + owner.sqm_purchased, 0);
-
+    
     res.json({
       success: true,
       coOwners,
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
       totalSqm: totalSqm,
       message: `Found ${coOwners.length} co-owner(s) for this property`
     });
-
+    
   } catch (error) {
     console.error('Error fetching co-owners:', error);
     res.status(500).json({ 

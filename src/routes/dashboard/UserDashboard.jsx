@@ -33,6 +33,27 @@ const apiCall = async (endpoint, options = {}) => {
 
 
 
+// Array of site progress images for random selection
+const siteImages = [
+  '/2-seasons/bf-3.jpg',           // Building foundation
+  '/2-seasons/bf-2.jpg',           // Building foundation
+  '/2-seasons/allocation-1.jpg',   // Site allocation
+  '/2-seasons/survey-registered.jpg', // Survey work
+  '/2-seasons/site-plans.jpg',     // Site plans
+  '/2-seasons/welness-hub.jpg',    // Wellness hub
+  '/2-seasons/sportsacademy.jpg',  // Sports academy
+  '/2-seasons/plot-cornerpiece.jpg', // Plot corner piece
+  '/2-seasons/drone-image.jpg',    // Aerial view
+  '/2-seasons/2-seasonsflag.JPG', // Site flag
+  '/2-seasons/anotherplant.jpg',   // Site vegetation
+  '/2-seasons/plantsin2seasons.jpg' // More vegetation
+];
+
+// Function to get random site image
+const getRandomSiteImage = () => {
+  return siteImages[Math.floor(Math.random() * siteImages.length)];
+};
+
 const mockProjects = [
   {
     id: 1,
@@ -41,7 +62,7 @@ const mockProjects = [
     price: '₦5,000/sq.m',
     totalSqm: 500,
     availableSqm: 500,
-    image: '/2-seasons/2seasons-logo.jpg',
+    image: getRandomSiteImage(),
     status: 'Available',
     description: 'Premium residential plot in 2 Seasons Estate with world-class amenities.',
     amenities: ['Gated Community', '24/7 Security', 'Recreation Center', 'Shopping Mall']
@@ -53,7 +74,7 @@ const mockProjects = [
     price: '₦5,000/sq.m',
     totalSqm: 500,
     availableSqm: 500,
-    image: '/2-seasons/2seasons-logo.jpg',
+    image: getRandomSiteImage(),
     status: 'Available',
     description: 'Exclusive residential plot with lakefront views and premium facilities.',
     amenities: ['Lakefront Views', 'Wellness Center', 'Sports Academy', 'Content Village']
@@ -65,7 +86,7 @@ const mockProjects = [
     price: '₦5,000/sq.m',
     totalSqm: 500,
     availableSqm: 500,
-    image: '/2-seasons/2seasons-logo.jpg',
+    image: getRandomSiteImage(),
     status: 'Available',
     description: 'Premium plot in the wellness village with spa and recreation facilities.',
     amenities: ['Spa & Wellness', 'Fruit Forest', 'Yoga Pavilion', 'Juice Bars']
@@ -77,7 +98,7 @@ const mockProjects = [
     price: '₦5,000/sq.m',
     totalSqm: 500,
     availableSqm: 500,
-    image: '/2-seasons/2seasons-logo.jpg',
+    image: getRandomSiteImage(),
     status: 'Available',
     description: 'Strategic plot with excellent connectivity and modern amenities.',
     amenities: ['Strategic Location', 'Easy Access', 'Modern Infrastructure', 'Community Hub']
@@ -89,7 +110,7 @@ const mockProjects = [
     price: '₦5,000/sq.m',
     totalSqm: 500,
     availableSqm: 500,
-    image: '/2-seasons/2seasons-logo.jpg',
+    image: getRandomSiteImage(),
     status: 'Available',
     description: 'Premium plot with panoramic views and exclusive amenities.',
     amenities: ['Panoramic Views', 'Exclusive Access', 'Premium Facilities', 'Privacy']
@@ -191,6 +212,22 @@ export default function UserDashboard() {
           return;
         }
         console.log('User logged in:', user.email);
+        
+        // CRITICAL: Clear any old data when user changes
+        const lastUserId = localStorage.getItem('lastUserId');
+        if (lastUserId && lastUserId !== user.id) {
+          console.log('User changed, clearing old data');
+          setUserData({
+            name: '',
+            email: '',
+            avatar: '',
+            portfolioValue: '₦0',
+            totalLandOwned: '0 sqm',
+            totalInvestments: 0,
+            recentActivity: []
+          });
+          setUserProperties([]);
+        }
       }
     };
 
@@ -213,6 +250,12 @@ export default function UserDashboard() {
 
     loadData();
     
+    // Set up auto-refresh every 30 seconds to ensure real-time data
+    const refreshInterval = setInterval(() => {
+      fetchUserData();
+      fetchUserProperties();
+    }, 30000);
+    
     // Load Paystack script
     if (!window.PaystackPop) {
       const script = document.createElement('script');
@@ -226,13 +269,39 @@ export default function UserDashboard() {
       };
       document.body.appendChild(script);
     }
+    
+    // Cleanup function
+    return () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
+    };
   }, [navigate]);
 
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
+      
+      // CRITICAL: Clear ALL cached data on logout
       localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('userType');
+      localStorage.removeItem('userProfileData');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('lastUserId');
+      
+      // Clear user data state
+      setUserData({
+        name: '',
+        email: '',
+        avatar: '',
+        portfolioValue: '₦0',
+        totalLandOwned: '0 sqm',
+        totalInvestments: 0,
+        recentActivity: []
+      });
+      setUserProperties([]);
+      
       navigate('/');
       toast.success('Logged out successfully');
     } catch (error) {
@@ -312,12 +381,9 @@ export default function UserDashboard() {
   };
 
   const handleViewDocument = (document) => {
-    // Open document in new tab or modal
-    if (document.url) {
-      window.open(document.url, '_blank');
-    } else {
-      toast.error('Document not available');
-    }
+    // Show document content in modal instead of trying to open URL
+    setSelectedDocument(document);
+    setShowDocumentsModal(true);
   };
 
   const handleDownloadReceipt = (property, document) => {
@@ -343,12 +409,21 @@ export default function UserDashboard() {
       const data = await response.json();
       
       if (data.success) {
-        setProjects(data.projects);
+        // Ensure all projects have proper image paths
+        const projectsWithImages = data.projects.map(project => ({
+          ...project,
+          image: project.image || project.imageUrl || project.images?.[0] || '/2-seasons/2seasons-logo.jpg'
+        }));
+        setProjects(projectsWithImages);
       } else {
         console.error('Failed to fetch projects:', data.error);
+        // Keep mockProjects as fallback
+        setProjects(mockProjects);
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
+      // Keep mockProjects as fallback
+      setProjects(mockProjects);
     }
   };
 
@@ -367,17 +442,32 @@ export default function UserDashboard() {
   const fetchForumTopics = async () => {
     setLoadingForum(true);
     try {
-      const response = await fetch('/api/forum/topics');
-      const data = await response.json();
+      // Fetch forum topics directly from Supabase instead of broken API
+      const { data: topics, error } = await supabase
+        .from('forum_topics')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
       
-      if (data.success) {
-        setForumTopics(data.topics);
+      if (error) {
+        console.error('Failed to fetch forum topics from Supabase:', error);
+        // Use mock data as fallback
+        setForumTopics([
+          {
+            id: 1,
+            title: 'Welcome to Subx Community!',
+            content: 'Join discussions about property ownership and investment opportunities.',
+            author: 'Subx Team',
+            created_at: new Date().toISOString(),
+            replies_count: 5
+          }
+        ]);
       } else {
-        console.error('Failed to fetch forum topics:', data.error);
-        setForumTopics([]);
+        console.log('Forum topics fetched from Supabase:', topics);
+        setForumTopics(topics || []);
       }
     } catch (error) {
-      console.error('Error fetching forum topics:', error);
+      console.error('Failed to fetch forum topics:', error);
       setForumTopics([]);
     } finally {
       setLoadingForum(false);
@@ -386,16 +476,23 @@ export default function UserDashboard() {
 
   const fetchTopicReplies = async (topicId) => {
     try {
-      const response = await fetch(`/api/forum/replies?topic_id=${topicId}`);
-      const data = await response.json();
+      // Fetch replies directly from Supabase instead of broken API
+      const { data: replies, error } = await supabase
+        .from('forum_replies')
+        .select('*')
+        .eq('topic_id', topicId)
+        .order('created_at', { ascending: true });
       
-      if (data.success) {
-        setForumReplies(data.replies);
+      if (error) {
+        console.error('Failed to fetch replies from Supabase:', error);
+        setForumReplies([]);
       } else {
-        console.error('Failed to fetch replies:', data.error);
+        console.log('Replies fetched from Supabase:', replies);
+        setForumReplies(replies || []);
       }
     } catch (error) {
       console.error('Error fetching replies:', error);
+      setForumReplies([]);
     }
   };
 
@@ -409,26 +506,26 @@ export default function UserDashboard() {
     if (!newReply.trim() || !selectedTopic) return;
     
     try {
-      const response = await fetch('/api/forum/replies', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Add reply directly to Supabase instead of broken API
+      const { data: reply, error } = await supabase
+        .from('forum_replies')
+        .insert({
           content: newReply,
           topic_id: selectedTopic.id,
-          user_id: localStorage.getItem('userId')
+          user_id: user.id,
+          author: userData.name || user.email
         })
-      });
+        .select()
+        .single();
       
-      const data = await response.json();
-      
-      if (data.success) {
+      if (error) {
+        console.error('Failed to add reply to Supabase:', error);
+        toast.error('Failed to add reply');
+      } else {
+        console.log('Reply added to Supabase:', reply);
         setNewReply('');
         await fetchTopicReplies(selectedTopic.id);
         toast.success('Reply added successfully!');
-      } else {
-        toast.error('Failed to add reply');
       }
     } catch (error) {
       console.error('Error adding reply:', error);
@@ -440,22 +537,24 @@ export default function UserDashboard() {
     if (!newTopicData.title.trim() || !newTopicData.content.trim()) return;
     
     try {
-      const response = await fetch('/api/forum/topics', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Create topic directly in Supabase instead of broken API
+      const { data: topic, error } = await supabase
+        .from('forum_topics')
+        .insert({
           title: newTopicData.title,
           content: newTopicData.content,
-          category: newTopicData.category,
-          user_id: localStorage.getItem('userId')
+          category: newTopicData.category || 'general',
+          user_id: user.id,
+          author: userData.name || user.email
         })
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
+        .select()
+        .single();
+    
+      if (error) {
+        console.error('Failed to create topic in Supabase:', error);
+        toast.error('Failed to create channel');
+      } else {
+        console.log('Topic created in Supabase:', topic);
         setNewTopicData({ title: '', content: '', category: 'general' });
         setShowNewTopicModal(false);
         // Add a small delay to ensure the modal closes before refreshing
@@ -463,8 +562,6 @@ export default function UserDashboard() {
           await fetchForumTopics();
         }, 100);
         toast.success('Channel created successfully!');
-      } else {
-        toast.error('Failed to create channel');
       }
     } catch (error) {
       console.error('Error creating topic:', error);
@@ -587,7 +684,7 @@ export default function UserDashboard() {
     return doc;
   };
 
-
+    
 
   // Download Certificate
   const handleDownloadCertificate = () => {
@@ -611,52 +708,83 @@ export default function UserDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // First try to load from localStorage for immediate display
-      const savedUserData = localStorage.getItem('userProfileData');
-      if (savedUserData) {
-        try {
-          const parsedData = JSON.parse(savedUserData);
-          setUserData(parsedData);
-        } catch (e) {
-          console.log('Failed to parse saved user data');
-        }
+      // CRITICAL FIX: Clear localStorage data when switching users
+      const currentUserId = user.id;
+      const lastUserId = localStorage.getItem('lastUserId');
+      
+      if (lastUserId && lastUserId !== currentUserId) {
+        // Different user logged in - clear all cached data
+        console.log('Different user detected, clearing cached data');
+        localStorage.removeItem('userProfileData');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('lastUserId');
       }
+      
+      // Store current user ID
+      localStorage.setItem('lastUserId', currentUserId);
 
-      // Try to load from backend
+      // Railway backend is down, skip this step
+      console.log('Railway backend unavailable, using Supabase data only');
+
+      // Get real investment data from Supabase
       try {
-        const userIdentifier = user.email || user.uid;
-        const response = await apiCall(`/users/${userIdentifier}`);
-        if (response && Object.keys(response).length > 0) {
-          setUserData(response);
-          // Save to localStorage for persistence
-          localStorage.setItem('userProfileData', JSON.stringify(response));
+        // First check what columns exist in investments table
+        const { data: sampleInvestment } = await supabase
+          .from('investments')
+          .select('*')
+          .limit(1);
+        
+        if (sampleInvestment && sampleInvestment.length > 0) {
+          const sample = sampleInvestment[0];
+          const possibleUserFields = ['investor_id', 'user_id', 'investor_email', 'user_email', 'email', 'investor'];
+          const foundUserField = possibleUserFields.find(field => sample[field]);
+          
+          if (foundUserField) {
+            const { data: investments, error: investmentError } = await supabase
+              .from('investments')
+              .select('sqm_purchased, amount, status')
+              .eq(foundUserField, user.id);
+
+            if (!investmentError && investments) {
+              const totalSqm = investments.reduce((sum, inv) => sum + (inv.sqm_purchased || 0), 0);
+              const totalAmount = investments.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+              
+              // Update userData with real investment info
+              setUserData(prev => ({
+                ...prev,
+                totalLandOwned: `${totalSqm} sqm`,
+                totalInvestments: investments.length,
+                portfolioValue: `₦${totalAmount.toLocaleString()}`
+              }));
+              
+              console.log('Updated userData with real investment info:', { totalSqm, totalAmount, count: investments.length });
+            }
+          }
         }
-      } catch (backendError) {
-        console.log('Backend not available, using localStorage data');
+      } catch (supabaseError) {
+        console.log('Could not fetch investment data from Supabase:', supabaseError);
       }
 
-      // If no data available, use basic user info
-      if (!savedUserData && !userData.name) {
-        const basicData = {
-          name: user?.user_metadata?.name || localStorage.getItem('userName') || user?.email?.split('@')[0] || 'User',
-          email: user?.email || localStorage.getItem('userEmail') || '',
-          avatar: '/subx-logo/default-avatar.png',
-          portfolioValue: '₦0',
-          totalLandOwned: '0 sqm',
-          totalInvestments: 0,
-          recentActivity: [
-            {
-              id: 1,
-              title: 'Account Created',
-              amount: 'Welcome to Subx!',
-              date: new Date().toLocaleDateString(),
-              status: 'completed'
-            }
-          ]
-        };
-        setUserData(basicData);
-        localStorage.setItem('userProfileData', JSON.stringify(basicData));
-      }
+      // Always use current user's info, never fallback to localStorage
+      const basicData = {
+        name: user?.user_metadata?.name || user?.email?.split('@')[0] || 'User',
+        email: user?.email || '',
+        avatar: '/subx-logo/default-avatar.png',
+        portfolioValue: '₦0',
+        totalLandOwned: '0 sqm',
+        totalInvestments: 0,
+        recentActivity: [
+          {
+            id: 1,
+            title: 'Account Created',
+            amount: 'Welcome to Subx!',
+            date: new Date().toLocaleDateString(),
+            status: 'completed'
+          }
+        ]
+      };
+      setUserData(basicData);
     } catch (error) {
       console.error('Failed to fetch user data:', error);
       // Load from localStorage as fallback
@@ -756,13 +884,65 @@ export default function UserDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Use user ID (UUID) for API calls instead of email
-      const userIdentifier = user.id;
-      const response = await apiCall(`/users/${userIdentifier}/properties`);
-      setUserProperties(response);
+      // Fetch directly from Supabase instead of Railway backend
+      console.log('Fetching investments for user:', user.email);
+      
+      // First, let's see what's in the investments table and its structure
+      const { data: allInvestments, error: allError } = await supabase
+        .from('investments')
+        .select('*')
+        .limit(1);
+      console.log('Sample investment structure:', allInvestments?.[0]);
+      
+      if (allInvestments && allInvestments.length > 0) {
+        const sampleInvestment = allInvestments[0];
+        console.log('Available columns:', Object.keys(sampleInvestment));
+        
+        // Try to find the correct user identifier field
+        const possibleUserFields = ['investor_id', 'user_id', 'investor_email', 'user_email', 'email', 'investor'];
+        const foundUserField = possibleUserFields.find(field => sampleInvestment[field]);
+        console.log('Found user field:', foundUserField, 'with value:', sampleInvestment[foundUserField]);
+        
+                  if (foundUserField) {
+            // Use the correct field to fetch investments
+            // Only use UUID since user_id field expects UUID type
+            const { data: investments, error } = await supabase
+              .from('investments')
+              .select('*')
+              .eq(foundUserField, user.id);
+            
+            console.log('User investments found:', investments);
+            console.log('Query error:', error);
+          
+                      if (!error && investments && investments.length > 0) {
+              // Transform the data to match expected format
+              const transformedProperties = investments.map(investment => ({
+                id: investment.id,
+                projectTitle: '2 Seasons Plot',
+                location: '2 Seasons, Gbako Village, Ogun State',
+                sqm: investment.sqm_purchased || 0,
+                amount: investment.amount || 0,
+                status: investment.status || 'completed',
+                purchaseDate: investment.created_at || new Date().toISOString(),
+                documents: [
+                  { name: 'Receipt', type: 'pdf', url: '#', signed: true },
+                  { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
+                  { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: true }
+                ]
+              }));
+              
+              setUserProperties(transformedProperties);
+              console.log('Successfully set properties:', transformedProperties);
+              return;
+            }
+        }
+      }
+      
+      // If we get here, no investments found or error occurred
+      console.log('No investments found or error occurred');
+      setUserProperties([]);
     } catch (error) {
       console.error('Failed to fetch properties:', error);
-      // Show empty state instead of mock data
       setUserProperties([]);
     }
   };
@@ -954,7 +1134,7 @@ export default function UserDashboard() {
 
       {/* Navigation */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <nav className="flex space-x-8 mt-6">
+        <nav className="flex flex-wrap gap-2 sm:gap-4 lg:gap-8 mt-6 overflow-x-auto pb-2">
           {[
             { id: 'opportunities', label: 'Opportunities', icon: 'briefcase' },
             { id: 'overview', label: 'Overview', icon: 'home' },
@@ -967,7 +1147,7 @@ export default function UserDashboard() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+              className={`flex items-center space-x-1 sm:space-x-2 py-2 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-indigo-500 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -982,7 +1162,7 @@ export default function UserDashboard() {
                 {tab.icon === 'users' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />}
                 {tab.icon === 'gift' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />}
               </svg>
-              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="hidden xs:inline">{tab.label}</span>
             </button>
           ))}
         </nav>
@@ -1128,6 +1308,20 @@ export default function UserDashboard() {
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-gray-900">Land Ownership Opportunities</h2>
                 <div className="flex space-x-2">
+                  <button 
+                    onClick={() => {
+                      fetchUserData();
+                      fetchUserProperties();
+                      toast.success('Data refreshed!');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                    title="Refresh data"
+                  >
+                    <svg className="h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                  </button>
                   <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
                     Filter
                   </button>
@@ -1148,7 +1342,14 @@ export default function UserDashboard() {
                     className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
                   >
                     <div className="relative">
-                      <img src={project.image} alt={project.title} className="w-full h-48 object-cover" />
+                      <img 
+                        src={project.image || '/2-seasons/2seasons-logo.jpg'} 
+                        alt={project.title} 
+                        className="w-full h-48 object-cover"
+                        onError={(e) => {
+                          e.target.src = '/2-seasons/2seasons-logo.jpg';
+                        }}
+                      />
                       <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
                         {project.status}
                       </div>
@@ -1207,8 +1408,25 @@ export default function UserDashboard() {
               className="space-y-6"
             >
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900">My Sub-owned Properties</h2>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">My Sub-owned Properties</h2>
+                  <p className="text-sm text-gray-500">Total: {userProperties.length} properties</p>
+                </div>
                 <div className="flex space-x-2">
+                  <button 
+                    onClick={() => {
+                      fetchUserData();
+                      fetchUserProperties();
+                      toast.success('Properties refreshed!');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                    title="Refresh properties"
+                  >
+                    <svg className="h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                  </button>
                   <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
                     <svg className="h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
@@ -1422,46 +1640,46 @@ export default function UserDashboard() {
                           
                           {expandedPlots.includes(property.id) && (
                             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {property.documents?.map((document, index) => (
-                                <div key={index} className="bg-gray-50 rounded-lg p-4">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center space-x-2">
-                                      <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                      </svg>
-                                      <span className="font-medium text-gray-900">{document.name}</span>
-                                    </div>
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                      document.signed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                    }`}>
-                                      {document.signed ? 'Signed' : 'Pending'}
-                                    </span>
+                            {property.documents?.map((document, index) => (
+                              <div key={index} className="bg-gray-50 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center space-x-2">
+                                    <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                    </svg>
+                                    <span className="font-medium text-gray-900">{document.name}</span>
                                   </div>
-                                  <div className="flex space-x-2">
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    document.signed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                    {document.signed ? 'Signed' : 'Pending'}
+                                  </span>
+                                </div>
+                                <div className="flex space-x-2">
                                     <button 
                                       onClick={() => handleViewDocument(document)}
                                       className="flex-1 px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
                                     >
-                                      View
-                                    </button>
+                                    View
+                                  </button>
                                     <button 
                                       onClick={() => handleDownloadReceipt(property, document)}
                                       className="flex-1 px-3 py-1 text-sm font-medium text-green-700 bg-green-50 border border-green-300 rounded hover:bg-green-100"
                                     >
                                       Download
                                     </button>
-                                    {!document.signed && (
-                                      <button 
-                                        onClick={() => handleSignDeed(document)}
-                                        className="flex-1 px-3 py-1 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
-                                      >
-                                        Sign
-                                      </button>
-                                    )}
-                                  </div>
+                                  {!document.signed && (
+                                    <button 
+                                      onClick={() => handleSignDeed(document)}
+                                      className="flex-1 px-3 py-1 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
+                                    >
+                                      Sign
+                                    </button>
+                                  )}
                                 </div>
-                              ))}
-                            </div>
+                              </div>
+                            ))}
+                          </div>
                           )}
                         </div>
                       ))}
@@ -1644,7 +1862,7 @@ export default function UserDashboard() {
                             <p className="font-medium text-gray-900">{profileData.occupation || 'Not provided'}</p>
                           </div>
                           <div>
-                                            <p className="text-sm text-gray-500">Member Since</p>
+                            <p className="text-sm text-gray-500">Member Since</p>
                 <p className="font-medium text-gray-900">
                   {userData.createdAt ? new Date(userData.createdAt).toLocaleDateString('en-US', { 
                     year: 'numeric', 
@@ -1822,15 +2040,15 @@ export default function UserDashboard() {
                     </svg>
                     Refresh
                   </button>
-                  <button
-                    onClick={() => setShowNewTopicModal(true)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center"
-                  >
-                    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
+                <button
+                  onClick={() => setShowNewTopicModal(true)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center"
+                >
+                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
                     New Channel
-                  </button>
+                </button>
                 </div>
               </div>
 
@@ -1886,8 +2104,8 @@ export default function UserDashboard() {
                               <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                               </svg>
+                              </div>
                             </div>
-                          </div>
 
                           {/* Channel Info */}
                           <div className="flex-1 min-w-0">
@@ -1960,7 +2178,14 @@ export default function UserDashboard() {
               
               <div className="space-y-6">
                 <div>
-                  <img src={selectedProject.image} alt={selectedProject.title} className="w-full h-48 object-cover rounded-lg mb-4" />
+                                        <img 
+                        src={selectedProject.image || '/2-seasons/2seasons-logo.jpg'} 
+                        alt={selectedProject.title} 
+                        className="w-full h-48 object-cover rounded-lg mb-4"
+                        onError={(e) => {
+                          e.target.src = '/2-seasons/2seasons-logo.jpg';
+                        }}
+                      />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{selectedProject.title}</h3>
                   <p className="text-gray-600 mb-4">{selectedProject.description}</p>
                 </div>
@@ -2259,7 +2484,6 @@ export default function UserDashboard() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative"
-              style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
             >
               <div className="flex justify-between items-start mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">Sign {selectedDocument.name}</h2>
@@ -2276,23 +2500,62 @@ export default function UserDashboard() {
                   <p className="text-gray-600 mb-4">This is a preview of the {selectedDocument.name} document that you are about to sign.</p>
                   <div className="bg-white border border-gray-200 rounded-lg p-4 min-h-[200px]">
                     <p className="text-sm text-gray-600">
-                      <strong>DEED OF SALE</strong><br/><br/>
-                      This Deed of Sale is made on [Date] between:<br/><br/>
-                      <strong>SELLER:</strong> Focal Point Property Development and Management Services Ltd.<br/>
-                      <strong>BUYER:</strong> {userData.name}<br/><br/>
-                      For the purchase of land in 2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state.<br/><br/>
-                      <strong>PROPERTY DETAILS:</strong><br/>
-                      • Location: 2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state<br/>
-                      • Plot Number: {selectedProperty?.title?.split(' - ')[1] || '[Plot Number]'}<br/>
-                      • Square Meters: {selectedProperty?.sqm || '[SQM]'} sqm<br/>
-                      • Purchase Price: ₦{(selectedProperty?.amount || 0).toLocaleString()}<br/><br/>
-                      <strong>TERMS AND CONDITIONS:</strong><br/>
-                      1. The Seller hereby transfers ownership of the specified land to the Buyer<br/>
-                      2. The Buyer acknowledges receipt of the property and agrees to all terms<br/>
-                      3. This deed is legally binding and enforceable under Nigerian law<br/><br/>
-                      <strong>SIGNATURE SECTION:</strong><br/>
-                      Buyer Signature: _________________<br/>
-                      Date: _________________
+                      {selectedDocument.name === 'Receipt' && (
+                        <>
+                          <strong>PAYMENT RECEIPT</strong><br/><br/>
+                          <strong>Date:</strong> {new Date().toLocaleDateString()}<br/>
+                          <strong>Receipt No:</strong> SUBX-{Math.floor(Math.random() * 1000000)}<br/><br/>
+                          <strong>PAYMENT DETAILS:</strong><br/>
+                          • Property: {selectedProperty?.projectTitle || '2 Seasons Plot'}<br/>
+                          • Location: 2 Seasons, Gbako Village, Ogun State<br/>
+                          • Square Meters: {selectedProperty?.sqm || '[SQM]'} sqm<br/>
+                          • Amount Paid: ₦{(selectedProperty?.amount || 0).toLocaleString()}<br/>
+                          • Payment Method: Paystack<br/>
+                          • Status: Completed<br/><br/>
+                          <strong>BUYER:</strong> {userData.name}<br/>
+                          <strong>EMAIL:</strong> {userData.email}<br/><br/>
+                          <strong>This receipt confirms successful payment for the above property.</strong>
+                        </>
+                      )}
+                      {selectedDocument.name === 'Deed of Sale (per owner)' && (
+                        <>
+                          <strong>DEED OF SALE</strong><br/><br/>
+                          This Deed of Sale is made on {new Date().toLocaleDateString()} between:<br/><br/>
+                          <strong>SELLER:</strong> Focal Point Property Development and Management Services Ltd.<br/>
+                          <strong>BUYER:</strong> {userData.name}<br/><br/>
+                          For the purchase of land in 2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state.<br/><br/>
+                          <strong>PROPERTY DETAILS:</strong><br/>
+                          • Location: 2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state<br/>
+                          • Plot Number: {selectedProperty?.projectTitle?.split(' - ')[1] || '[Plot Number]'}<br/>
+                          • Square Meters: {selectedProperty?.sqm || '[SQM]'} sqm<br/>
+                          • Purchase Price: ₦{(selectedProperty?.amount || 0).toLocaleString()}<br/><br/>
+                          <strong>TERMS AND CONDITIONS:</strong><br/>
+                          1. The Seller hereby transfers ownership of the specified land to the Buyer<br/>
+                          2. The Buyer acknowledges receipt of the property and agrees to all terms<br/>
+                          3. This deed is legally binding and enforceable under Nigerian law<br/><br/>
+                          <strong>SIGNATURE SECTION:</strong><br/>
+                          Buyer Signature: _________________<br/>
+                          Date: _________________
+                        </>
+                      )}
+                      {selectedDocument.name === 'Co-ownership Certificate' && (
+                        <>
+                          <strong>CO-OWNERSHIP CERTIFICATE</strong><br/><br/>
+                          <strong>Certificate No:</strong> COC-{Math.floor(Math.random() * 1000000)}<br/>
+                          <strong>Date Issued:</strong> {new Date().toLocaleDateString()}<br/><br/>
+                          <strong>This certifies that:</strong><br/>
+                          <strong>{userData.name}</strong><br/>
+                          <strong>Email:</strong> {userData.email}<br/><br/>
+                          <strong>Is a verified co-owner of:</strong><br/>
+                          • Property: {selectedProperty?.projectTitle || '2 Seasons Plot'}<br/>
+                          • Location: 2 Seasons, Gbako Village, Ogun State<br/>
+                          • Square Meters: {selectedProperty?.sqm || '[SQM]'} sqm<br/>
+                          • Ownership Percentage: 100%<br/><br/>
+                          <strong>This certificate confirms legal co-ownership status.</strong><br/><br/>
+                          <strong>Issued by:</strong> Subx Real Estate Platform<br/>
+                          <strong>Date:</strong> {new Date().toLocaleDateString()}
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -2428,7 +2691,90 @@ export default function UserDashboard() {
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div>
-                    <img src={selectedProject.image} alt={selectedProject.title} className="w-full h-64 object-cover rounded-lg" />
+                    {/* Main Image Gallery */}
+                    <div className="space-y-4">
+                      {/* Main Large Image */}
+                      <img 
+                        src={selectedProject.image || '/2-seasons/2seasons-logo.jpg'} 
+                        alt={selectedProject.title} 
+                        className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => {
+                          // Open full-screen image viewer
+                          const newWindow = window.open(selectedProject.image || '/2-seasons/2seasons-logo.jpg', '_blank');
+                          if (newWindow) {
+                            newWindow.document.title = `${selectedProject.title} - Site Image`;
+                          }
+                        }}
+                        onError={(e) => {
+                          e.target.src = '/2-seasons/2seasons-logo.jpg';
+                        }}
+                      />
+                      
+                      {/* Site Progress Image Gallery */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Site Progress Gallery</h4>
+                        <div className="grid grid-cols-3 gap-2">
+                          {siteImages.slice(0, 6).map((image, index) => (
+                            <img
+                              key={index}
+                              src={image}
+                              alt={`Site progress ${index + 1}`}
+                              className="w-full h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => {
+                                // Update main image when thumbnail is clicked
+                                const imgElement = document.querySelector(`img[alt="${selectedProject.title}"]`);
+                                if (imgElement) {
+                                  imgElement.src = image;
+                                }
+                              }}
+                              onError={(e) => {
+                                e.target.src = '/2-seasons/2seasons-logo.jpg';
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">Click thumbnails to view larger images</p>
+                        <button
+                          onClick={() => {
+                            // Open all site images in a new tab
+                            const imageUrls = siteImages.join(',');
+                            const newWindow = window.open('', '_blank');
+                            if (newWindow) {
+                              newWindow.document.write(`
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                  <title>2 Seasons - Complete Site Gallery</title>
+                                  <style>
+                                    body { margin: 0; padding: 20px; background: #f5f5f5; font-family: Arial, sans-serif; }
+                                    .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+                                    .image-container { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                                    .image-container img { width: 100%; height: 250px; object-fit: cover; border-radius: 8px; }
+                                    .image-title { margin-top: 10px; font-weight: bold; color: #333; }
+                                    h1 { text-align: center; color: #1f2937; margin-bottom: 30px; }
+                                  </style>
+                                </head>
+                                <body>
+                                  <h1>🏗️ 2 Seasons Estate - Site Progress Gallery</h1>
+                                  <div class="gallery">
+                                    ${siteImages.map((img, index) => `
+                                      <div class="image-container">
+                                        <img src="${img}" alt="Site progress ${index + 1}" />
+                                        <div class="image-title">Site Progress ${index + 1}</div>
+                                      </div>
+                                    `).join('')}
+                                  </div>
+                                </body>
+                                </html>
+                              `);
+                            }
+                          }}
+                          className="mt-3 w-full px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                        >
+                          🖼️ View Complete Site Gallery
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="space-y-6">

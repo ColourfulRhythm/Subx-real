@@ -84,18 +84,23 @@ export default function InvestorSignup() {
         // Set referral code if provided
         if (data.referral_code) {
           try {
-            const token = authData.session?.access_token;
-            if (token) {
-              await fetch('/api/referral/set-referral', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                  referral_code: data.referral_code
-                })
-              });
+            // Find the user who owns this referral code
+            const { data: referrerData, error: referrerError } = await supabase
+              .from('user_profiles')
+              .select('id')
+              .eq('referral_code', data.referral_code)
+              .single();
+            
+            if (referrerData && !referrerError) {
+              // Update the new user's profile to link them to the referrer
+              const { error: updateError } = await supabase
+                .from('user_profiles')
+                .update({ referred_by: referrerData.id })
+                .eq('id', authData.user.id);
+              
+              if (updateError) {
+                console.warn('Failed to set referral relationship:', updateError);
+              }
             }
           } catch (referralError) {
             console.warn('Referral code setting warning:', referralError);
