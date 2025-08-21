@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { supabase } from '../supabase';
+import ReferralWallet from '../components/ReferralWallet';
 
 const InviteEarn = () => {
   const navigate = useNavigate();
@@ -378,11 +379,21 @@ const InviteEarn = () => {
           </div>
         </motion.div>
 
-        {/* Referral History */}
+        {/* Referral Wallet */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
+          className="mb-8"
+        >
+          <ReferralWallet user={referralStats?.user_id ? { id: referralStats.user_id } : null} />
+        </motion.div>
+
+        {/* Referral History */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
           className="bg-white rounded-xl shadow-lg p-8 mb-8 border border-gray-100"
         >
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Referral History</h2>
@@ -411,9 +422,9 @@ const InviteEarn = () => {
                     <p className="font-bold text-green-600">
                       +{formatCurrency(referral.reward_amount)}
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <div className="text-sm text-gray-600">
                       {new Date(referral.created_at).toLocaleDateString()}
-                    </p>
+                    </div>
                   </div>
                 </div>
               ))}

@@ -50,6 +50,50 @@ serve(async (req) => {
     const { error } = await supabase.rpc('finalize_purchase', { p_payment_ref: ref });
     if (error) return new Response(error.message, { status: 400 });
 
+    // Get investment details for Telegram notification
+    const { data: investment, error: investmentError } = await supabase
+      .from('investments')
+      .select(`
+        *,
+        projects!inner(title, location),
+        user_profiles!inner(email, full_name)
+      `)
+      .eq('payment_reference', ref)
+      .single();
+
+    if (!investmentError && investment) {
+      // Send Telegram notification
+      try {
+        const telegramBotToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
+        const telegramChatId = Deno.env.get("TELEGRAM_CHAT_ID");
+        
+        if (telegramBotToken && telegramChatId) {
+          const message = `🎉 <b>New Subx Purchase!</b> 🚀
+
+👤 User: <code>${investment.user_profiles.email}</code>
+🏠 Property: ${investment.projects.title}
+📏 Square Meters: ${investment.sqm_purchased} sqm
+💰 Amount: ₦${investment.amount.toLocaleString()}
+📍 Location: ${investment.projects.location}
+
+Welcome to the Subx family! 🏘️✨`;
+
+          await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: telegramChatId,
+              text: message,
+              parse_mode: 'HTML'
+            })
+          });
+        }
+      } catch (telegramError) {
+        console.error('Telegram notification failed:', telegramError);
+        // Don't fail the webhook if Telegram fails
+      }
+    }
+
     return new Response('ok');
   } catch (e) {
     return new Response(e?.message || 'Server error', { status: 500 });

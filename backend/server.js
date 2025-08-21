@@ -1566,6 +1566,27 @@ app.post('/api/investments', async (req, res) => {
       paymentReference: investmentData.paymentReference
     });
 
+    // Sync investment to Supabase for payment webhook
+    try {
+      const { error: supabaseError } = await supabase.rpc('sync_investment_to_supabase', {
+        p_user_id: investor.supabase_id,
+        p_project_id: investmentData.projectId,
+        p_sqm_purchased: investmentData.sqm,
+        p_amount: investmentData.amount,
+        p_payment_reference: investmentData.paymentReference,
+        p_project_title: investmentData.projectTitle,
+        p_location: investmentData.location
+      });
+      
+      if (supabaseError) {
+        console.error('Failed to sync investment to Supabase:', supabaseError);
+      } else {
+        console.log('Investment synced to Supabase successfully');
+      }
+    } catch (syncError) {
+      console.error('Error syncing to Supabase:', syncError);
+    }
+
     // Send Telegram notification for successful purchase
     try {
       await telegramBot.sendPurchaseNotification(investmentData, {
