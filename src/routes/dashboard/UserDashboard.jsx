@@ -510,7 +510,7 @@ export default function UserDashboard() {
       const { data: reply, error } = await supabase
         .from('forum_replies')
         .insert({
-          content: newReply,
+      content: newReply,
           topic_id: selectedTopic.id,
           user_id: user.id,
           author: userData.name || user.email
@@ -523,9 +523,9 @@ export default function UserDashboard() {
         toast.error('Failed to add reply');
       } else {
         console.log('Reply added to Supabase:', reply);
-        setNewReply('');
+      setNewReply('');
         await fetchTopicReplies(selectedTopic.id);
-        toast.success('Reply added successfully!');
+      toast.success('Reply added successfully!');
       }
     } catch (error) {
       console.error('Error adding reply:', error);
@@ -541,8 +541,8 @@ export default function UserDashboard() {
       const { data: topic, error } = await supabase
         .from('forum_topics')
         .insert({
-          title: newTopicData.title,
-          content: newTopicData.content,
+      title: newTopicData.title,
+      content: newTopicData.content,
           category: newTopicData.category || 'general',
           user_id: user.id,
           author: userData.name || user.email
@@ -555,8 +555,8 @@ export default function UserDashboard() {
         toast.error('Failed to create channel');
       } else {
         console.log('Topic created in Supabase:', topic);
-        setNewTopicData({ title: '', content: '', category: 'general' });
-        setShowNewTopicModal(false);
+    setNewTopicData({ title: '', content: '', category: 'general' });
+    setShowNewTopicModal(false);
         // Add a small delay to ensure the modal closes before refreshing
         setTimeout(async () => {
           await fetchForumTopics();
@@ -767,24 +767,24 @@ export default function UserDashboard() {
       }
 
       // Always use current user's info, never fallback to localStorage
-      const basicData = {
+        const basicData = {
         name: user?.user_metadata?.name || user?.email?.split('@')[0] || 'User',
         email: user?.email || '',
-        avatar: '/subx-logo/default-avatar.png',
-        portfolioValue: '₦0',
-        totalLandOwned: '0 sqm',
-        totalInvestments: 0,
-        recentActivity: [
-          {
-            id: 1,
-            title: 'Account Created',
-            amount: 'Welcome to Subx!',
-            date: new Date().toLocaleDateString(),
-            status: 'completed'
-          }
-        ]
-      };
-      setUserData(basicData);
+          avatar: '/subx-logo/default-avatar.png',
+          portfolioValue: '₦0',
+          totalLandOwned: '0 sqm',
+          totalInvestments: 0,
+          recentActivity: [
+            {
+              id: 1,
+              title: 'Account Created',
+              amount: 'Welcome to Subx!',
+              date: new Date().toLocaleDateString(),
+              status: 'completed'
+            }
+          ]
+        };
+        setUserData(basicData);
     } catch (error) {
       console.error('Failed to fetch user data:', error);
       // Load from localStorage as fallback
@@ -1409,7 +1409,7 @@ export default function UserDashboard() {
             >
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">My Sub-owned Properties</h2>
+                <h2 className="text-2xl font-bold text-gray-900">My Sub-owned Properties</h2>
                   <p className="text-sm text-gray-500">Total: {userProperties.length} properties</p>
                 </div>
                 <div className="flex space-x-2">
@@ -1667,7 +1667,7 @@ export default function UserDashboard() {
                                       className="flex-1 px-3 py-1 text-sm font-medium text-green-700 bg-green-50 border border-green-300 rounded hover:bg-green-100"
                                     >
                                       Download
-                                    </button>
+                                  </button>
                                   {!document.signed && (
                                     <button 
                                       onClick={() => handleSignDeed(document)}
@@ -2035,9 +2035,9 @@ export default function UserDashboard() {
                     <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
                       <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
+                  </svg>
                     </div>
-                  </div>
+              </div>
 
                   {/* Title */}
                   <h2 className="text-2xl font-bold text-gray-900 mb-4">
@@ -2073,14 +2073,14 @@ export default function UserDashboard() {
                         Networking opportunities
                       </li>
                     </ul>
-                  </div>
+              </div>
 
                   {/* CTA */}
                   <p className="text-xs text-gray-500">
                     We'll notify you when the forum is ready!
                   </p>
-                </div>
-              </div>
+                    </div>
+                              </div>
             </motion.div>
           )}
                             </div>
@@ -2485,23 +2485,23 @@ export default function UserDashboard() {
                       )}
                       {selectedDocument.name === 'Deed of Sale (per owner)' && (
                         <>
-                          <strong>DEED OF SALE</strong><br/><br/>
+                      <strong>DEED OF SALE</strong><br/><br/>
                           This Deed of Sale is made on {new Date().toLocaleDateString()} between:<br/><br/>
-                          <strong>SELLER:</strong> Focal Point Property Development and Management Services Ltd.<br/>
-                          <strong>BUYER:</strong> {userData.name}<br/><br/>
+                      <strong>SELLER:</strong> Focal Point Property Development and Management Services Ltd.<br/>
+                      <strong>BUYER:</strong> {userData.name}<br/><br/>
                           For the purchase of land in 2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state.<br/><br/>
-                          <strong>PROPERTY DETAILS:</strong><br/>
-                          • Location: 2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state<br/>
+                      <strong>PROPERTY DETAILS:</strong><br/>
+                      • Location: 2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state<br/>
                           • Plot Number: {selectedProperty?.projectTitle?.split(' - ')[1] || '[Plot Number]'}<br/>
-                          • Square Meters: {selectedProperty?.sqm || '[SQM]'} sqm<br/>
-                          • Purchase Price: ₦{(selectedProperty?.amount || 0).toLocaleString()}<br/><br/>
-                          <strong>TERMS AND CONDITIONS:</strong><br/>
-                          1. The Seller hereby transfers ownership of the specified land to the Buyer<br/>
-                          2. The Buyer acknowledges receipt of the property and agrees to all terms<br/>
-                          3. This deed is legally binding and enforceable under Nigerian law<br/><br/>
-                          <strong>SIGNATURE SECTION:</strong><br/>
-                          Buyer Signature: _________________<br/>
-                          Date: _________________
+                      • Square Meters: {selectedProperty?.sqm || '[SQM]'} sqm<br/>
+                      • Purchase Price: ₦{(selectedProperty?.amount || 0).toLocaleString()}<br/><br/>
+                      <strong>TERMS AND CONDITIONS:</strong><br/>
+                      1. The Seller hereby transfers ownership of the specified land to the Buyer<br/>
+                      2. The Buyer acknowledges receipt of the property and agrees to all terms<br/>
+                      3. This deed is legally binding and enforceable under Nigerian law<br/><br/>
+                      <strong>SIGNATURE SECTION:</strong><br/>
+                      Buyer Signature: _________________<br/>
+                      Date: _________________
                         </>
                       )}
                       {selectedDocument.name === 'Co-ownership Certificate' && (
