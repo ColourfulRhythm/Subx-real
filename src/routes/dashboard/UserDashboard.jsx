@@ -516,10 +516,6 @@ export default function UserDashboard() {
       setProjects(staticProjects);
       console.log('✅ Projects loaded from static data');
     } catch (error) {
-        // Keep mockProjects as fallback
-        setProjects(mockProjects);
-      }
-    } catch (error) {
       console.error('Error fetching projects:', error);
       // Keep mockProjects as fallback
       setProjects(mockProjects);
