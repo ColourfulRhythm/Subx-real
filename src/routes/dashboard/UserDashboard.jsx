@@ -506,6 +506,50 @@ export default function UserDashboard() {
           description: 'Premium land investment opportunity in Gbako Village, Ogun State',
           location: '2 Seasons, Gbako Village, Ogun State',
           totalSqm: 500,
+          availableSqm: 437, // 500 - 63 sqm already owned
+          pricePerSqm: 5000,
+          image: '/2-seasons/2seasons-logo.jpg',
+          status: 'active'
+        },
+        {
+          id: 2,
+          title: 'Plot 78',
+          description: 'Premium land investment opportunity in Gbako Village, Ogun State',
+          location: '2 Seasons, Gbako Village, Ogun State',
+          totalSqm: 500,
+          availableSqm: 500,
+          pricePerSqm: 5000,
+          image: '/2-seasons/2seasons-logo.jpg',
+          status: 'active'
+        },
+        {
+          id: 3,
+          title: 'Plot 79',
+          description: 'Premium land investment opportunity in Gbako Village, Ogun State',
+          location: '2 Seasons, Gbako Village, Ogun State',
+          totalSqm: 500,
+          availableSqm: 500,
+          pricePerSqm: 5000,
+          image: '/2-seasons/2seasons-logo.jpg',
+          status: 'active'
+        },
+        {
+          id: 4,
+          title: 'Plot 80',
+          description: 'Premium land investment opportunity in Gbako Village, Ogun State',
+          location: '2 Seasons, Gbako Village, Ogun State',
+          totalSqm: 500,
+          availableSqm: 500,
+          pricePerSqm: 5000,
+          image: '/2-seasons/2seasons-logo.jpg',
+          status: 'active'
+        },
+        {
+          id: 5,
+          title: 'Plot 81',
+          description: 'Premium land investment opportunity in Gbako Village, Ogun State',
+          location: '2 Seasons, Gbako Village, Ogun State',
+          totalSqm: 500,
           availableSqm: 500,
           pricePerSqm: 5000,
           image: '/2-seasons/2seasons-logo.jpg',
