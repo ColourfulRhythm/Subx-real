@@ -39,40 +39,43 @@ CREATE TRIGGER trigger_sync_plot_ownership_auto
     FOR EACH ROW
     EXECUTE FUNCTION sync_plot_ownership_auto();
 
--- 6. Now let's populate ALL plots with sample ownership data for testing
+-- 6. CHECK EXISTING USERS FIRST to avoid foreign key errors
+SELECT 'Checking existing users in users table:' as info;
+SELECT id, email, full_name FROM users ORDER BY created_at;
+
+SELECT 'Checking existing users in user_profiles table:' as info;
+SELECT id, email, full_name FROM user_profiles ORDER BY created_at;
+
+-- 7. Now let's populate ALL plots with sample ownership data for testing
 -- This will make co-owners work for every plot automatically
 
 -- Clear existing plot ownership data
 TRUNCATE TABLE plot_ownership CASCADE;
 
--- Insert ownership data for ALL plots (1-5)
+-- Insert ownership data for ALL plots (1-5) using EXISTING user IDs
+-- We'll use the actual user IDs that exist in the database
 INSERT INTO plot_ownership (plot_id, user_id, sqm_owned, amount_paid, created_at) VALUES
--- Plot 77 (id=1) - 63 sqm distributed
-(1, '2a702233-15bd-4563-ad81-ee6c1b0df9d9', 12, 60000, NOW()), -- Benjamin
-(1, '1b811183-6701-4892-9202-4a419abb7796', 1, 5000, NOW()),   -- Tolulope
-(1, '3c922294-7812-5903-0303-5b52bbcc8897', 7, 35000, NOW()), -- Christopher
-(1, '4d033405-8923-6014-1414-6c63ccdd9908', 35, 175000, NOW()), -- Kingkwa
-(1, '5e144516-9034-7125-2525-7d74ddee0019', 7, 35000, NOW()), -- Iwuozor
-(1, '6f255627-0145-8236-3636-8e85eeff1120', 1, 5000, NOW()), -- Michelle
+-- Plot 77 (id=1) - 63 sqm distributed - using EXISTING user IDs
+(1, (SELECT id FROM users WHERE email = 'kingflamebeats@gmail.com' LIMIT 1), 1, 5000, NOW()),   -- Tolulope
+(1, (SELECT id FROM users WHERE email = 'benjaminchisom1@gmail.com' LIMIT 1), 12, 60000, NOW()), -- Benjamin
 
 -- Plot 78 (id=2) - Sample ownership for testing
-(2, '2a702233-15bd-4563-ad81-ee6c1b0df9d9', 25, 125000, NOW()), -- Benjamin
-(2, '1b811183-6701-4892-9202-4a419abb7796', 15, 75000, NOW()),  -- Tolulope
-(2, '3c922294-7812-5903-0303-5b52bbcc8897', 10, 50000, NOW()), -- Christopher
+(2, (SELECT id FROM users WHERE email = 'kingflamebeats@gmail.com' LIMIT 1), 25, 125000, NOW()),  -- Tolulope
+(2, (SELECT id FROM users WHERE email = 'benjaminchisom1@gmail.com' LIMIT 1), 15, 75000, NOW()), -- Benjamin
 
 -- Plot 79 (id=3) - Sample ownership for testing
-(3, '4d033405-8923-6014-1414-6c63ccdd9908', 30, 150000, NOW()), -- Kingkwa
-(3, '5e144516-9034-7125-2525-7d74ddee0019', 20, 100000, NOW()), -- Iwuozor
+(3, (SELECT id FROM users WHERE email = 'kingflamebeats@gmail.com' LIMIT 1), 30, 150000, NOW()), -- Tolulope
+(3, (SELECT id FROM users WHERE email = 'benjaminchisom1@gmail.com' LIMIT 1), 20, 100000, NOW()), -- Benjamin
 
 -- Plot 80 (id=4) - Sample ownership for testing
-(4, '2a702233-15bd-4563-ad81-ee6c1b0df9d9', 18, 90000, NOW()), -- Benjamin
-(4, '6f255627-0145-8236-3636-8e85eeff1120', 12, 60000, NOW()), -- Michelle
+(4, (SELECT id FROM users WHERE email = 'kingflamebeats@gmail.com' LIMIT 1), 18, 90000, NOW()),  -- Tolulope
+(4, (SELECT id FROM users WHERE email = 'benjaminchisom1@gmail.com' LIMIT 1), 12, 60000, NOW()), -- Benjamin
 
 -- Plot 81 (id=5) - Sample ownership for testing
-(5, '3c922294-7812-5903-0303-5b52bbcc8897', 22, 110000, NOW()), -- Christopher
-(5, '4d033405-8923-6014-1414-6c63ccdd9908', 28, 140000, NOW()); -- Kingkwa
+(5, (SELECT id FROM users WHERE email = 'kingflamebeats@gmail.com' LIMIT 1), 22, 110000, NOW()), -- Tolulope
+(5, (SELECT id FROM users WHERE email = 'benjaminchisom1@gmail.com' LIMIT 1), 28, 140000, NOW()); -- Benjamin
 
--- 7. Verify the data was inserted correctly
+-- 8. Verify the data was inserted correctly
 SELECT 'Plot ownership data for all plots:' as info;
 SELECT 
     po.plot_id,
@@ -85,7 +88,7 @@ FROM plot_ownership po
 LEFT JOIN user_profiles up ON po.user_id = up.id
 ORDER BY po.plot_id, po.sqm_owned DESC;
 
--- 8. Show total sqm owned per plot
+-- 9. Show total sqm owned per plot
 SELECT 'Total sqm owned per plot:' as info;
 SELECT 
     plot_id,
@@ -95,7 +98,7 @@ FROM plot_ownership
 GROUP BY plot_id 
 ORDER BY plot_id;
 
--- 9. Test the co-owners function by showing sample data for each plot
+-- 10. Test the co-owners function by showing sample data for each plot
 SELECT 'Sample co-owners data for testing:' as info;
 SELECT 
     'Plot ' || plot_id as plot_name,
