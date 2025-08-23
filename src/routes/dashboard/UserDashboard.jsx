@@ -361,7 +361,7 @@ export default function UserDashboard() {
             };
           });
       
-              if (coOwnersData && coOwnersData.length > 0) {
+          if (coOwnersData && coOwnersData.length > 0) {
         // Calculate total sqm for percentage calculations
         const totalSqm = coOwnersData.reduce((sum, owner) => sum + (owner.sqm_owned || 0), 0);
         
@@ -394,15 +394,25 @@ export default function UserDashboard() {
         }));
         
         console.log('✅ Co-owners data loaded with percentages:', { coOwners, totalOwners, totalInvestment, totalSqm });
+              } else {
+          // No co-owners found - show empty state
+          setSelectedProperty(prev => ({
+            ...prev,
+            coOwners: [],
+            totalOwners: 0,
+            totalInvestment: 0
+          }));
+          console.log('No co-owners found for this plot');
+        }
       } else {
-        // No co-owners found - show empty state
+        // No plot ownership records found
         setSelectedProperty(prev => ({
           ...prev,
           coOwners: [],
           totalOwners: 0,
           totalInvestment: 0
         }));
-        console.log('No co-owners found for this plot');
+        console.log('No plot ownership records found for this plot');
       }
     } catch (error) {
       console.error('Error fetching co-owners:', error);
