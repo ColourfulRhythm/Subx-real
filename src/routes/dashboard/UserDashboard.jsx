@@ -462,18 +462,24 @@ export default function UserDashboard() {
   // Fetch real project data with dynamic available sq.m
   const fetchProjects = async () => {
     try {
-      const response = await fetch('/api/projects');
-      const data = await response.json();
+      // Use static project data since API is not available
+      const staticProjects = [
+        {
+          id: 1,
+          title: '2 Seasons Plot',
+          description: 'Premium land investment opportunity in Gbako Village, Ogun State',
+          location: '2 Seasons, Gbako Village, Ogun State',
+          totalSqm: 500,
+          availableSqm: 500,
+          pricePerSqm: 5000,
+          image: '/2-seasons/2seasons-logo.jpg',
+          status: 'active'
+        }
+      ];
       
-      if (data.success) {
-        // Ensure all projects have proper image paths
-        const projectsWithImages = data.projects.map(project => ({
-          ...project,
-          image: project.image || project.imageUrl || project.images?.[0] || '/2-seasons/2seasons-logo.jpg'
-        }));
-        setProjects(projectsWithImages);
-      } else {
-        console.error('Failed to fetch projects:', data.error);
+      setProjects(staticProjects);
+      console.log('✅ Projects loaded from static data');
+    } catch (error) {
         // Keep mockProjects as fallback
         setProjects(mockProjects);
       }
@@ -978,12 +984,12 @@ export default function UserDashboard() {
         const transformedProperties = investments.map(investment => ({
           id: investment.id,
           projectTitle: '2 Seasons Plot',
+          title: '2 Seasons Plot',
           location: '2 Seasons, Gbako Village, Ogun State',
           sqmOwned: investment.sqm_purchased || 0,
           amountInvested: investment.amount || 0,
           dateInvested: investment.created_at || new Date().toISOString(),
           status: investment.status || 'completed',
-          title: '2 Seasons Plot',
           documents: [
             { name: 'Receipt', type: 'pdf', url: '#', signed: true },
             { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
