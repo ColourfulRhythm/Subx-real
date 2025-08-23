@@ -328,12 +328,40 @@ export default function UserDashboard() {
     
     try {
       // Fetch co-owners data from Supabase plot_ownership table
-      const { data: coOwnersData, error } = await supabase
-        .from('plot_ownership')
-        .select('*, user_profiles!inner(full_name, email)')
-        .eq('plot_id', property.projectId || 1); // Default to Plot 77
+              // First get all plot ownership records for this plot
+        const { data: plotOwnershipData, error: plotError } = await supabase
+          .from('plot_ownership')
+          .select('*')
+          .eq('plot_id', property.projectId || 1); // Default to Plot 77
+
+        if (plotError) {
+          console.error('Error fetching plot ownership:', plotError);
+          return;
+        }
+
+        if (plotOwnershipData && plotOwnershipData.length > 0) {
+          // Get user details for each owner
+          const userIds = plotOwnershipData.map(owner => owner.user_id);
+          const { data: userProfilesData, error: userError } = await supabase
+            .from('user_profiles')
+            .select('id, full_name, email')
+            .in('id', userIds);
+
+          if (userError) {
+            console.error('Error fetching user profiles:', userError);
+            return;
+          }
+
+          // Combine the data
+          const coOwnersData = plotOwnershipData.map(ownership => {
+            const userProfile = userProfilesData?.find(profile => profile.id === ownership.user_id);
+            return {
+              ...ownership,
+              user_profiles: userProfile
+            };
+          });
       
-      if (!error && coOwnersData && coOwnersData.length > 0) {
+              if (coOwnersData && coOwnersData.length > 0) {
         // Calculate total sqm for percentage calculations
         const totalSqm = coOwnersData.reduce((sum, owner) => sum + (owner.sqm_owned || 0), 0);
         
