@@ -321,7 +321,7 @@ export default function UserDashboard() {
     setShowProjectModal(true);
   };
 
-    const handleViewCoOwners = async (property) => {
+  const handleViewCoOwners = async (property) => {
     setSelectedProperty(property);
     setShowCoOwnersModal(true);
     setLoadingCoOwners(true);
@@ -329,11 +329,14 @@ export default function UserDashboard() {
     try {
       console.log('🚀 Starting co-owners fetch for property:', property);
       
-      // SIMPLE APPROACH: Get all users who own this plot
+      // UNIVERSAL APPROACH: Get all users who own ANY plot automatically
+      const plotId = property.id || 1; // Use property.id if available, fallback to 1
+      console.log('🎯 Fetching co-owners for plot ID:', plotId);
+      
       const { data: ownershipData, error: ownershipError } = await supabase
         .from('plot_ownership')
         .select('*')
-        .eq('plot_id', 1); // Plot 77
+        .eq('plot_id', plotId);
 
       if (ownershipError) {
         console.error('❌ Plot ownership error:', ownershipError);
@@ -662,7 +665,7 @@ export default function UserDashboard() {
         toast.error('Failed to add reply');
       } else {
         console.log('Reply added to Supabase:', reply);
-    setNewReply('');
+      setNewReply('');
         await fetchTopicReplies(selectedTopic.id);
       toast.success('Reply added successfully!');
       }
@@ -903,24 +906,24 @@ export default function UserDashboard() {
         } else {
           console.log('No portfolio data found for user');
           // Set basic data if no portfolio
-          const basicData = {
+        const basicData = {
             name: user?.user_metadata?.name || user?.email?.split('@')[0] || 'User',
             email: user?.email || '',
-            avatar: '/subx-logo/default-avatar.png',
-            portfolioValue: '₦0',
-            totalLandOwned: '0 sqm',
-            totalInvestments: 0,
-            recentActivity: [
-              {
-                id: 1,
-                title: 'Account Created',
-                amount: 'Welcome to Subx!',
-                date: new Date().toLocaleDateString(),
-                status: 'completed'
-              }
-            ]
-          };
-          setUserData(basicData);
+          avatar: '/subx-logo/default-avatar.png',
+          portfolioValue: '₦0',
+          totalLandOwned: '0 sqm',
+          totalInvestments: 0,
+          recentActivity: [
+            {
+              id: 1,
+              title: 'Account Created',
+              amount: 'Welcome to Subx!',
+              date: new Date().toLocaleDateString(),
+              status: 'completed'
+            }
+          ]
+        };
+        setUserData(basicData);
         }
       } catch (supabaseError) {
         console.log('Could not fetch portfolio data from Supabase:', supabaseError);
