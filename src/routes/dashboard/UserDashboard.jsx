@@ -1528,7 +1528,6 @@ export default function UserDashboard() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {console.log('🚀 FORCE CACHE CLEAR - UI checking userProperties:', userProperties, 'length:', userProperties?.length, 'TIMESTAMP:', new Date().toISOString())}
                 {userProperties && userProperties.length > 0 ? (
                   userProperties.map((property, index) => (
                   <motion.div
