@@ -334,15 +334,25 @@ export default function UserDashboard() {
         .eq('plot_id', property.projectId || 1); // Default to Plot 77
       
       if (!error && coOwnersData && coOwnersData.length > 0) {
-        // Transform co-owners data
-        const coOwners = coOwnersData.map(owner => ({
-          id: owner.user_id,
-          name: owner.user_profiles?.full_name || owner.user_profiles?.email || 'Unknown User',
-          email: owner.user_profiles?.email || 'No email',
-          sqmOwned: owner.sqm_owned || 0,
-          amountInvested: owner.amount_paid || 0,
-          joinDate: owner.created_at || new Date().toISOString()
-        }));
+        // Calculate total sqm for percentage calculations
+        const totalSqm = coOwnersData.reduce((sum, owner) => sum + (owner.sqm_owned || 0), 0);
+        
+        // Transform co-owners data with percentages
+        const coOwners = coOwnersData.map(owner => {
+          const sqmOwned = owner.sqm_owned || 0;
+          const percentage = totalSqm > 0 ? ((sqmOwned / totalSqm) * 100).toFixed(1) : 0;
+          
+          return {
+            id: owner.user_id,
+            name: owner.user_profiles?.full_name || owner.user_profiles?.email || 'Unknown User',
+            email: owner.user_profiles?.email || 'No email',
+            sqm: sqmOwned,
+            sqmOwned: sqmOwned,
+            amountInvested: owner.amount_paid || 0,
+            joinDate: owner.created_at || new Date().toISOString(),
+            percentage: parseFloat(percentage)
+          };
+        });
         
         const totalOwners = coOwners.length;
         const totalInvestment = coOwners.reduce((sum, owner) => sum + (owner.amountInvested || 0), 0);
@@ -355,7 +365,7 @@ export default function UserDashboard() {
           totalInvestment: totalInvestment
         }));
         
-        console.log('✅ Co-owners data loaded:', { coOwners, totalOwners, totalInvestment });
+        console.log('✅ Co-owners data loaded with percentages:', { coOwners, totalOwners, totalInvestment, totalSqm });
       } else {
         // No co-owners found - show empty state
         setSelectedProperty(prev => ({
@@ -1674,7 +1684,23 @@ export default function UserDashboard() {
                         </div>
                       </div>
 
-
+                      {/* Co-owners Summary */}
+                      <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <svg className="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span className="text-sm font-medium text-gray-700">Co-ownership</span>
+                          </div>
+                          <span className="text-xs text-gray-500">Click Co-owners for details</span>
+                        </div>
+                        <div className="mt-2 flex items-center space-x-4 text-xs text-gray-600">
+                          <span>Your share: {property.sqmOwned} sqm</span>
+                          <span>Total plot: 500 sqm</span>
+                          <span>Your %: {((property.sqmOwned / 500) * 100).toFixed(1)}%</span>
+                        </div>
+                      </div>
 
                       <div className="flex space-x-3">
                         <button 
