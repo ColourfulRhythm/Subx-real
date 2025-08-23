@@ -1623,10 +1623,7 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
       // Fetch user's plot ownership data
       const { data: plotData, error } = await supabase
         .from('plot_ownership')
-        .select(`
-          *,
-          user_profiles!inner(email, full_name)
-        `)
+        .select('*')
         .eq('user_id', user.id);
 
       if (error) {
