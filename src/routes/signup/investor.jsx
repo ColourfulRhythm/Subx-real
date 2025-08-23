@@ -81,6 +81,27 @@ export default function InvestorSignup() {
           console.warn('Profile creation warning:', profileError)
         }
 
+        // Create user_profiles record to trigger referral code generation
+        try {
+          const { error: userProfileError } = await supabase
+            .from('user_profiles')
+            .insert({
+              id: authData.user.id,
+              full_name: data.name,
+              email: data.email,
+              phone: data.phone || null,
+              created_at: new Date().toISOString()
+            })
+
+          if (userProfileError) {
+            console.warn('User profile creation warning:', userProfileError)
+          } else {
+            console.log('User profile created successfully, referral code should be generated')
+          }
+        } catch (profileError) {
+          console.warn('Failed to create user profile:', profileError)
+        }
+
         // Set referral code if provided
         if (data.referral_code) {
           try {

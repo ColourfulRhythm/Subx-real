@@ -58,11 +58,13 @@ export const apiCall = async (endpoint, options = {}) => {
       'Content-Type': 'application/json',
     };
 
-    // Add Firebase ID token if user is authenticated
-    const user = auth.currentUser;
+    // Add Supabase auth token if user is authenticated
+    const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const token = await user.getIdToken();
-      defaultHeaders.Authorization = `Bearer ${token}`;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        defaultHeaders.Authorization = `Bearer ${session.access_token}`;
+      }
     }
 
     const response = await fetch(url, {

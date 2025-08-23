@@ -34,6 +34,26 @@ export function AuthProvider({ children }) {
           });
         
         if (profileError) console.warn('Profile creation warning:', profileError);
+
+        // Create user_profiles record to trigger referral code generation
+        try {
+          const { error: userProfileError } = await supabase
+            .from('user_profiles')
+            .insert({
+              id: data.user.id,
+              full_name: userData.full_name || userData.name || email.split('@')[0],
+              email: email,
+              created_at: new Date().toISOString()
+            })
+
+          if (userProfileError) {
+            console.warn('User profile creation warning:', userProfileError)
+          } else {
+            console.log('User profile created successfully, referral code should be generated')
+          }
+        } catch (profileError) {
+          console.warn('Failed to create user profile:', profileError)
+        }
       }
       
       return data;

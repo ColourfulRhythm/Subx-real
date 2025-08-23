@@ -1019,9 +1019,8 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
       const userMessages = JSON.parse(localStorage.getItem(getUserStorageKey('userMessages')) || '[]');
       setMessages(userMessages);
 
-      // Load user investments/properties from user-specific localStorage
-      const userInvestments = JSON.parse(localStorage.getItem(getUserStorageKey('userInvestments')) || '[]');
-      setUserInvestments(userInvestments);
+      // Load user investments from Supabase
+      await fetchUserInvestments();
 
       // Load user analytics from user-specific localStorage
       const userAnalytics = JSON.parse(localStorage.getItem(getUserStorageKey('userAnalytics')) || 'null');
@@ -1614,16 +1613,73 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
     }
   };
 
-  // Add this function to fetch analytics data
+  // Function to fetch user investments from Supabase
+  const fetchUserInvestments = async () => {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch user's plot ownership data
+      const { data: plotData, error } = await supabase
+        .from('plot_ownership')
+        .select(`
+          *,
+          user_profiles!inner(email, full_name)
+        `)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error fetching user investments:', error);
+        return;
+      }
+
+      // Transform plot ownership data to match frontend format
+      const investments = plotData.map(plot => ({
+        id: plot.id,
+        propertyTitle: plot.plot_name,
+        location: plot.location,
+        sqmOwned: plot.sqm_owned,
+        amountInvested: plot.amount_paid,
+        dateInvested: plot.created_at,
+        status: 'approved', // All plot ownership records are approved
+        projectId: plot.plot_id
+      }));
+
+      setUserInvestments(investments);
+      console.log('✅ Loaded user investments from Supabase:', investments);
+
+    } catch (error) {
+      console.error('Error in fetchUserInvestments:', error);
+    }
+  };
+
+  // Add this function to fetch analytics data from Supabase
   const fetchAnalytics = async () => {
     try {
-      // Calculate real analytics based on user connections
-      const totalLandOwned = connections.reduce((total, conn) => total + (conn.units || 0), 0);
-      const activeLandUnits = connections.filter(conn => conn.status === 'approved').reduce((total, conn) => total + (conn.units || 0), 0);
-      const totalLandValue = totalLandOwned * 5000; // ₦5,000 per sqm
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch user portfolio from Supabase
+      const { data: portfolioData, error } = await supabase
+        .from('user_portfolio_view')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching portfolio:', error);
+        return;
+      }
+
+      // Calculate analytics from actual database data
+      const totalLandOwned = portfolioData?.total_sqm_owned || 0;
+      const activeLandUnits = totalLandOwned; // All owned land is active
+      const totalLandValue = portfolioData?.total_investment_amount || 0;
       const portfolioValue = totalLandValue * 1.15; // Capital appreciation
       
-      // For new users with no investments, show zero values
+      // Update analytics state with real data
       const realAnalytics = {
         totalLandOwned: totalLandOwned,
         activeLandUnits: activeLandUnits,

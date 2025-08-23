@@ -238,7 +238,7 @@ export default function UserDashboard() {
       try {
         await Promise.all([
           fetchUserData(),
-          fetchUserProperties(),
+          fetchUserPropertiesNUCLEAR(),
           fetchProjects()
         ]);
       } catch (error) {
@@ -253,7 +253,7 @@ export default function UserDashboard() {
     // Set up auto-refresh every 30 seconds to ensure real-time data
     const refreshInterval = setInterval(() => {
       fetchUserData();
-      fetchUserProperties();
+      fetchUserPropertiesNUCLEAR();
     }, 30000);
     
     // Load Paystack script
@@ -523,7 +523,7 @@ export default function UserDashboard() {
         toast.error('Failed to add reply');
       } else {
         console.log('Reply added to Supabase:', reply);
-      setNewReply('');
+    setNewReply('');
         await fetchTopicReplies(selectedTopic.id);
       toast.success('Reply added successfully!');
       }
@@ -727,43 +727,33 @@ export default function UserDashboard() {
       // Railway backend is down, skip this step
       console.log('Railway backend unavailable, using Supabase data only');
 
-      // Get real investment data from Supabase
+      // Get real investment data from Supabase user_portfolio_view
       try {
-        // First check what columns exist in investments table
-        const { data: sampleInvestment } = await supabase
-          .from('investments')
+        const { data: portfolioData, error } = await supabase
+          .from('user_portfolio_view')
           .select('*')
-          .limit(1);
-        
-        if (sampleInvestment && sampleInvestment.length > 0) {
-          const sample = sampleInvestment[0];
-          const possibleUserFields = ['investor_id', 'user_id', 'investor_email', 'user_email', 'email', 'investor'];
-          const foundUserField = possibleUserFields.find(field => sample[field]);
-          
-          if (foundUserField) {
-            const { data: investments, error: investmentError } = await supabase
-              .from('investments')
-              .select('sqm_purchased, amount, status')
-              .eq(foundUserField, user.id);
+          .eq('user_id', user.id)
+          .single();
 
-            if (!investmentError && investments) {
-              const totalSqm = investments.reduce((sum, inv) => sum + (inv.sqm_purchased || 0), 0);
-              const totalAmount = investments.reduce((sum, inv) => sum + (inv.amount || 0), 0);
-              
-              // Update userData with real investment info
-              setUserData(prev => ({
-                ...prev,
-                totalLandOwned: `${totalSqm} sqm`,
-                totalInvestments: investments.length,
-                portfolioValue: `₦${totalAmount.toLocaleString()}`
-              }));
-              
-              console.log('Updated userData with real investment info:', { totalSqm, totalAmount, count: investments.length });
-            }
-          }
+        if (!error && portfolioData) {
+          const totalSqm = portfolioData.total_sqm_owned || 0;
+          const totalAmount = portfolioData.total_investment_amount || 0;
+          const totalPlots = portfolioData.total_plots || 0;
+          
+          // Update userData with real investment info
+          setUserData(prev => ({
+            ...prev,
+            totalLandOwned: `${totalSqm} sqm`,
+            totalInvestments: totalPlots,
+            portfolioValue: `₦${totalAmount.toLocaleString()}`
+          }));
+          
+          console.log('✅ Updated userData with real portfolio info:', { totalSqm, totalAmount, totalPlots });
+        } else {
+          console.log('No portfolio data found for user');
         }
       } catch (supabaseError) {
-        console.log('Could not fetch investment data from Supabase:', supabaseError);
+        console.log('Could not fetch portfolio data from Supabase:', supabaseError);
       }
 
       // Always use current user's info, never fallback to localStorage
@@ -879,75 +869,108 @@ export default function UserDashboard() {
     }
   };
 
-  const fetchUserProperties = async () => {
+  // NUCLEAR RESET - COMPLETELY NEW FUNCTION
+  const fetchUserPropertiesNUCLEAR = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch directly from Supabase instead of Railway backend
-      console.log('Fetching investments for user:', user.email);
+      console.log('🔥 NUCLEAR RESET - Fetching investments for user:', user.email);
       
-      // First, let's see what's in the investments table and its structure
-      const { data: allInvestments, error: allError } = await supabase
+      // Fetch directly from investments table
+      const { data: investments, error } = await supabase
         .from('investments')
         .select('*')
-        .limit(1);
-      console.log('Sample investment structure:', allInvestments?.[0]);
+        .eq('user_id', user.id);
       
-      if (allInvestments && allInvestments.length > 0) {
-        const sampleInvestment = allInvestments[0];
-        console.log('Available columns:', Object.keys(sampleInvestment));
+      console.log('🔥 NUCLEAR RESET - Investments query result:', investments);
+      console.log('🔥 NUCLEAR RESET - Query error:', error);
+      
+      if (!error && investments && investments.length > 0) {
+        // Transform the data to match expected format
+        const transformedProperties = investments.map(investment => ({
+          id: investment.id,
+          projectTitle: '2 Seasons Plot',
+          location: '2 Seasons, Gbako Village, Ogun State',
+          sqmOwned: investment.sqm_purchased || 0,
+          amountInvested: investment.amount || 0,
+          dateInvested: investment.created_at || new Date().toISOString(),
+          status: investment.status || 'completed',
+          title: '2 Seasons Plot',
+          documents: [
+            { name: 'Receipt', type: 'pdf', url: '#', signed: true },
+            { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
+            { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: true }
+          ]
+        }));
         
-        // Try to find the correct user identifier field
-        const possibleUserFields = ['investor_id', 'user_id', 'investor_email', 'user_email', 'email', 'investor'];
-        const foundUserField = possibleUserFields.find(field => sampleInvestment[field]);
-        console.log('Found user field:', foundUserField, 'with value:', sampleInvestment[foundUserField]);
-        
-                  if (foundUserField) {
-            // Use the correct field to fetch investments
-            // Only use UUID since user_id field expects UUID type
-            const { data: investments, error } = await supabase
-              .from('investments')
-              .select('*')
-              .eq(foundUserField, user.id);
-            
-            console.log('User investments found:', investments);
-            console.log('Query error:', error);
-          
-                      if (!error && investments && investments.length > 0) {
-              // Transform the data to match expected format
-              const transformedProperties = investments.map(investment => ({
-                id: investment.id,
-                projectTitle: '2 Seasons Plot',
-                location: '2 Seasons, Gbako Village, Ogun State',
-                sqm: investment.sqm_purchased || 0,
-                amount: investment.amount || 0,
-                status: investment.status || 'completed',
-                purchaseDate: investment.created_at || new Date().toISOString(),
-                documents: [
-                  { name: 'Receipt', type: 'pdf', url: '#', signed: true },
-                  { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
-                  { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: true }
-                ]
-              }));
-              
-              setUserProperties(transformedProperties);
-              console.log('Successfully set properties:', transformedProperties);
-              return;
-            }
-        }
+        setUserProperties(transformedProperties);
+        console.log('🔥 NUCLEAR RESET - User properties set from investments:', transformedProperties);
+        console.log('🔍 userProperties state after set:', transformedProperties);
+        console.log('🔍 userProperties.length:', transformedProperties.length);
+        console.log('🎯 TIMESTAMP:', new Date().toISOString());
+        return;
       }
       
       // If we get here, no investments found or error occurred
-      console.log('No investments found or error occurred');
+      console.log('🔥 NUCLEAR RESET - No investments found or error occurred');
       setUserProperties([]);
     } catch (error) {
-      console.error('Failed to fetch properties:', error);
+      console.error('🔥 NUCLEAR RESET - Failed to fetch properties:', error);
       setUserProperties([]);
     }
   };
 
+  const fetchUserPropertiesNEW = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
+      console.log('🔥 NUCLEAR RESET - Fetching investments for user:', user.email);
+      
+      // Fetch directly from investments table
+      const { data: investments, error } = await supabase
+        .from('investments')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      console.log('🔥 NUCLEAR RESET - Investments query result:', investments);
+      console.log('🔥 NUCLEAR RESET - Query error:', error);
+      
+      if (!error && investments && investments.length > 0) {
+        // Transform the data to match expected format
+        const transformedProperties = investments.map(investment => ({
+          id: investment.id,
+          projectTitle: '2 Seasons Plot',
+          location: '2 Seasons, Gbako Village, Ogun State',
+          sqmOwned: investment.sqm_purchased || 0,
+          amountInvested: investment.amount || 0,
+          dateInvested: investment.created_at || new Date().toISOString(),
+          status: investment.status || 'completed',
+          title: '2 Seasons Plot',
+          documents: [
+            { name: 'Receipt', type: 'pdf', url: '#', signed: true },
+            { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
+            { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: true }
+          ]
+        }));
+        
+        setUserProperties(transformedProperties);
+        console.log('🔥 NUCLEAR RESET - User properties set from investments:', transformedProperties);
+        console.log('🔍 userProperties state after set:', transformedProperties);
+        console.log('🔍 userProperties.length:', transformedProperties.length);
+        console.log('🎯 TIMESTAMP:', new Date().toISOString());
+        return;
+      }
+      
+      // If we get here, no investments found or error occurred
+      console.log('🔥 NUCLEAR RESET - No investments found or error occurred');
+      setUserProperties([]);
+    } catch (error) {
+      console.error('🔥 NUCLEAR RESET - Failed to fetch properties:', error);
+      setUserProperties([]);
+    }
+  };
 
   const handleSqmChange = (sqm) => {
     setSelectedSqm(sqm);
@@ -1505,7 +1528,9 @@ export default function UserDashboard() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {userData.recentActivity.filter(activity => activity.status === 'owned').map((property, index) => (
+                {console.log('🚀 FORCE CACHE CLEAR - UI checking userProperties:', userProperties, 'length:', userProperties?.length, 'TIMESTAMP:', new Date().toISOString())}
+                {userProperties && userProperties.length > 0 ? (
+                  userProperties.map((property, index) => (
                   <motion.div
                     key={property.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -1520,7 +1545,7 @@ export default function UserDashboard() {
                         Owned
                       </div>
                       <div className="absolute top-4 left-4 bg-indigo-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                        {property.percentage || 25}% Share
+                        {property.sqmOwned} sqm
                       </div>
                     </div>
                     
@@ -1531,47 +1556,33 @@ export default function UserDashboard() {
                           <p className="text-gray-600 text-sm">{property.location}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-indigo-600">{property.propertyValue}</p>
-                          <p className="text-sm text-gray-500">Current Value</p>
+                          <p className="text-2xl font-bold text-indigo-600">₦{property.amountInvested?.toLocaleString()}</p>
+                          <p className="text-sm text-gray-500">Amount Invested</p>
                         </div>
                       </div>
 
-                      <p className="text-gray-600 mb-4">{property.description}</p>
+                      <p className="text-gray-600 mb-4">Plot 77 - 2 Seasons Development</p>
                       
                       <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                          <p className="text-sm text-gray-500">Your Share</p>
-                          <p className="font-medium text-gray-900">{property.sqm} sq.m</p>
+                          <p className="text-sm text-gray-500">Land Area</p>
+                          <p className="font-medium text-gray-900">{property.sqmOwned} sq.m</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Amount Paid</p>
-                          <p className="font-medium text-gray-900">{property.amount}</p>
+                          <p className="font-medium text-gray-900">₦{property.amountInvested?.toLocaleString()}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-500">Next Payment</p>
-                          <p className="font-medium text-gray-900">{property.nextPayment}</p>
+                          <p className="text-sm text-gray-500">Purchase Date</p>
+                          <p className="font-medium text-gray-900">{new Date(property.dateInvested).toLocaleDateString()}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-500">Payment Date</p>
-                          <p className="font-medium text-gray-900">{property.paymentDate}</p>
+                          <p className="text-sm text-gray-500">Status</p>
+                          <p className="font-medium text-gray-900">{property.status}</p>
                         </div>
                       </div>
 
-                      <div className="mb-4">
-                        <p className="text-sm text-gray-500 mb-2">Amenities</p>
-                        <div className="flex flex-wrap gap-2">
-                          {property.amenities?.slice(0, 3).map((amenity, idx) => (
-                            <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                              {amenity}
-                            </span>
-                          ))}
-                          {property.amenities?.length > 3 && (
-                            <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                              +{property.amenities.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
+
 
                       <div className="flex space-x-3">
                         <button 
@@ -1595,7 +1606,24 @@ export default function UserDashboard() {
                       </div>
                     </div>
                   </motion.div>
-                ))}
+                ))
+                ) : (
+                  <div className="text-center py-12 col-span-2">
+                    <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    <h3 className="mt-4 text-lg font-medium text-gray-900">No properties yet</h3>
+                    <p className="mt-2 text-sm text-gray-500">Your Plot 77 investments will appear here after you make purchases.</p>
+                    <div className="mt-6">
+                      <button
+                        onClick={() => setActiveTab('opportunities')}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                      >
+                        Browse Investment Opportunities
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
@@ -2035,9 +2063,9 @@ export default function UserDashboard() {
                     <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
                       <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
+                      </svg>
                     </div>
-              </div>
+                              </div>
 
                   {/* Title */}
                   <h2 className="text-2xl font-bold text-gray-900 mb-4">
@@ -2073,44 +2101,12 @@ export default function UserDashboard() {
                         Networking opportunities
                       </li>
                     </ul>
-              </div>
+                            </div>
 
                   {/* CTA */}
                   <p className="text-xs text-gray-500">
                     We'll notify you when the forum is ready!
                   </p>
-                    </div>
-                              </div>
-            </motion.div>
-          )}
-                            </div>
-                            <p className="text-sm text-gray-600 truncate mt-1">
-                              {topic.content.length > 80 ? topic.content.substring(0, 80) + '...' : topic.content}
-                            </p>
-                            <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
-                              <span className="flex items-center">
-                                <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                                {topic.users?.full_name || 'Anonymous'}
-                              </span>
-                              <span className="flex items-center">
-                                <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                </svg>
-                                {topic.forum_replies?.[0]?.count || 0} messages
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Channel Status Indicator */}
-                          <div className="flex-shrink-0 ml-3">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
             </motion.div>

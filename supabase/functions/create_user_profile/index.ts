@@ -39,6 +39,26 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: error.message }), { status: 400 });
     }
 
+    // Create user_profiles record to trigger referral code generation
+    try {
+      const { error: userProfileError } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: user.id,
+          full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0],
+          email: user.email,
+          created_at: new Date().toISOString()
+        });
+
+      if (userProfileError) {
+        console.warn('User profile creation warning:', userProfileError);
+      } else {
+        console.log('User profile created successfully, referral code should be generated');
+      }
+    } catch (profileError) {
+      console.warn('Failed to create user profile:', profileError);
+    }
+
     return new Response(JSON.stringify({ message: "Profile created successfully" }), { 
       headers: { 'content-type': 'application/json' } 
     });

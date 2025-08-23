@@ -233,6 +233,12 @@ export default function DeveloperDashboard() {
   const [showForumModal, setShowForumModal] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [showNewTopicModal, setShowNewTopicModal] = useState(false);
+  const [newTopic, setNewTopic] = useState({
+    title: '',
+    content: '',
+    category: 'general'
+  });
 
   // Add new state for form data
   const [newProject, setNewProject] = useState({
@@ -310,6 +316,10 @@ export default function DeveloperDashboard() {
     setProjects(mockProjects);
     setConnections(mockConnections);
     setForums(mockForums);
+    
+    // Fetch user profile data
+    fetchProfile();
+    
     setIsLoading(false);
   }, []);
 
@@ -1001,125 +1011,8 @@ export default function DeveloperDashboard() {
           </div>
         </div>
       </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate">
-                        {topic.title}
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
-                        {topic.content}
-                            </p>
-                          </div>
-                    <div className="mt-2 sm:mt-0 sm:ml-4 flex items-center space-x-4">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {topic.messages} messages
-                      </span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {topic.participants} participants
-                      </span>
-                        </div>
-                          </div>
-                          </div>
-              ))}
-                          </div>
-                          </div>
-                        </div>
-
-        {/* New Topic Modal */}
-        <AnimatePresence>
-          {showNewTopicModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 overflow-y-auto"
-            >
-              <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-                  <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
-                        </div>
-
-                <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-                  <div className="px-4 py-3 sm:px-6 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                        Create New Topic
-                      </h3>
-                      <button
-                        onClick={() => setShowNewTopicModal(false)}
-                        className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-                      >
-                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                          </div>
-                  </div>
-
-                  <div className="px-4 py-5 sm:p-6">
-                    <div className="space-y-4">
-                          <div>
-                        <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Title
-                        </label>
-                        <input
-                          type="text"
-                          id="title"
-                          value={newTopic.title}
-                          onChange={(e) => setNewTopic({ ...newTopic, title: e.target.value })}
-                          className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          placeholder="Enter topic title"
-                        />
-                          </div>
-
-                          <div>
-                        <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Content
-                        </label>
-                        <textarea
-                          id="content"
-                          value={newTopic.content}
-                          onChange={(e) => setNewTopic({ ...newTopic, content: e.target.value })}
-                          rows={4}
-                          className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          placeholder="Enter topic content"
-                        />
-                      </div>
-                          </div>
-                        </div>
-
-                  <div className="px-4 py-3 sm:px-6 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-end space-x-3">
-                      <button
-                        onClick={() => setShowNewTopicModal(false)}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleCreateTopic}
-                        disabled={!newTopic.title.trim() || !newTopic.content.trim()}
-                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Create Topic
-                      </button>
-                          </div>
-                        </div>
-                      </div>
-                </div>
-            </motion.div>
-              )}
-        </AnimatePresence>
-            </div>
     );
   };
-
-  const [showNewTopicModal, setShowNewTopicModal] = useState(false);
-  const [newTopic, setNewTopic] = useState({
-    title: '',
-    content: '',
-    category: 'general'
-  });
 
   const handleCreateTopic = () => {
     if (!newTopic.title.trim() || !newTopic.content.trim()) return;
