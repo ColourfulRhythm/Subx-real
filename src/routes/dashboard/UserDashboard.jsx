@@ -321,102 +321,90 @@ export default function UserDashboard() {
     setShowProjectModal(true);
   };
 
-  const handleViewCoOwners = async (property) => {
+    const handleViewCoOwners = async (property) => {
     setSelectedProperty(property);
     setShowCoOwnersModal(true);
     setLoadingCoOwners(true);
     
     try {
-      // Fetch co-owners data from Supabase plot_ownership table
-              // First get all plot ownership records for this plot
-        const { data: plotOwnershipData, error: plotError } = await supabase
-          .from('plot_ownership')
-          .select('*')
-          .eq('plot_id', property.projectId || 1); // Default to Plot 77
+      console.log('🚀 Starting co-owners fetch for property:', property);
+      
+      // SIMPLE APPROACH: Get all users who own this plot
+      const { data: ownershipData, error: ownershipError } = await supabase
+        .from('plot_ownership')
+        .select('*')
+        .eq('plot_id', 1); // Plot 77
 
-        if (plotError) {
-          console.error('Error fetching plot ownership:', plotError);
-          return;
+      if (ownershipError) {
+        console.error('❌ Plot ownership error:', ownershipError);
+        throw ownershipError;
+      }
+
+      console.log('📊 Plot ownership data:', ownershipData);
+
+      if (ownershipData && ownershipData.length > 0) {
+        // Get user details for each owner
+        const userIds = ownershipData.map(owner => owner.user_id);
+        console.log('👥 User IDs found:', userIds);
+
+        const { data: userData, error: userError } = await supabase
+          .from('user_profiles')
+          .select('id, full_name, email')
+          .in('id', userIds);
+
+        if (userError) {
+          console.error('❌ User profiles error:', userError);
+          throw userError;
         }
 
-        if (plotOwnershipData && plotOwnershipData.length > 0) {
-          // Get user details for each owner
-          const userIds = plotOwnershipData.map(owner => owner.user_id);
-          const { data: userProfilesData, error: userError } = await supabase
-            .from('user_profiles')
-            .select('id, full_name, email')
-            .in('id', userIds);
+        console.log('👤 User profiles data:', userData);
 
-          if (userError) {
-            console.error('Error fetching user profiles:', userError);
-            return;
-          }
-
-          // Combine the data
-          const coOwnersData = plotOwnershipData.map(ownership => {
-            const userProfile = userProfilesData?.find(profile => profile.id === ownership.user_id);
-            return {
-              ...ownership,
-              user_profiles: userProfile
-            };
-          });
-      
-          if (coOwnersData && coOwnersData.length > 0) {
-        // Calculate total sqm for percentage calculations
-        const totalSqm = coOwnersData.reduce((sum, owner) => sum + (owner.sqm_owned || 0), 0);
-        
-        // Transform co-owners data with percentages
-        const coOwners = coOwnersData.map(owner => {
-          const sqmOwned = owner.sqm_owned || 0;
-          const percentage = totalSqm > 0 ? ((sqmOwned / totalSqm) * 100).toFixed(1) : 0;
+        // Create co-owners with real data
+        const coOwners = ownershipData.map(ownership => {
+          const userProfile = userData.find(profile => profile.id === ownership.user_id);
+          const sqmOwned = ownership.sqm_owned || 0;
           
           return {
-            id: owner.user_id,
-            name: owner.user_profiles?.full_name || owner.user_profiles?.email || 'Unknown User',
-            email: owner.user_profiles?.email || 'No email',
+            id: ownership.user_id,
+            name: userProfile?.full_name || userProfile?.email || 'Unknown User',
+            email: userProfile?.email || 'No email',
             sqm: sqmOwned,
             sqmOwned: sqmOwned,
-            amountInvested: owner.amount_paid || 0,
-            joinDate: owner.created_at || new Date().toISOString(),
-            percentage: parseFloat(percentage)
+            amountInvested: ownership.amount_paid || 0,
+            joinDate: ownership.created_at || new Date().toISOString(),
+            percentage: 0 // Will calculate below
           };
         });
-        
-        const totalOwners = coOwners.length;
-        const totalInvestment = coOwners.reduce((sum, owner) => sum + (owner.amountInvested || 0), 0);
-        
-        // Update the property with real co-owners data
+
+        // Calculate percentages
+        const totalSqm = coOwners.reduce((sum, owner) => sum + owner.sqm, 0);
+        coOwners.forEach(owner => {
+          owner.percentage = totalSqm > 0 ? parseFloat(((owner.sqm / totalSqm) * 100).toFixed(1)) : 0;
+        });
+
+        const totalInvestment = coOwners.reduce((sum, owner) => sum + owner.amountInvested, 0);
+
+        console.log('✅ Final co-owners data:', { coOwners, totalSqm, totalInvestment });
+
         setSelectedProperty(prev => ({
           ...prev,
           coOwners: coOwners,
-          totalOwners: totalOwners,
+          totalOwners: coOwners.length,
           totalInvestment: totalInvestment
         }));
-        
-        console.log('✅ Co-owners data loaded with percentages:', { coOwners, totalOwners, totalInvestment, totalSqm });
-              } else {
-          // No co-owners found - show empty state
-          setSelectedProperty(prev => ({
-            ...prev,
-            coOwners: [],
-            totalOwners: 0,
-            totalInvestment: 0
-          }));
-          console.log('No co-owners found for this plot');
-        }
+
       } else {
-        // No plot ownership records found
+        console.log('📭 No plot ownership data found');
         setSelectedProperty(prev => ({
           ...prev,
           coOwners: [],
           totalOwners: 0,
           totalInvestment: 0
         }));
-        console.log('No plot ownership records found for this plot');
       }
+
     } catch (error) {
-      console.error('Error fetching co-owners:', error);
-      // Show empty state on error
+      console.error('💥 Co-owners fetch error:', error);
       setSelectedProperty(prev => ({
         ...prev,
         coOwners: [],
