@@ -276,6 +276,11 @@ export default function UserDashboard() {
     };
   }, [navigate]);
 
+  // Test useEffect to see if component is rendering
+  useEffect(() => {
+    console.log('🧪 TEST: Component mounted, useEffect is working');
+  }, []);
+
   // Separate useEffect to update userData when userProperties changes
   useEffect(() => {
     console.log('🔍 useEffect triggered, userProperties.length:', userProperties.length);
