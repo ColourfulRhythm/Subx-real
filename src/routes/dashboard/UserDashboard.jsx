@@ -251,7 +251,7 @@ export default function UserDashboard() {
     // Set up auto-refresh every 30 seconds to ensure real-time data
     const refreshInterval = setInterval(async () => {
       await fetchUserPropertiesNUCLEAR();
-      await fetchUserData(); // Now userProperties is populated
+      // fetchUserData() will be triggered by the useEffect when userProperties changes
     }, 30000);
     
     // Load Paystack script
@@ -1157,7 +1157,6 @@ export default function UserDashboard() {
             .then(() => {
               // Refresh user data and projects
               return Promise.all([
-                fetchUserData(),
                 fetchUserPropertiesNUCLEAR(),
                 fetchProjects()
               ]);
@@ -1414,7 +1413,6 @@ export default function UserDashboard() {
                 <div className="flex space-x-2">
                   <button 
                     onClick={() => {
-                      fetchUserData();
                       fetchUserPropertiesNUCLEAR();
                       toast.success('Data refreshed!');
                     }}
@@ -1519,7 +1517,6 @@ export default function UserDashboard() {
                 <div className="flex space-x-2">
                   <button 
                     onClick={() => {
-                      fetchUserData();
                       fetchUserPropertiesNUCLEAR();
                       toast.success('Properties refreshed!');
                     }}
