@@ -32,7 +32,7 @@ SELECT COUNT(*) as auth_users_count FROM auth.users;
 DELETE FROM plot_ownership WHERE plot_id = 1;
 
 -- 5. Insert plot ownership using the CORRECT user IDs
--- We'll use the first 6 users from the table that plot_ownership.user_id actually references
+-- We'll try auth.users first, then fallback to public.users
 INSERT INTO plot_ownership (plot_id, user_id, sqm_owned, amount_paid, created_at)
 SELECT 
     1 as plot_id,
@@ -55,11 +55,35 @@ SELECT
     END as amount_paid,
     NOW() as created_at
 FROM (
-    -- Try auth.users first, then fallback to public.users
+    -- Try to get users from auth.users first, if it exists
     SELECT id, created_at FROM auth.users ORDER BY created_at LIMIT 6
-    UNION ALL
-    SELECT id, created_at FROM users ORDER BY created_at LIMIT 6
-) combined_users
+) auth_users
+WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'auth' AND table_name = 'users')
+
+UNION ALL
+
+-- Fallback to public.users if auth.users doesn't exist or has no data
+SELECT 
+    1 as plot_id,
+    id as user_id,
+    CASE 
+        WHEN ROW_NUMBER() OVER (ORDER BY created_at) = 1 THEN 1    -- 1st user: 1 sqm
+        WHEN ROW_NUMBER() OVER (ORDER BY created_at) = 2 THEN 12   -- 2nd user: 12 sqm
+        WHEN ROW_NUMBER() OVER (ORDER BY created_at) = 3 THEN 7    -- 3rd user: 7 sqm
+        WHEN ROW_NUMBER() OVER (ORDER BY created_at) = 4 THEN 35   -- 4th user: 35 sqm
+        WHEN ROW_NUMBER() OVER (ORDER BY created_at) = 5 THEN 7    -- 5th user: 7 sqm
+        WHEN ROW_NUMBER() OVER (ORDER BY created_at) = 6 THEN 1    -- 6th user: 1 sqm
+    END as sqm_owned,
+    CASE 
+        WHEN ROW_NUMBER() OVER (ORDER BY created_at) = 1 THEN 5000     -- 1st user: ₦5,000
+        WHEN ROW_NUMBER() OVER (ORDER BY created_at) = 2 THEN 60000    -- 2nd user: ₦60,000
+        WHEN ROW_NUMBER() OVER (ORDER BY created_at) = 3 THEN 35000    -- 3rd user: ₦35,000
+        WHEN ROW_NUMBER() OVER (ORDER BY created_at) = 4 THEN 175000   -- 4th user: ₦175,000
+        WHEN ROW_NUMBER() OVER (ORDER BY created_at) = 5 THEN 35000    -- 5th user: ₦35,000
+        WHEN ROW_NUMBER() OVER (ORDER BY created_at) = 6 THEN 5000     -- 6th user: ₦5,000
+    END as amount_paid,
+    NOW() as created_at
+FROM users 
 ORDER BY created_at 
 LIMIT 6;
 
