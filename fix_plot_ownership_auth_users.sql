@@ -1,24 +1,16 @@
 -- FIX: Populate plot ownership using CORRECT user IDs from auth.users
 -- This will work because plot_ownership.user_id references auth.users.id
 
--- 1. First, let's check what's in auth.users
-SELECT 'Auth users table structure:' as info;
-SELECT column_name, data_type, is_nullable 
-FROM information_schema.columns 
-WHERE table_name = 'users' 
-AND table_schema = 'auth'
-ORDER BY ordinal_position;
+-- 1. First, let's see what users exist in auth.users
+SELECT 'Available users in auth.users:' as info;
+SELECT id, email FROM auth.users ORDER BY created_at;
 
--- 2. Check how many auth users we have
-SELECT 'Auth users count:' as info;
-SELECT COUNT(*) as total_auth_users FROM auth.users;
+-- 2. Check how many users we have in auth.users
+SELECT 'Total users in auth.users:' as info;
+SELECT COUNT(*) as total_users FROM auth.users;
 
--- 3. Show sample auth users
-SELECT 'Sample auth users:' as info;
-SELECT id, email, created_at FROM auth.users LIMIT 10;
-
--- 4. Now populate plot ownership using auth.users.id
--- First, clear existing data
+-- 3. Now let's populate ALL plots with co-owners using auth.users IDs
+-- First, clear existing plot ownership data
 TRUNCATE TABLE plot_ownership CASCADE;
 
 -- Plot 1 (Plot 77) - 6 co-owners, 63 sqm total
@@ -131,7 +123,7 @@ FROM auth.users
 ORDER BY created_at 
 LIMIT 2 OFFSET 18;
 
--- 5. Verify the data was inserted correctly
+-- 4. Verify the data was inserted correctly
 SELECT 'Plot ownership summary for all plots:' as info;
 SELECT 
     po.plot_id,
@@ -144,7 +136,7 @@ LEFT JOIN projects p ON po.plot_id = p.id
 GROUP BY po.plot_id, p.title
 ORDER BY po.plot_id;
 
--- 6. Show detailed co-owners for each plot
+-- 5. Show detailed co-owners for each plot with auth.users data
 SELECT 'Detailed co-owners for Plot 1:' as info;
 SELECT 
     po.plot_id,
@@ -158,7 +150,20 @@ LEFT JOIN auth.users au ON po.user_id = au.id
 WHERE po.plot_id = 1
 ORDER BY po.sqm_owned DESC;
 
--- 7. Show total summary
+SELECT 'Detailed co-owners for Plot 2:' as info;
+SELECT 
+    po.plot_id,
+    po.user_id,
+    po.sqm_owned,
+    po.amount_paid,
+    au.email,
+    ROUND((po.sqm_owned / 45.0) * 100, 1) as percentage_of_total
+FROM plot_ownership po
+LEFT JOIN auth.users au ON po.user_id = au.id
+WHERE po.plot_id = 2
+ORDER BY po.sqm_owned DESC;
+
+-- 6. Show total summary
 SELECT 'Total ownership across all plots:' as info;
 SELECT 
     COUNT(DISTINCT po.plot_id) as total_plots,
