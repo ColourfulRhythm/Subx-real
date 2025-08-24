@@ -24,6 +24,8 @@ import About from './routes/About'
 import VerificationSuccess from './routes/auth/VerificationSuccess'
 import ToastProvider from './components/ToastProvider'
 import InviteEarn from './pages/InviteEarn'
+import BlogIndex from './routes/blog/index'
+import LandInvestmentNigeria from './routes/blog/land-investment-nigeria'
 
 const ProtectedRoute = ({ children, requiredUserType }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated')
@@ -228,6 +230,16 @@ const App = () => {
                   <InviteEarn />
                 </PageTransition>
               </ProtectedRoute>
+            } />
+            <Route path="/blog" element={
+              <PageTransition>
+                <BlogIndex />
+              </PageTransition>
+            } />
+            <Route path="/blog/why-buying-land-can-make-you-broke" element={
+              <PageTransition>
+                <LandInvestmentNigeria />
+              </PageTransition>
             } />
           </Routes>
         </Router>
