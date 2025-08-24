@@ -1197,7 +1197,7 @@ export default function UserDashboard() {
               // Refresh user data and projects
               return Promise.all([
                 fetchUserData(),
-                fetchUserProperties(),
+                fetchUserPropertiesNUCLEAR(),
                 fetchProjects()
               ]);
             })
@@ -1454,7 +1454,7 @@ export default function UserDashboard() {
                   <button 
                     onClick={() => {
                       fetchUserData();
-                      fetchUserProperties();
+                      fetchUserPropertiesNUCLEAR();
                       toast.success('Data refreshed!');
                     }}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -1559,7 +1559,7 @@ export default function UserDashboard() {
                   <button 
                     onClick={() => {
                       fetchUserData();
-                      fetchUserProperties();
+                      fetchUserPropertiesNUCLEAR();
                       toast.success('Properties refreshed!');
                     }}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
