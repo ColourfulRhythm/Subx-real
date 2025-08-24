@@ -236,11 +236,10 @@ export default function UserDashboard() {
     // Load data from backend
     const loadData = async () => {
       try {
-        await Promise.all([
-          fetchUserData(),
-          fetchUserPropertiesNUCLEAR(),
-          fetchProjects()
-        ]);
+        // First fetch properties, then fetch user data that depends on properties
+        await fetchUserPropertiesNUCLEAR();
+        await fetchUserData(); // Now userProperties is populated
+        await fetchProjects();
       } catch (error) {
         console.error('Failed to load data:', error);
       } finally {
@@ -251,9 +250,9 @@ export default function UserDashboard() {
     loadData();
     
     // Set up auto-refresh every 30 seconds to ensure real-time data
-    const refreshInterval = setInterval(() => {
-      fetchUserData();
-      fetchUserPropertiesNUCLEAR();
+    const refreshInterval = setInterval(async () => {
+      await fetchUserPropertiesNUCLEAR();
+      await fetchUserData(); // Now userProperties is populated
     }, 30000);
     
     // Load Paystack script
