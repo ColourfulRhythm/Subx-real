@@ -869,84 +869,39 @@ export default function UserDashboard() {
       // Railway backend is down, skip this step
       console.log('Railway backend unavailable, using Supabase data only');
 
-      // Get real investment data from Supabase user_portfolio_view
-      try {
-        const { data: portfolioData, error } = await supabase
-          .from('user_portfolio_view')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+      // Calculate totals from userProperties state instead of fetching from view
+      const totalSqm = userProperties.reduce((sum, property) => sum + (property.sqmOwned || 0), 0);
+      const totalAmount = userProperties.reduce((sum, property) => sum + (property.amountInvested || 0), 0);
+      const totalPlots = userProperties.length;
 
-        if (!error && portfolioData) {
-          const totalSqm = portfolioData.total_sqm_owned || 0;
-          const totalAmount = portfolioData.total_investment_amount || 0;
-          const totalPlots = portfolioData.total_plots || 0;
-          
-          // Create complete userData with real investment info
-          const completeUserData = {
-            name: user?.user_metadata?.name || user?.email?.split('@')[0] || 'User',
-            email: user?.email || '',
-            avatar: '/subx-logo/default-avatar.png',
-            portfolioValue: `₦${totalAmount.toLocaleString()}`,
-            totalLandOwned: `${totalSqm} sqm`,
-            totalInvestments: totalPlots,
-            recentActivity: [
-              {
-                id: 1,
-                title: 'Plot 77 Investment',
-                amount: `${totalSqm} sqm purchased`,
-                date: new Date().toLocaleDateString(),
-                status: 'completed'
-              }
-            ]
-          };
-          
-          setUserData(completeUserData);
-          console.log('✅ Updated userData with real portfolio info:', { totalSqm, totalAmount, totalPlots });
-        } else {
-          console.log('No portfolio data found for user');
-          // Set basic data if no portfolio
-        const basicData = {
-            name: user?.user_metadata?.name || user?.email?.split('@')[0] || 'User',
-            email: user?.email || '',
-          avatar: '/subx-logo/default-avatar.png',
-          portfolioValue: '₦0',
-          totalLandOwned: '0 sqm',
-          totalInvestments: 0,
-          recentActivity: [
-            {
-              id: 1,
-              title: 'Account Created',
-              amount: 'Welcome to Subx!',
-              date: new Date().toLocaleDateString(),
-              status: 'completed'
-            }
-          ]
-        };
-        setUserData(basicData);
-        }
-      } catch (supabaseError) {
-        console.log('Could not fetch portfolio data from Supabase:', supabaseError);
-        // Set basic data on error
-        const basicData = {
-          name: user?.user_metadata?.name || user?.email?.split('@')[0] || 'User',
-          email: user?.email || '',
-          avatar: '/subx-logo/default-avatar.png',
-          portfolioValue: '₦0',
-          totalLandOwned: '0 sqm',
-          totalInvestments: 0,
-          recentActivity: [
-            {
-              id: 1,
-              title: 'Account Created',
-              amount: 'Welcome to Subx!',
-              date: new Date().toLocaleDateString(),
-              status: 'completed'
-            }
-          ]
-        };
-        setUserData(basicData);
-      }
+      console.log('📊 Calculating totals from userProperties:', { 
+        userPropertiesLength: userProperties.length,
+        totalSqm, 
+        totalAmount, 
+        totalPlots 
+      });
+
+      // Create complete userData with real investment info
+      const completeUserData = {
+        name: user?.user_metadata?.name || user?.email?.split('@')[0] || 'User',
+        email: user?.email || '',
+        avatar: '/subx-logo/default-avatar.png',
+        portfolioValue: `₦${totalAmount.toLocaleString()}`,
+        totalLandOwned: `${totalSqm} sqm`,
+        totalInvestments: totalPlots,
+        recentActivity: [
+          {
+            id: 1,
+            title: 'Plot 77 Investment',
+            amount: `${totalSqm} sqm purchased`,
+            date: new Date().toLocaleDateString(),
+            status: 'completed'
+          }
+        ]
+      };
+      
+      setUserData(completeUserData);
+      console.log('✅ Updated userData with real portfolio info:', { totalSqm, totalAmount, totalPlots });
     } catch (error) {
       console.error('Failed to fetch user data:', error);
       // Load from localStorage as fallback
