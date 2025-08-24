@@ -1047,28 +1047,28 @@ export default function UserDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      console.log('🔥 NUCLEAR RESET - Fetching investments for user:', user.email);
+      console.log('🔥 NUCLEAR RESET - Fetching plot ownership for user:', user.email);
       
-      // Fetch directly from investments table
-      const { data: investments, error } = await supabase
-        .from('investments')
+      // Fetch from plot_ownership table instead of investments
+      const { data: plotOwnership, error } = await supabase
+        .from('plot_ownership')
         .select('*')
         .eq('user_id', user.id);
       
-      console.log('🔥 NUCLEAR RESET - Investments query result:', investments);
+      console.log('🔥 NUCLEAR RESET - Plot ownership query result:', plotOwnership);
       console.log('🔥 NUCLEAR RESET - Query error:', error);
       
-      if (!error && investments && investments.length > 0) {
+      if (!error && plotOwnership && plotOwnership.length > 0) {
         // Transform the data to match expected format
-        const transformedProperties = investments.map(investment => ({
-          id: investment.id,
-          projectTitle: '2 Seasons Plot',
-          title: '2 Seasons Plot',
+        const transformedProperties = plotOwnership.map(ownership => ({
+          id: ownership.plot_id,
+          projectTitle: `Plot ${ownership.plot_id}`,
+          title: `Plot ${ownership.plot_id}`,
           location: '2 Seasons, Gbako Village, Ogun State',
-          sqmOwned: investment.sqm_purchased || 0,
-          amountInvested: investment.amount || 0,
-          dateInvested: investment.created_at || new Date().toISOString(),
-          status: investment.status || 'completed',
+          sqmOwned: ownership.sqm_owned || 0,
+          amountInvested: ownership.amount_paid || 0,
+          dateInvested: ownership.created_at || new Date().toISOString(),
+          status: 'completed',
           documents: [
             { name: 'Receipt', type: 'pdf', url: '#', signed: true },
             { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
@@ -1077,15 +1077,12 @@ export default function UserDashboard() {
         }));
         
         setUserProperties(transformedProperties);
-        console.log('🔥 NUCLEAR RESET - User properties set from investments:', transformedProperties);
-        console.log('🔍 userProperties state after set:', transformedProperties);
-        console.log('🔍 userProperties.length:', transformedProperties.length);
-        console.log('🎯 TIMESTAMP:', new Date().toISOString());
+        console.log('🔥 NUCLEAR RESET - User properties set from plot ownership:', transformedProperties);
         return;
       }
       
-      // If we get here, no investments found or error occurred
-      console.log('🔥 NUCLEAR RESET - No investments found or error occurred');
+      // If we get here, no plot ownership found
+      console.log(' NUCLEAR RESET - No plot ownership found');
       setUserProperties([]);
     } catch (error) {
       console.error('🔥 NUCLEAR RESET - Failed to fetch properties:', error);
@@ -1093,56 +1090,7 @@ export default function UserDashboard() {
     }
   };
 
-  const fetchUserPropertiesNEW = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
 
-      console.log('🔥 NUCLEAR RESET - Fetching investments for user:', user.email);
-      
-      // Fetch directly from investments table
-      const { data: investments, error } = await supabase
-        .from('investments')
-        .select('*')
-        .eq('user_id', user.id);
-      
-      console.log('🔥 NUCLEAR RESET - Investments query result:', investments);
-      console.log('🔥 NUCLEAR RESET - Query error:', error);
-      
-      if (!error && investments && investments.length > 0) {
-        // Transform the data to match expected format
-        const transformedProperties = investments.map(investment => ({
-          id: investment.id,
-          projectTitle: '2 Seasons Plot',
-          location: '2 Seasons, Gbako Village, Ogun State',
-          sqmOwned: investment.sqm_purchased || 0,
-          amountInvested: investment.amount || 0,
-          dateInvested: investment.created_at || new Date().toISOString(),
-          status: investment.status || 'completed',
-          title: '2 Seasons Plot',
-          documents: [
-            { name: 'Receipt', type: 'pdf', url: '#', signed: true },
-            { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
-            { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: true }
-          ]
-        }));
-        
-        setUserProperties(transformedProperties);
-        console.log('🔥 NUCLEAR RESET - User properties set from investments:', transformedProperties);
-        console.log('🔍 userProperties state after set:', transformedProperties);
-        console.log('🔍 userProperties.length:', transformedProperties.length);
-        console.log('🎯 TIMESTAMP:', new Date().toISOString());
-        return;
-      }
-      
-      // If we get here, no investments found or error occurred
-      console.log('🔥 NUCLEAR RESET - No investments found or error occurred');
-      setUserProperties([]);
-    } catch (error) {
-      console.error('🔥 NUCLEAR RESET - Failed to fetch properties:', error);
-      setUserProperties([]);
-    }
-  };
 
   const handleSqmChange = (sqm) => {
     setSelectedSqm(sqm);
