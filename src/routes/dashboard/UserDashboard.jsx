@@ -238,7 +238,6 @@ export default function UserDashboard() {
       try {
         // First fetch properties, then fetch user data that depends on properties
         await fetchUserPropertiesNUCLEAR();
-        await fetchUserData(); // Now userProperties is populated
         await fetchProjects();
       } catch (error) {
         console.error('Failed to load data:', error);
@@ -276,6 +275,14 @@ export default function UserDashboard() {
       }
     };
   }, [navigate]);
+
+  // Separate useEffect to update userData when userProperties changes
+  useEffect(() => {
+    if (userProperties.length > 0) {
+      console.log('🔄 userProperties changed, updating userData...');
+      fetchUserData();
+    }
+  }, [userProperties]);
 
   const handleLogout = async () => {
     try {
