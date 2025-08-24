@@ -278,6 +278,9 @@ export default function UserDashboard() {
 
   // Separate useEffect to update userData when userProperties changes
   useEffect(() => {
+    console.log('🔍 useEffect triggered, userProperties.length:', userProperties.length);
+    console.log('🔍 userProperties:', userProperties);
+    
     if (userProperties.length > 0) {
       console.log('🔄 userProperties changed, updating userData...');
       fetchUserData();
@@ -852,6 +855,7 @@ export default function UserDashboard() {
 
   // Backend integration functions
   const fetchUserData = async () => {
+    console.log('🚀 fetchUserData called from:', new Error().stack?.split('\n')[2] || 'unknown location');
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
