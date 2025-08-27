@@ -10,22 +10,40 @@ export default function ReferralWallet({ user }) {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [selectedSqm, setSelectedSqm] = useState(1);
   const [withdrawAmount, setWithdrawAmount] = useState(0);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
+    // Get current user from session if not provided
+    const getCurrentUser = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setCurrentUser(session.user);
+          fetchReferralData(session.user.id);
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error getting current user:', error);
+        setLoading(false);
+      }
+    };
+
     if (user && user.id) {
-      fetchReferralData();
+      setCurrentUser(user);
+      fetchReferralData(user.id);
     } else {
-      setLoading(false);
+      getCurrentUser();
     }
   }, [user]);
 
-  const fetchReferralData = async () => {
+  const fetchReferralData = async (userId) => {
     try {
       setLoading(true);
       
       // Check if user exists and has an ID
-      if (!user || !user.id) {
-        console.log('User not available for referral data fetch');
+      if (!userId) {
+        console.log('User ID not available for referral data fetch');
         setLoading(false);
         return;
       }
@@ -34,12 +52,25 @@ export default function ReferralWallet({ user }) {
       const { data: rewards, error: rewardsError } = await supabase
         .from('referral_rewards')
         .select('*')
-        .eq('referrer_id', user.id)
+        .eq('referrer_id', userId)
         .eq('status', 'paid')
         .order('created_at', { ascending: false });
 
       if (rewardsError) {
         console.error('Error fetching rewards:', rewardsError);
+        // Try alternative query
+        const { data: altRewards, error: altError } = await supabase
+          .from('referral_rewards')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('status', 'paid')
+          .order('created_at', { ascending: false });
+        
+        if (!altError && altRewards) {
+          const totalBalance = altRewards.reduce((sum, reward) => sum + (reward.amount || 0), 0) || 0;
+          setReferralBalance(totalBalance);
+          setReferralHistory(altRewards || []);
+        }
       } else {
         const totalBalance = rewards?.reduce((sum, reward) => sum + (reward.amount || 0), 0) || 0;
         setReferralBalance(totalBalance);
@@ -54,8 +85,10 @@ export default function ReferralWallet({ user }) {
 
   const handleBuySqm = async () => {
     try {
+      const userId = currentUser?.id || user?.id;
+      
       // Safety check for user
-      if (!user || !user.id) {
+      if (!userId) {
         alert('User information not available');
         return;
       }
@@ -71,7 +104,7 @@ export default function ReferralWallet({ user }) {
       const { error: investmentError } = await supabase
         .from('investments')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           project_id: 1, // Default to Plot 77
           sqm_purchased: selectedSqm,
           amount: sqmCost,
@@ -94,7 +127,7 @@ export default function ReferralWallet({ user }) {
           used_amount: sqmCost,
           used_at: new Date().toISOString()
         })
-        .eq('referrer_id', user.id)
+        .eq('referrer_id', userId)
         .eq('status', 'paid');
 
       if (balanceError) {
@@ -102,7 +135,7 @@ export default function ReferralWallet({ user }) {
       }
 
       // Refresh data
-      await fetchReferralData();
+      await fetchReferralData(userId);
       setShowBuyModal(false);
       alert(`Successfully purchased ${selectedSqm} sqm using referral balance!`);
       
@@ -113,7 +146,7 @@ export default function ReferralWallet({ user }) {
   };
 
   // Early return if user is not available
-  if (!user || !user.id) {
+  if (!currentUser && !user) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
@@ -126,8 +159,10 @@ export default function ReferralWallet({ user }) {
 
   const handleWithdraw = async () => {
     try {
+      const userId = currentUser?.id || user?.id;
+      
       // Safety check for user
-      if (!user || !user.id) {
+      if (!userId) {
         alert('User information not available');
         return;
       }
@@ -146,7 +181,7 @@ export default function ReferralWallet({ user }) {
       const { error: withdrawalError } = await supabase
         .from('referral_withdrawals')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           amount: withdrawAmount,
           status: 'pending',
           created_at: new Date().toISOString()
@@ -166,7 +201,7 @@ export default function ReferralWallet({ user }) {
           withdrawal_amount: withdrawAmount,
           withdrawal_requested_at: new Date().toISOString()
         })
-        .eq('referrer_id', user.id)
+        .eq('referrer_id', userId)
         .eq('status', 'paid')
         .limit(1);
 
@@ -175,7 +210,7 @@ export default function ReferralWallet({ user }) {
       }
 
       // Refresh data
-      await fetchReferralData();
+      await fetchReferralData(userId);
       setShowWithdrawModal(false);
       alert('Withdrawal request submitted successfully! You will receive payment within 24-48 hours.');
       

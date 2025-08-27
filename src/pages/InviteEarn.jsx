@@ -54,69 +54,107 @@ const InviteEarn = () => {
 
       console.log('Session found, user:', session.user.email);
 
-      const headers = { 
-        Authorization: `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json'
-      };
-
-      console.log('Fetching referral stats...');
-      // Fetch referral stats directly from database
-      const { data: statsData, error: statsError } = await supabase
-        .rpc('get_user_referral_stats', { p_user_id: session.user.id });
-      console.log('Stats response:', statsData);
-      
-      if (statsError) {
-        console.error('Error fetching stats:', statsError);
-        // Fallback: get basic user info
-        const { data: userProfile } = await supabase
-          .from('user_profiles')
-          .select('referral_code, wallet_balance')
-          .eq('id', session.user.id)
-          .single();
-        
-        const fallbackStats = {
-          referral_code: userProfile?.referral_code || null,
-          total_referrals: 0,
-          total_earned: 0,
-          wallet_balance: userProfile?.wallet_balance || 0,
-          referred_users: []
-        };
-        setReferralStats(fallbackStats);
-      } else {
-        setReferralStats(statsData);
-      }
-
-      console.log('Fetching referral history...');
-      // Fetch referral history (using direct Supabase query for now)
-      const { data: historyData } = await supabase
-        .rpc('get_user_referral_history', { p_user_id: session.user.id });
-      console.log('History response:', historyData);
-      setReferralHistory(historyData || []);
-
-      console.log('Fetching wallet balance...');
-      // Fetch wallet balance (using direct Supabase query)
-      const { data: balanceData } = await supabase
+      // FIRST: Get user profile data directly (this should work)
+      console.log('Fetching user profile data...');
+      let { data: userProfile, error: profileError } = await supabase
         .from('user_profiles')
-        .select('wallet_balance')
+        .select('referral_code, wallet_balance')
         .eq('id', session.user.id)
         .single();
-      console.log('Balance response:', balanceData);
-      setWalletBalance(balanceData?.wallet_balance || 0);
-
-      console.log('Fetching leaderboard...');
-      // Fetch leaderboard directly from database
-      const { data: leaderboardData, error: leaderboardError } = await supabase
-        .rpc('get_referral_leaderboard', { p_limit: 10 });
-      console.log('Leaderboard response:', leaderboardData);
       
-      if (leaderboardError) {
-        console.error('Error fetching leaderboard:', leaderboardError);
+      console.log('User profile response:', userProfile);
+      
+      if (profileError) {
+        console.error('Profile error:', profileError);
+        // Try alternative query
+        const { data: altProfile, error: altError } = await supabase
+          .from('user_profiles')
+          .select('referral_code, wallet_balance')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        if (altError) {
+          console.error('Alternative profile query failed:', altError);
+        } else {
+          console.log('Alternative profile query successful:', altProfile);
+          userProfile = altProfile;
+        }
+      }
+
+      // Set basic stats with profile data
+      const basicStats = {
+        user_id: session.user.id,
+        referral_code: userProfile?.referral_code || 'SUBX-XXXXX',
+        total_referrals: 0,
+        total_earned: 0,
+        wallet_balance: userProfile?.wallet_balance || 0,
+        referred_users: []
+      };
+
+      console.log('Basic stats set:', basicStats);
+      setReferralStats(basicStats);
+      setWalletBalance(userProfile?.wallet_balance || 0);
+
+      // SECOND: Try RPC functions (but don't fail if they don't work)
+      try {
+        console.log('Fetching referral stats via RPC...');
+        const { data: statsData, error: statsError } = await supabase
+          .rpc('get_user_referral_stats', { p_user_id: session.user.id });
+        
+        if (!statsError && statsData) {
+          console.log('RPC stats successful:', statsData);
+          // Merge RPC data with basic data
+          const mergedStats = {
+            ...basicStats,
+            ...statsData,
+            referral_code: statsData.referral_code || basicStats.referral_code
+          };
+          setReferralStats(mergedStats);
+        } else {
+          console.log('RPC stats failed, using basic data:', statsError);
+        }
+      } catch (rpcError) {
+        console.log('RPC stats error (non-critical):', rpcError);
+      }
+
+      // THIRD: Try referral history
+      try {
+        console.log('Fetching referral history...');
+        const { data: historyData, error: historyError } = await supabase
+          .rpc('get_user_referral_history', { p_user_id: session.user.id });
+        
+        if (!historyError && historyData) {
+          console.log('RPC history successful:', historyData);
+          setReferralHistory(historyData);
+        } else {
+          console.log('RPC history failed, using empty array:', historyError);
+          setReferralHistory([]);
+        }
+      } catch (historyRpcError) {
+        console.log('RPC history error (non-critical):', historyRpcError);
+        setReferralHistory([]);
+      }
+
+      // FOURTH: Try leaderboard
+      try {
+        console.log('Fetching leaderboard...');
+        const { data: leaderboardData, error: leaderboardError } = await supabase
+          .rpc('get_referral_leaderboard', { p_limit: 10 });
+        
+        if (!leaderboardError && leaderboardData) {
+          console.log('RPC leaderboard successful:', leaderboardData);
+          setLeaderboard(leaderboardData);
+        } else {
+          console.log('RPC leaderboard failed, using empty array:', leaderboardError);
+          setLeaderboard([]);
+        }
+      } catch (leaderboardRpcError) {
+        console.log('RPC leaderboard error (non-critical):', leaderboardRpcError);
         setLeaderboard([]);
-      } else {
-        setLeaderboard(leaderboardData || []);
       }
 
       console.log('All data fetched successfully!');
+      console.log('Final referral stats:', referralStats);
 
     } catch (error) {
       console.error('Error fetching referral data:', error);
