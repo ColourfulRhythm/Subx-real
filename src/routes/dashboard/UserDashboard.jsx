@@ -976,12 +976,12 @@ export default function UserDashboard() {
           const { data, error } = await supabase
             .from('user_profiles')
             .update({
-              full_name: profileData.name,
-              email: profileData.email,
-              phone: profileData.phone,
-              address: profileData.address,
-              date_of_birth: profileData.dateOfBirth,
-              occupation: profileData.occupation,
+              full_name: profileData.name || null,
+              email: profileData.email || null,
+              phone: profileData.phone || null,
+              address: profileData.address || null,
+              date_of_birth: profileData.dateOfBirth && profileData.dateOfBirth.trim() !== '' ? profileData.dateOfBirth : null,
+              occupation: profileData.occupation || null,
               updated_at: new Date().toISOString()
             })
             .eq('user_id', user.id)
@@ -996,12 +996,12 @@ export default function UserDashboard() {
             .from('user_profiles')
             .insert({
               user_id: user.id,
-              full_name: profileData.name,
-              email: profileData.email,
-              phone: profileData.phone,
-              address: profileData.address,
-              date_of_birth: profileData.dateOfBirth,
-              occupation: profileData.occupation,
+              full_name: profileData.name || null,
+              email: profileData.email || null,
+              phone: profileData.phone || null,
+              address: profileData.address || null,
+              date_of_birth: profileData.dateOfBirth && profileData.dateOfBirth.trim() !== '' ? profileData.dateOfBirth : null,
+              occupation: profileData.occupation || null,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             })
@@ -1017,11 +1017,11 @@ export default function UserDashboard() {
         // Also try to update auth metadata
         const { error: authError } = await supabase.auth.updateUser({
           data: {
-            full_name: profileData.name,
-            phone: profileData.phone,
-            address: profileData.address,
-            date_of_birth: profileData.dateOfBirth,
-            occupation: profileData.occupation
+            full_name: profileData.name || null,
+            phone: profileData.phone || null,
+            address: profileData.address || null,
+            date_of_birth: profileData.dateOfBirth && profileData.dateOfBirth.trim() !== '' ? profileData.dateOfBirth : null,
+            occupation: profileData.occupation || null
           }
         });
         
