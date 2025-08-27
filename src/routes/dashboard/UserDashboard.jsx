@@ -896,10 +896,31 @@ export default function UserDashboard() {
         totalPlots 
       });
 
-      // Create complete userData with real investment info
+      // Load profile data from user_profiles table
+      let profileData = null;
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (profile && !profileError) {
+          profileData = profile;
+          console.log('✅ Profile loaded from database:', profile);
+        }
+      } catch (profileError) {
+        console.log('No profile found in database, using auth metadata');
+      }
+
+      // Create complete userData with real investment info and profile data
       const completeUserData = {
-        name: user?.user_metadata?.name || user?.email?.split('@')[0] || 'User',
-        email: user?.email || '',
+        name: profileData?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'User',
+        email: profileData?.email || user?.email || '',
+        phone: profileData?.phone || user?.user_metadata?.phone || null,
+        address: profileData?.address || user?.user_metadata?.address || null,
+        dateOfBirth: profileData?.date_of_birth || user?.user_metadata?.date_of_birth || null,
+        occupation: profileData?.occupation || user?.user_metadata?.occupation || null,
         avatar: '/subx-logo/default-avatar.png',
         portfolioValue: `₦${totalAmount.toLocaleString()}`,
         totalLandOwned: `${totalSqm} sqm`,
@@ -907,7 +928,7 @@ export default function UserDashboard() {
         recentActivity: [
           {
             id: 1,
-                          title: 'Plot 77 Ownership',
+            title: 'Plot 77 Ownership',
             amount: `${totalSqm} sqm purchased`,
             date: new Date().toLocaleDateString(),
             status: 'completed'
@@ -916,7 +937,7 @@ export default function UserDashboard() {
       };
       
       setUserData(completeUserData);
-      console.log('✅ Updated userData with real portfolio info:', { totalSqm, totalAmount, totalPlots });
+      console.log('✅ Updated userData with real portfolio info and profile data:', { totalSqm, totalAmount, totalPlots, profileData });
     } catch (error) {
       console.error('Failed to fetch user data:', error);
       // Load from localStorage as fallback
