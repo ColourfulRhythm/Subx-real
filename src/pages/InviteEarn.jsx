@@ -103,18 +103,26 @@ const InviteEarn = () => {
         
         if (!statsError && statsData) {
           console.log('RPC stats successful:', statsData);
-          // Merge RPC data with basic data
+          // Merge RPC data with basic data, but preserve working referral_code
           const mergedStats = {
             ...basicStats,
             ...statsData,
-            referral_code: statsData.referral_code || basicStats.referral_code
+            // CRITICAL: Preserve working referral_code, don't overwrite with null
+            referral_code: statsData.referral_code || basicStats.referral_code || 'SUBX-XXXXX',
+            // Preserve working wallet_balance, don't overwrite with null
+            wallet_balance: statsData.wallet_balance || basicStats.wallet_balance || 0
           };
+          console.log('Merged stats with preserved data:', mergedStats);
           setReferralStats(mergedStats);
         } else {
           console.log('RPC stats failed, using basic data:', statsError);
+          // Keep the working basic stats
+          setReferralStats(basicStats);
         }
       } catch (rpcError) {
         console.log('RPC stats error (non-critical):', rpcError);
+        // Keep the working basic stats
+        setReferralStats(basicStats);
       }
 
       // THIRD: Try referral history
