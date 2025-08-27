@@ -4,8 +4,11 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = 'https://hclguhbswctxfahhzrrr.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjbGd1aGJzd2N0eGZhaGh6cnJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3NjU2ODcsImV4cCI6MjA3MDM0MTY4N30.y2ILgUZLd_pJ9rAuRVGTHIIkh1sfhvXRnRlCt4DUzyQ';
 
-// Site URL for redirects (replace with your actual domain)
-const siteUrl = 'https://subxhq.com';
+// Site URL for redirects - detect production vs development
+const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+const siteUrl = isProduction 
+  ? window.location.origin 
+  : 'https://subxhq.com';
 
 // Paystack public key fallback
 const paystackKey = 'pk_live_c6e9456f9a1b1071ed96b977c21f8fae727400e0';
@@ -14,8 +17,9 @@ console.log('Supabase client initialization:');
 console.log('URL:', supabaseUrl);
 console.log('Key present:', !!supabaseAnonKey);
 console.log('Site URL:', siteUrl);
+console.log('Environment:', isProduction ? 'production' : 'development');
 
-// Create Supabase client with auth configuration
+// Create Supabase client with enhanced auth configuration
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
@@ -23,7 +27,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     flowType: 'pkce',
     // Set the redirect URL for email verification
-    redirectTo: `${siteUrl}/verify`
+    redirectTo: `${siteUrl}/verify`,
+    // Enhanced session handling for production
+    storage: isProduction ? window.localStorage : window.localStorage,
+    storageKey: isProduction ? 'supabase-auth-token' : 'supabase-auth-token'
   }
 });
 

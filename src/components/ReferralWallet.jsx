@@ -12,12 +12,23 @@ export default function ReferralWallet({ user }) {
   const [withdrawAmount, setWithdrawAmount] = useState(0);
 
   useEffect(() => {
-    fetchReferralData();
+    if (user && user.id) {
+      fetchReferralData();
+    } else {
+      setLoading(false);
+    }
   }, [user]);
 
   const fetchReferralData = async () => {
     try {
       setLoading(true);
+      
+      // Check if user exists and has an ID
+      if (!user || !user.id) {
+        console.log('User not available for referral data fetch');
+        setLoading(false);
+        return;
+      }
       
       // Get referral rewards
       const { data: rewards, error: rewardsError } = await supabase
@@ -43,6 +54,12 @@ export default function ReferralWallet({ user }) {
 
   const handleBuySqm = async () => {
     try {
+      // Safety check for user
+      if (!user || !user.id) {
+        alert('User information not available');
+        return;
+      }
+      
       const sqmCost = selectedSqm * 5000; // ₦5,000 per sqm
       
       if (sqmCost > referralBalance) {
@@ -95,8 +112,26 @@ export default function ReferralWallet({ user }) {
     }
   };
 
+  // Early return if user is not available
+  if (!user || !user.id) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading user information...</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleWithdraw = async () => {
     try {
+      // Safety check for user
+      if (!user || !user.id) {
+        alert('User information not available');
+        return;
+      }
+      
       if (withdrawAmount > referralBalance) {
         alert('Insufficient balance for withdrawal');
         return;
