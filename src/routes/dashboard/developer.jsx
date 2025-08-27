@@ -20,7 +20,7 @@ const developerSchema = yup.object().shape({
   maxUnits: yup.number().min(1, 'Maximum units must be at least 1'),
   unitPrice: yup.number().min(0, 'Unit price must be positive'),
   yearsOfExperience: yup.number().min(0, 'Years of experience must be positive'),
-  investmentFocus: yup.array().min(1, 'Select at least one investment focus'),
+  ownershipFocus: yup.array().min(1, 'Select at least one ownership focus'),
   completedProjects: yup.array(),
   certifications: yup.array(),
   socialLinks: yup.object()
@@ -40,7 +40,7 @@ const mockProjects = [
     startDate: '2024-01-15',
     expectedCompletion: '2025-12-31',
     investors: 12,
-    totalInvestment: '₦112,500,000'
+          totalOwnership: '₦112,500,000'
   },
   {
     id: 2,
@@ -54,7 +54,7 @@ const mockProjects = [
     startDate: '2024-02-01',
     expectedCompletion: '2025-06-30',
     investors: 8,
-    totalInvestment: '₦72,000,000'
+          totalOwnership: '₦72,000,000'
   }
 ];
 
@@ -62,11 +62,11 @@ const mockConnections = [
   {
     id: 1,
     investorName: 'John Smith',
-    investmentFocus: 'Residential Properties',
+          ownershipFocus: 'Residential Properties',
     email: 'john.smith@example.com',
     phone: '+234 801 234 5678',
     preferredLocations: ['Lagos', 'Abuja', 'Port Harcourt'],
-    investmentRange: '₦50M - ₦200M',
+          ownershipRange: '₦50M - ₦200M',
     investments: [
       {
         projectTitle: 'Lekki Luxury Apartments',
@@ -83,11 +83,11 @@ const mockConnections = [
   {
     id: 2,
     investorName: 'Sarah Johnson',
-    investmentFocus: 'Commercial Properties',
+          ownershipFocus: 'Commercial Properties',
     email: 'sarah.j@example.com',
     phone: '+234 802 345 6789',
     preferredLocations: ['Lagos', 'Abuja'],
-    investmentRange: '₦100M - ₦500M',
+          ownershipRange: '₦100M - ₦500M',
     investments: [
       {
         projectTitle: 'Ikeja Mall Development',
@@ -99,11 +99,11 @@ const mockConnections = [
   {
     id: 3,
     investorName: 'Michael Brown',
-    investmentFocus: 'Mixed-Use Developments',
+          ownershipFocus: 'Mixed-Use Developments',
     email: 'michael.b@example.com',
     phone: '+234 803 456 7890',
     preferredLocations: ['Lagos', 'Port Harcourt', 'Calabar'],
-    investmentRange: '₦200M - ₦1B',
+          ownershipRange: '₦200M - ₦1B',
     investments: [
       {
         projectTitle: 'Eko Atlantic Mixed-Use Complex',
@@ -123,13 +123,13 @@ const mockAnalytics = {
   totalProjects: 2,
   activeProjects: 2,
   totalInvestors: 20,
-  totalInvestment: '₦184,500,000',
+      totalOwnership: '₦184,500,000',
   projectStatus: {
     active: 2,
     completed: 0,
     upcoming: 1
   },
-  investmentDistribution: {
+        ownershipDistribution: {
     residential: '₦112,500,000',
     commercial: '₦72,000,000'
   },
@@ -273,7 +273,7 @@ export default function DeveloperDashboard() {
       minUnits: 100,
       maxUnits: 1000000,
       unitPrice: 250000,
-      investmentFocus: ['Residential', 'Commercial'],
+      ownershipFocus: ['Residential', 'Commercial'],
       yearsOfExperience: 5,
       certifications: [],
       socialLinks: {}
@@ -291,7 +291,7 @@ export default function DeveloperDashboard() {
     minUnits: 100,
     maxUnits: 1000000,
     unitPrice: 250000,
-    investmentFocus: ['Residential', 'Commercial'],
+          ownershipFocus: ['Residential', 'Commercial'],
     completedProjects: [],
     yearsOfExperience: 5,
     certifications: [],
@@ -369,7 +369,7 @@ export default function DeveloperDashboard() {
       
       // Handle regular fields
       Object.keys(data).forEach(key => {
-        if (key === 'investmentFocus') {
+        if (key === 'ownershipFocus') {
           formData.append(key, JSON.stringify(data[key]));
         } else if (key === 'minUnits' || key === 'maxUnits' || key === 'unitPrice' || key === 'yearsOfExperience') {
           formData.append(key, data[key].toString());
@@ -752,7 +752,7 @@ export default function DeveloperDashboard() {
                   {profile.company || 'Your Company'}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {profile.investmentFocus?.map((focus, index) => (
+                  {profile.ownershipFocus?.map((focus, index) => (
                     <span
                       key={index}
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
@@ -1426,14 +1426,14 @@ export default function DeveloperDashboard() {
                     {selectedInvestor.investorName}
                   </h4>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Investment Focus: {selectedInvestor.investmentFocus}
+                    Ownership Focus: {selectedInvestor.ownershipFocus}
                   </p>
                 </div>
               </div>
 
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <h5 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  Investment History
+                  Ownership History
                 </h5>
                 <div className="space-y-2">
                   {selectedInvestor.investments?.map((investment, index) => (
@@ -1476,7 +1476,7 @@ export default function DeveloperDashboard() {
 
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <h5 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  Investment Preferences
+                  Ownership Preferences
                 </h5>
                 <div className="space-y-2">
                   <div className="flex justify-between">
@@ -1486,9 +1486,9 @@ export default function DeveloperDashboard() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Investment Range:</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Ownership Range:</span>
                     <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {selectedInvestor.investmentRange || 'Not specified'}
+                                              {selectedInvestor.ownershipRange || 'Not specified'}
                     </span>
                   </div>
                 </div>
@@ -1637,7 +1637,7 @@ export default function DeveloperDashboard() {
                     </p>
                   </div>
                   <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Total Investment</h3>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Total Ownership</h3>
                     <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{analytics.totalInvestment}</p>
                     <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                       Across {analytics.totalInvestors} Investors
@@ -1728,15 +1728,15 @@ export default function DeveloperDashboard() {
 
                 {/* Investment Distribution */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Investment Distribution</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Ownership Distribution</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-500 dark:text-gray-400">Residential</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">{analytics.investmentDistribution.residential}</span>
+                                              <span className="text-sm font-medium text-gray-900 dark:text-white">{analytics.ownershipDistribution.residential}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-500 dark:text-gray-400">Commercial</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">{analytics.investmentDistribution.commercial}</span>
+                                              <span className="text-sm font-medium text-gray-900 dark:text-white">{analytics.ownershipDistribution.commercial}</span>
                     </div>
                   </div>
                 </div>
@@ -1791,9 +1791,9 @@ export default function DeveloperDashboard() {
                   {connections.map((connection) => (
                     <div key={connection.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                       <h3 className="text-lg font-medium text-gray-900 dark:text-white">{connection.investorName}</h3>
-                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{connection.investmentFocus}</p>
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{connection.ownershipFocus}</p>
                       <div className="mt-4">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Investment Range: {connection.investmentRange}</p>
+                                                  <p className="text-sm text-gray-500 dark:text-gray-400">Ownership Range: {connection.ownershipRange}</p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">Preferred Locations: {connection.preferredLocations.join(', ')}</p>
                       </div>
                       <div className="mt-4 flex justify-end">

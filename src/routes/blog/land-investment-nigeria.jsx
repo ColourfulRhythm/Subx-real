@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FaArrowRight } from 'react-icons/fa';
 
-const LandInvestmentNigeria = () => {
+const LandOwnershipNigeria = () => {
   useEffect(() => {
     document.title = "Why Buying Land Can Make You Broke — and How Subx is Changing the Game | Subx";
   }, []);
@@ -22,7 +22,7 @@ const LandInvestmentNigeria = () => {
                 Why Buying Land Can Make You Broke — and How Subx is Changing the Game
               </h1>
               <p className="text-lg text-gray-600 mt-3">
-                The revolutionary approach to land ownership that's democratizing real estate investment in Nigeria
+                The revolutionary approach to land ownership that's democratizing real estate ownership in Nigeria
               </p>
             </div>
             <div className="hidden md:block">
@@ -42,7 +42,7 @@ const LandInvestmentNigeria = () => {
         <article className="bg-white rounded-lg shadow-sm p-8 mb-8">
           <div className="prose prose-lg max-w-none">
             <p className="text-xl text-gray-700 leading-relaxed mb-6">
-              For years we have heard it said that land never depreciates, that the best investment you can make is land. And that is true. But it is only true if you can actually afford the land that you are buying.
+              For years we have heard it said that land never depreciates, that the best ownership you can have is land. And that is true. But it is only true if you can actually afford the land that you are buying.
             </p>
 
             <p className="text-lg text-gray-700 leading-relaxed mb-6">
@@ -68,7 +68,7 @@ const LandInvestmentNigeria = () => {
             </p>
 
             <p className="text-lg text-gray-700 leading-relaxed mb-6">
-              Then there are the additional costs. Buying land is just step one. You still need to process your documents. You need your Certificate of Occupancy, your Deed of Assignment, your survey plan. You may need to fence the property to secure it. Sometimes there are development levies. If you cannot afford these extra steps, you may lose the land. And when you lose it, you lose your investment.
+              Then there are the additional costs. Buying land is just step one. You still need to process your documents. You need your Certificate of Occupancy, your Deed of Assignment, your survey plan. You may need to fence the property to secure it. Sometimes there are development levies. If you cannot afford these extra steps, you may lose the land. And when you lose it, you lose your ownership.
             </p>
 
             <p className="text-lg text-gray-700 leading-relaxed mb-8">
@@ -88,7 +88,7 @@ const LandInvestmentNigeria = () => {
                   </h3>
                   <div className="mt-2 text-sm text-yellow-700">
                     <p>
-                      Traditional land buying requires massive upfront capital, ongoing maintenance costs, and ties up all your liquidity. This approach leaves many investors broke and unable to sustain their investment.
+                      Traditional land buying requires massive upfront capital, ongoing maintenance costs, and ties up all your liquidity. This approach leaves many investors broke and unable to sustain their ownership.
                     </p>
                   </div>
                 </div>
@@ -198,7 +198,7 @@ const LandInvestmentNigeria = () => {
                     <li>• Requires millions of naira</li>
                     <li>• Ties up all liquidity</li>
                     <li>• High maintenance costs</li>
-                    <li>• Risk of losing investment</li>
+                    <li>• Risk of losing ownership</li>
                     <li>• Limited to wealthy few</li>
                   </ul>
                 </div>
@@ -208,7 +208,7 @@ const LandInvestmentNigeria = () => {
                     <li>• Start with ₦5,000</li>
                     <li>• Maintains liquidity</li>
                     <li>• No maintenance costs</li>
-                    <li>• Secure investment</li>
+                    <li>• Secure ownership</li>
                     <li>Accessible to everyone</li>
                   </ul>
                 </div>
@@ -242,7 +242,7 @@ const LandInvestmentNigeria = () => {
         {/* Call to Action */}
         <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg shadow-lg p-8 text-center text-white mb-8">
           <h2 className="text-2xl font-bold mb-4">
-            Ready to Start Your Land Investment Journey?
+            Ready to Start Your Land Ownership Journey?
           </h2>
           <p className="text-lg mb-6 opacity-90">
             Join thousands of Nigerians who are already building wealth through affordable land ownership with Subx.
@@ -296,4 +296,4 @@ const LandInvestmentNigeria = () => {
   );
 };
 
-export default LandInvestmentNigeria;
+export default LandOwnershipNigeria;

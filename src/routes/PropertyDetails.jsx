@@ -103,11 +103,11 @@ const PropertyDetails = () => {
                 <dl className="mt-4 space-y-4">
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Total Ownership Cost</dt>
-                    <dd className="mt-1 text-sm text-gray-900">${property.totalInvestment}</dd>
+                    <dd className="mt-1 text-sm text-gray-900">${property.totalOwnership}</dd>
                   </div>
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Minimum Ownership</dt>
-                    <dd className="mt-1 text-sm text-gray-900">${property.minInvestment}</dd>
+                    <dd className="mt-1 text-sm text-gray-900">${property.minOwnership}</dd>
                   </div>
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Expected Return</dt>

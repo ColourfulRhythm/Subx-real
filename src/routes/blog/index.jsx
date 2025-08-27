@@ -7,28 +7,28 @@ const BlogIndex = () => {
     {
       id: 'land-investment-nigeria',
       title: 'Why Buying Land Can Make You Broke — and How Subx is Changing the Game',
-      excerpt: 'Discover why traditional land buying leaves people broke and how Subx\'s revolutionary 1 sqm land ownership model is democratizing real estate investment in Nigeria.',
+      excerpt: 'Discover why traditional land buying leaves people broke and how Subx\'s revolutionary 1 sqm land ownership model is democratizing real estate ownership in Nigeria.',
       author: 'Subx Team',
       date: 'August 24, 2025',
       readTime: '8 min read',
-      category: 'Land Investment',
+      category: 'Land Ownership',
       featured: true,
       image: '/2-seasons/2seasons-logo.jpg'
     },
     {
       id: 'real-estate-strategies',
-      title: '5 Real Estate Investment Strategies for Beginners in Nigeria',
-      excerpt: 'Discover proven strategies to start your real estate investment journey, even with limited capital.',
+      title: '5 Real Estate Ownership Strategies for Beginners in Nigeria',
+      excerpt: 'Discover proven strategies to start your real estate ownership journey, even with limited capital.',
       author: 'Subx Team',
       date: 'August 20, 2025',
       readTime: '6 min read',
-      category: 'Investment Tips',
+      category: 'Ownership Tips',
       featured: false,
       image: '/2-seasons/2seasons-logo.jpg'
     },
     {
       id: 'ogun-state-opportunity',
-      title: 'Why Land in Ogun State is the Next Big Investment Opportunity',
+      title: 'Why Land in Ogun State is the Next Big Ownership Opportunity',
       excerpt: 'Learn why Ogun State is becoming Nigeria\'s fastest-growing real estate market and how to capitalize on it.',
       author: 'Subx Team',
       date: 'August 15, 2025',
@@ -53,7 +53,7 @@ const BlogIndex = () => {
               Subx Blog
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Expert insights on land investment, real estate strategies, and building wealth through affordable property ownership in Nigeria.
+              Expert insights on land ownership, real estate strategies, and building wealth through affordable property ownership in Nigeria.
             </p>
           </div>
         </div>
@@ -155,7 +155,7 @@ const BlogIndex = () => {
             Stay Updated with Subx
           </h2>
           <p className="text-lg mb-6 opacity-90">
-            Get the latest insights on land investment, real estate trends, and wealth-building strategies delivered to your inbox.
+                            Get the latest insights on land ownership, real estate trends, and wealth-building strategies delivered to your inbox.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
             <input

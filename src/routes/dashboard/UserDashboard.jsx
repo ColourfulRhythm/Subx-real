@@ -437,7 +437,7 @@ export default function UserDashboard() {
     // Generate real documents based on the property data
     const realDocuments = [
       {
-        name: 'Investment Receipt',
+        name: 'Ownership Receipt',
         type: 'pdf',
         url: '#',
         signed: true,
@@ -500,7 +500,7 @@ export default function UserDashboard() {
     // Generate and download receipt
     const doc = new jsPDF();
     doc.setFontSize(20);
-    doc.text('Subx Investment Receipt', 20, 20);
+          doc.text('Subx Ownership Receipt', 20, 20);
     doc.setFontSize(12);
     doc.text(`Property: ${property.title}`, 20, 40);
     doc.text(`Document: ${document.name}`, 20, 50);
@@ -520,7 +520,7 @@ export default function UserDashboard() {
         {
           id: 1,
           title: '2 Seasons Plot',
-          description: 'Premium land investment opportunity in Gbako Village, Ogun State',
+          description: 'Premium land ownership opportunity in Gbako Village, Ogun State',
           location: '2 Seasons, Gbako Village, Ogun State',
           totalSqm: 500,
           availableSqm: 437, // 500 - 63 sqm already owned
@@ -531,7 +531,7 @@ export default function UserDashboard() {
         {
           id: 2,
           title: 'Plot 78',
-          description: 'Premium land investment opportunity in Gbako Village, Ogun State',
+          description: 'Premium land ownership opportunity in Gbako Village, Ogun State',
           location: '2 Seasons, Gbako Village, Ogun State',
           totalSqm: 500,
           availableSqm: 500,
@@ -542,7 +542,7 @@ export default function UserDashboard() {
         {
           id: 3,
           title: 'Plot 79',
-          description: 'Premium land investment opportunity in Gbako Village, Ogun State',
+          description: 'Premium land ownership opportunity in Gbako Village, Ogun State',
           location: '2 Seasons, Gbako Village, Ogun State',
           totalSqm: 500,
           availableSqm: 500,
@@ -553,7 +553,7 @@ export default function UserDashboard() {
         {
           id: 4,
           title: 'Plot 80',
-          description: 'Premium land investment opportunity in Gbako Village, Ogun State',
+          description: 'Premium land ownership opportunity in Gbako Village, Ogun State',
           location: '2 Seasons, Gbako Village, Ogun State',
           totalSqm: 500,
           availableSqm: 500,
@@ -564,7 +564,7 @@ export default function UserDashboard() {
         {
           id: 5,
           title: 'Plot 81',
-          description: 'Premium land investment opportunity in Gbako Village, Ogun State',
+          description: 'Premium land ownership opportunity in Gbako Village, Ogun State',
           location: '2 Seasons, Gbako Village, Ogun State',
           totalSqm: 500,
           availableSqm: 500,
@@ -612,7 +612,7 @@ export default function UserDashboard() {
           {
             id: 1,
             title: 'Welcome to Subx Community!',
-            content: 'Join discussions about property ownership and investment opportunities.',
+            content: 'Join discussions about property ownership and ownership opportunities.',
             author: 'Subx Team',
             created_at: new Date().toISOString(),
             replies_count: 5
@@ -907,7 +907,7 @@ export default function UserDashboard() {
         recentActivity: [
           {
             id: 1,
-            title: 'Plot 77 Investment',
+                          title: 'Plot 77 Ownership',
             amount: `${totalSqm} sqm purchased`,
             date: new Date().toLocaleDateString(),
             status: 'completed'
@@ -1643,7 +1643,7 @@ export default function UserDashboard() {
                         </div>
                         <div className="text-right">
                           <p className="text-2xl font-bold text-indigo-600">₦{property.amountInvested?.toLocaleString()}</p>
-                          <p className="text-sm text-gray-500">Amount Invested</p>
+                          <p className="text-sm text-gray-500">Payment Amount</p>
                         </div>
                       </div>
 
@@ -1715,13 +1715,13 @@ export default function UserDashboard() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                     <h3 className="mt-4 text-lg font-medium text-gray-900">No properties yet</h3>
-                    <p className="mt-2 text-sm text-gray-500">Your Plot 77 investments will appear here after you make purchases.</p>
+                    <p className="mt-2 text-sm text-gray-500">Your Plot 77 ownership will appear here after you make purchases.</p>
                     <div className="mt-6">
                       <button
                         onClick={() => setActiveTab('opportunities')}
                         className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
                       >
-                        Browse Investment Opportunities
+                        Browse Ownership Opportunities
                       </button>
                     </div>
                   </div>
@@ -1859,13 +1859,13 @@ export default function UserDashboard() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       <h3 className="mt-4 text-lg font-medium text-gray-900">No documents yet</h3>
-                      <p className="mt-2 text-sm text-gray-500">Your property documents will appear here after you make investments.</p>
+                      <p className="mt-2 text-sm text-gray-500">Your property documents will appear here after you make purchases.</p>
                       <div className="mt-6">
                         <button
                           onClick={() => setActiveTab('opportunities')}
                           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
                         >
-                          Browse Investment Opportunities
+                          Browse Ownership Opportunities
                         </button>
                       </div>
                     </div>
@@ -2192,7 +2192,7 @@ export default function UserDashboard() {
                       </li>
                       <li className="flex items-center justify-center">
                         <span className="text-green-500 mr-2">✓</span>
-                        Investment tips & strategies
+                        Ownership tips & strategies
                       </li>
                       <li className="flex items-center justify-center">
                         <span className="text-green-500 mr-2">✓</span>
@@ -2354,8 +2354,8 @@ export default function UserDashboard() {
                     <p className="text-sm text-gray-600">Total Co-owners</p>
                   </div>
                   <div className="bg-green-50 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-green-600">₦{(selectedProperty.totalInvestment || 0).toLocaleString()}</p>
-                    <p className="text-sm text-gray-600">Total Investment</p>
+                                            <p className="text-2xl font-bold text-green-600">₦{(selectedProperty.totalInvestment || 0).toLocaleString()}</p>
+                        <p className="text-sm text-gray-600">Total Ownership Value</p>
                   </div>
                   <div className="bg-purple-50 rounded-lg p-4 text-center">
                     <p className="text-2xl font-bold text-purple-600">{selectedProperty.coOwners?.reduce((sum, owner) => sum + owner.sqm, 0) || 0}</p>
@@ -3048,7 +3048,7 @@ export default function UserDashboard() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   >
                     <option value="general">General Discussion</option>
-                    <option value="investment">Investment Tips</option>
+                                            <option value="ownership">Ownership Tips</option>
                     <option value="market">Market Analysis</option>
                     <option value="legal">Legal Questions</option>
                     <option value="other">Other</option>

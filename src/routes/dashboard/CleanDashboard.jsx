@@ -172,7 +172,7 @@ export default function CleanDashboard() {
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-4">Learn About Co-Ownership</h3>
             <p className="text-gray-600 mb-6">
-              Understand how co-ownership works, the benefits, and what makes Subx the perfect platform for your real estate investment journey.
+              Understand how co-ownership works, the benefits, and what makes Subx the perfect platform for your real estate ownership journey.
             </p>
             <button
               onClick={() => navigate('/about')}
@@ -226,7 +226,7 @@ export default function CleanDashboard() {
                 </svg>
               </div>
               <h4 className="font-semibold text-gray-900 mb-2">Secure Platform</h4>
-              <p className="text-sm text-gray-600">Bank-level security for your investments</p>
+                              <p className="text-sm text-gray-600">Bank-level security for your ownership</p>
             </div>
           </div>
         </motion.div>

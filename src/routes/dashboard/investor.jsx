@@ -26,12 +26,12 @@ const profileSchema = yup.object().shape({
   email: yup.string().email('Invalid email').required('Email is required'),
   phone: yup.string().matches(/^\+?[\d\s-()]{10,}$/, 'Invalid phone number'),
   bio: yup.string().max(500, 'Bio must be less than 500 characters'),
-  investmentInterests: yup.array().min(1, 'Select at least one interest'),
-  investmentExperience: yup.string().required('Investment experience is required'),
+      ownershipInterests: yup.array().min(1, 'Select at least one interest'),
+      ownershipExperience: yup.string().required('Ownership experience is required'),
 
   preferredLocations: yup.array().min(1, 'Select at least one preferred location'),
   riskTolerance: yup.string().required('Risk tolerance is required'),
-  investmentGoals: yup.array().min(1, 'Select at least one investment goal')
+      ownershipGoals: yup.array().min(1, 'Select at least one ownership goal')
 })
 
 // Add developer profiles
@@ -246,11 +246,11 @@ export default function InvestorDashboard() {
     email: userEmail,
     phone: userPhone,
     bio: 'Welcome to your land sub-ownership dashboard!',
-    investmentExperience: 'Beginner',
+          ownershipExperience: 'Beginner',
     riskTolerance: 'Moderate',
-    investmentInterests: ['Residential'],
+          ownershipInterests: ['Residential'],
     preferredLocations: ['Ogun State'],
-    investmentGoals: ['Long-term Growth']
+          ownershipGoals: ['Long-term Growth']
   };
   
   // Mock projects data - these are the actual listings
@@ -820,15 +820,15 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
       'email',
       'phone',
       'bio',
-      'investmentExperience',
+      'ownershipExperience',
       'preferredInvestmentAmount',
       'riskTolerance'
     ];
     
     const optionalFields = [
-      'investmentInterests',
+      'ownershipInterests',
       'preferredLocations',
-      'investmentGoals'
+              'ownershipGoals'
     ];
 
     let completedRequired = 0;
@@ -1531,9 +1531,6 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
               <div className="relative w-full md:w-1/2 aspect-video md:aspect-square">
                 <img
                   src={project.images && project.images[0] ? project.images[0] : '/2-seasons/2seasons-logo.jpg'}
-                onError={(e) => {
-                  e.target.src = '/2-seasons/2seasons-logo.jpg';
-                }}
                   alt={project.title}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -2034,7 +2031,7 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
                 </li>
                 <li className="flex items-center justify-center">
                   <span className="text-green-500 mr-2">✓</span>
-                  Investment tips & strategies
+                  Ownership tips & strategies
                 </li>
                 <li className="flex items-center justify-center">
                   <span className="text-green-500 mr-2">✓</span>
@@ -2811,10 +2808,10 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Investment Experience
+                  Ownership Experience
                 </label>
                 <select
-                  {...register('investmentExperience')}
+                  {...register('ownershipExperience')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >
                   <option value="">Select experience</option>
@@ -2823,8 +2820,8 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
                   <option value="Advanced">Advanced</option>
                   <option value="Expert">Expert</option>
                 </select>
-                {errors.investmentExperience && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investmentExperience.message}</p>
+                {errors.ownershipExperience && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.ownershipExperience.message}</p>
                 )}
               </div>
 
@@ -2891,8 +2888,8 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
                 <p className="mt-1 text-gray-900 dark:text-white">{profile.email || 'Not specified'}</p>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Investment Experience</h3>
-                <p className="mt-1 text-gray-900 dark:text-white">{profile.investmentExperience || 'Not specified'}</p>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Ownership Experience</h3>
+                                  <p className="mt-1 text-gray-900 dark:text-white">{profile.ownershipExperience || 'Not specified'}</p>
               </div>
 
               <div>
@@ -2979,7 +2976,7 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
             {/* Investment Amount Display */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Total Investment Amount
+                      Total Ownership Amount
                     </label>
               <p className="text-lg font-semibold text-gray-900 dark:text-white">{investmentAmount}</p>
                 </div>

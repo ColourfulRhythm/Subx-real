@@ -66,7 +66,7 @@ const LandingPage: React.FC = () => {
                 </div>
                 <p className="ml-16 text-lg leading-6 font-medium text-gray-900">Real-time Updates</p>
                 <p className="mt-2 ml-16 text-base text-gray-500">
-                  Stay informed with real-time updates on project progress and investment opportunities.
+                  Stay informed with real-time updates on project progress and ownership opportunities.
                 </p>
               </div>
 
