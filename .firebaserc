@@ -1,22 +1,12 @@
 {
   "projects": {
-    "default": "subx-825e9"
+    "default": "ad-promoter-36ef7"
   },
   "targets": {
-    "subx-825e9": {
+    "ad-promoter-36ef7": {
       "hosting": {
         "main": [
-          "subx-825e9"
-        ],
-        "admin": [
-          "subx-825e9-admin-39f23"
-        ]
-      }
-    },
-    "subxhq-8bd9e": {
-      "hosting": {
-        "main": [
-          "subxhq-8bd9e"
+          "ad-promoter-36ef7"
         ]
       }
     }

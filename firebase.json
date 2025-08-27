@@ -11,18 +11,6 @@
       "rewrites": [
         { "source": "**", "destination": "/index.html" }
       ]
-    },
-    {
-      "target": "admin",
-      "public": "admin-frontend/dist",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
-      "rewrites": [
-        { "source": "**", "destination": "/index.html" }
-      ]
     }
   ],
   "emulators": {
@@ -39,9 +27,5 @@
       "enabled": true,
       "port": 4000
     }
-  },
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
   }
 }
