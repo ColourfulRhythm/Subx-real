@@ -956,16 +956,85 @@ export default function UserDashboard() {
       localStorage.setItem('userName', profileData.name || userData.name);
       localStorage.setItem('userEmail', profileData.email || userData.email);
       
-      // Try to save to backend
+      // Save to Supabase database (primary method)
       try {
-        const userIdentifier = user.email || user.uid;
-        const response = await apiCall(`/users/${userIdentifier}`, {
-          method: 'PUT',
-          body: JSON.stringify(profileData),
+        // First, ensure user profile exists in user_profiles table
+        const { data: existingProfile, error: checkError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (checkError && checkError.code !== 'PGRST116') {
+          console.log('Error checking existing profile:', checkError);
+        }
+
+        let profileUpdateResult;
+        
+        if (existingProfile) {
+          // Update existing profile
+          const { data, error } = await supabase
+            .from('user_profiles')
+            .update({
+              full_name: profileData.name,
+              email: profileData.email,
+              phone: profileData.phone,
+              address: profileData.address,
+              date_of_birth: profileData.dateOfBirth,
+              occupation: profileData.occupation,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', user.id)
+            .select()
+            .single();
+          
+          if (error) throw error;
+          profileUpdateResult = data;
+        } else {
+          // Create new profile
+          const { data, error } = await supabase
+            .from('user_profiles')
+            .insert({
+              user_id: user.id,
+              full_name: profileData.name,
+              email: profileData.email,
+              phone: profileData.phone,
+              address: profileData.address,
+              date_of_birth: profileData.dateOfBirth,
+              occupation: profileData.occupation,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+          
+          if (error) throw error;
+          profileUpdateResult = data;
+        }
+        
+        console.log('✅ Profile updated in Supabase:', profileUpdateResult);
+        
+        // Also try to update auth metadata
+        const { error: authError } = await supabase.auth.updateUser({
+          data: {
+            full_name: profileData.name,
+            phone: profileData.phone,
+            address: profileData.address,
+            date_of_birth: profileData.dateOfBirth,
+            occupation: profileData.occupation
+          }
         });
-        console.log('Profile updated in backend:', response);
-      } catch (backendError) {
-        console.log('Backend not available, saved to localStorage only');
+        
+        if (authError) {
+          console.log('Auth metadata update failed (non-critical):', authError);
+        } else {
+          console.log('✅ Auth metadata updated successfully');
+        }
+        
+      } catch (supabaseError) {
+        console.error('Failed to save to Supabase:', supabaseError);
+        // Fallback to localStorage only
+        console.log('Profile saved to localStorage only due to Supabase error');
       }
       
       toast.success('Profile updated successfully!');
