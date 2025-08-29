@@ -13,51 +13,90 @@ export function AuthProvider({ children }) {
 
   async function signup(email, password, userData = {}) {
     try {
+      console.log('Starting user registration for:', email);
+      
+      // Step 1: Create Supabase auth user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: userData
+          data: userData,
+          emailRedirectTo: `${window.location.origin}/login`
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase auth signup error:', error);
+        throw error;
+      }
       
-      // Create user profile in our users table
+      console.log('Supabase auth user created:', data.user?.id);
+      
+      // Step 2: Create user in our users table (NEW SCHEMA)
       if (data.user) {
-        const { error: profileError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            full_name: userData.full_name || userData.name || email.split('@')[0],
-            email: email
-          });
-        
-        if (profileError) console.warn('Profile creation warning:', profileError);
-
-        // Create user_profiles record to trigger referral code generation
         try {
-          const { error: userProfileError } = await supabase
-            .from('user_profiles')
+          // Generate referral code
+          const referralCode = 'SUBX-' + Math.random().toString(36).substr(2, 5).toUpperCase();
+          
+          // Insert into new users table
+          const { error: userError } = await supabase
+            .from('users_new')
             .insert({
               id: data.user.id,
-              full_name: userData.full_name || userData.name || email.split('@')[0],
+              name: userData.full_name || userData.name || email.split('@')[0],
               email: email,
-              created_at: new Date().toISOString()
-            })
-
-          if (userProfileError) {
-            console.warn('User profile creation warning:', userProfileError)
-          } else {
-            console.log('User profile created successfully, referral code should be generated')
+              phone: userData.phone || null,
+              referral_code: referralCode,
+              referred_by: userData.referral_code ? 
+                (await getUserIdByReferralCode(userData.referral_code)) : null
+            });
+          
+          if (userError) {
+            console.error('Error creating user in users_new table:', userError);
+            throw userError;
           }
-        } catch (profileError) {
-          console.warn('Failed to create user profile:', profileError)
+          
+          console.log('User created in users_new table with referral code:', referralCode);
+          
+          // Step 3: Also create in user_profiles for backward compatibility
+          try {
+            const { error: profileError } = await supabase
+              .from('user_profiles')
+              .insert({
+                id: data.user.id,
+                full_name: userData.full_name || userData.name || email.split('@')[0],
+                email: email,
+                phone: userData.phone || null,
+                referral_code: referralCode,
+                created_at: new Date().toISOString()
+              });
+            
+            if (profileError) {
+              console.warn('User profile creation warning (backward compatibility):', profileError);
+            } else {
+              console.log('User profile created for backward compatibility');
+            }
+          } catch (profileError) {
+            console.warn('Failed to create user profile (backward compatibility):', profileError);
+          }
+          
+        } catch (userTableError) {
+          console.error('Critical error creating user in database:', userTableError);
+          // If we can't create the user in our tables, we should clean up the auth user
+          try {
+            await supabase.auth.admin.deleteUser(data.user.id);
+          } catch (cleanupError) {
+            console.error('Failed to cleanup auth user after database error:', cleanupError);
+          }
+          throw new Error('Failed to create user profile. Please try again.');
         }
       }
       
+      console.log('User registration completed successfully');
       return data;
+      
     } catch (error) {
+      console.error('User registration failed:', error);
       throw error;
     }
   }
@@ -97,6 +136,38 @@ export function AuthProvider({ children }) {
   }
 
   // Google authentication removed for now
+
+  // Helper function to get user ID by referral code
+  async function getUserIdByReferralCode(referralCode) {
+    try {
+      // Try new schema first
+      const { data: newUser, error: newError } = await supabase
+        .from('users_new')
+        .select('id')
+        .eq('referral_code', referralCode)
+        .single();
+      
+      if (!newError && newUser) {
+        return newUser.id;
+      }
+      
+      // Fallback to old schema
+      const { data: oldUser, error: oldError } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('referral_code', referralCode)
+        .single();
+      
+      if (!oldError && oldUser) {
+        return oldUser.id;
+      }
+      
+      return null;
+    } catch (error) {
+      console.warn('Error getting user ID by referral code:', error);
+      return null;
+    }
+  }
 
   useEffect(() => {
     // Get initial session
