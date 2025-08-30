@@ -26,6 +26,7 @@ import ToastProvider from './components/ToastProvider'
 import InviteEarn from './pages/InviteEarn'
 import BlogIndex from './routes/blog/index'
 import LandInvestmentNigeria from './routes/blog/land-investment-nigeria'
+import CoOwnershipNigeria from './routes/blog/co-ownership-nigeria'
 
 const ProtectedRoute = ({ children, requiredUserType }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated')
@@ -239,6 +240,11 @@ const App = () => {
             <Route path="/blog/why-buying-land-can-make-you-broke" element={
               <PageTransition>
                 <LandInvestmentNigeria />
+              </PageTransition>
+            } />
+            <Route path="/blog/co-ownership-nigeria" element={
+              <PageTransition>
+                <CoOwnershipNigeria />
               </PageTransition>
             } />
           </Routes>

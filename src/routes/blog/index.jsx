@@ -5,6 +5,17 @@ import { FaArrowRight, FaCalendar, FaClock, FaUser } from 'react-icons/fa';
 const BlogIndex = () => {
   const blogPosts = [
     {
+      id: 'co-ownership-nigeria',
+      title: 'Co-Ownership in Nigeria: How Square-Meter Land Ownership is Changing Real Estate',
+      excerpt: 'Discover how Nigerians can now own land in square meters. Co-ownership makes real estate affordable, safe, and a better alternative to betting.',
+      author: 'Subx Team',
+      date: 'August 25, 2025',
+      readTime: '12 min read',
+      category: 'Co-Ownership',
+      featured: true,
+      image: '/2-seasons/2seasons-logo.jpg'
+    },
+    {
       id: 'land-investment-nigeria',
       title: 'Why Buying Land Can Make You Broke — and How Subx is Changing the Game',
       excerpt: 'Discover why traditional land buying leaves people broke and how Subx\'s revolutionary 1 sqm land ownership model is democratizing real estate ownership in Nigeria.',
@@ -12,7 +23,7 @@ const BlogIndex = () => {
       date: 'August 24, 2025',
       readTime: '8 min read',
       category: 'Land Ownership',
-      featured: true,
+      featured: false,
       image: '/2-seasons/2seasons-logo.jpg'
     },
     {

@@ -390,7 +390,7 @@ export default function LandingPage() {
               <ul className="mt-4 space-y-4">
                 {[
                   { name: 'About', href: '/about' },
-                  { name: 'Blog', href: '#' },
+                  { name: 'Blog', href: '/blog' },
                   { name: 'Careers', href: '#' }
                 ].map((item) => (
                   <li key={item.name}>
