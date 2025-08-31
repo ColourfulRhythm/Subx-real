@@ -300,8 +300,23 @@ export const batchOperations = {
       const batch = writeBatch(db);
       
       documents.forEach((docData) => {
-        const docRef = doc(db, collectionName, docData.id);
-        batch.set(docRef, docData);
+        // Ensure we have a valid ID, generate one if missing or invalid
+        let docId = docData.id;
+        
+        // Check if ID is valid (not null, undefined, or empty string)
+        if (!docId || docId === '' || docId === 'null' || docId === 'undefined') {
+          // Generate a unique ID with timestamp and random string
+          docId = `generated_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+        
+        // Ensure ID is a string and clean it
+        docId = String(docId).replace(/[^a-zA-Z0-9_-]/g, '_');
+        
+        const docRef = doc(db, collectionName, docId);
+        
+        // Remove the id field from the data to avoid conflicts
+        const { id, ...dataWithoutId } = docData;
+        batch.set(docRef, dataWithoutId);
       });
       
       await batch.commit();

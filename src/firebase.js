@@ -27,11 +27,12 @@ export const functions = getFunctions(app);
 // Connect to emulators in development
 if (import.meta.env.DEV) {
   try {
-    connectAuthEmulator(auth, 'http://localhost:9099');
-    connectFirestoreEmulator(db, 'localhost', 8080);
-    connectStorageEmulator(storage, 'localhost', 9199);
-    connectFunctionsEmulator(functions, 'localhost', 5001);
-    console.log('Firebase emulators connected');
+    // Temporarily disabled emulators to test cloud Firestore rules
+    // connectAuthEmulator(auth, 'http://localhost:9099');
+    // connectFirestoreEmulator(db, 'localhost', 8080);
+    // connectStorageEmulator(storage, 'localhost', 9199);
+    // connectFunctionsEmulator(functions, 'localhost', 5001);
+    console.log('Firebase emulators disabled - using cloud Firestore for testing');
   } catch (error) {
     console.log('Firebase emulators already connected or not available');
   }

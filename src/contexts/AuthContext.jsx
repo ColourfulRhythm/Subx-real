@@ -1,5 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../supabase';
+import { auth } from '../firebase';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut, 
+  sendPasswordResetEmail,
+  onAuthStateChanged,
+  updateProfile
+} from 'firebase/auth';
+import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const AuthContext = createContext();
 
@@ -15,85 +25,67 @@ export function AuthProvider({ children }) {
     try {
       console.log('Starting user registration for:', email);
       
-      // Step 1: Create Supabase auth user
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: userData,
-          emailRedirectTo: `${window.location.origin}/login`
-        }
-      });
+      // Step 1: Create Firebase Auth user
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
       
-      if (error) {
-        console.error('Supabase auth signup error:', error);
-        throw error;
+      console.log('Firebase Auth user created:', user.uid);
+      
+      // Step 2: Update user profile with display name
+      if (userData.name) {
+        await updateProfile(user, {
+          displayName: userData.name
+        });
       }
       
-      console.log('Supabase auth user created:', data.user?.id);
-      
-      // Step 2: Create user in our users table (NEW SCHEMA)
-      if (data.user) {
+      // Step 3: Create user document in Firestore
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = {
+          id: user.uid,
+          email: user.email,
+          name: userData.name || user.email?.split('@')[0] || 'User',
+          phone: userData.phone || '',
+          referral_code: userData.referral_code || generateReferralCode(),
+          referred_by: userData.referred_by || null,
+          created_at: new Date(),
+          updated_at: new Date(),
+          is_verified: false,
+          user_type: userData.user_type || 'investor'
+        };
+        
+        await setDoc(userDocRef, userDoc);
+        console.log('User document created in Firestore');
+        
+        // Also create in user_profiles collection for compatibility
+        const profileDocRef = doc(db, 'user_profiles', user.uid);
+        const profileDoc = {
+          id: user.uid,
+          user_id: user.uid,
+          full_name: userData.name || user.email?.split('@')[0] || 'User',
+          email: user.email,
+          phone: userData.phone || '',
+          referral_code: userDoc.referral_code,
+          created_at: new Date(),
+          updated_at: new Date()
+        };
+        
+        await setDoc(profileDocRef, profileDoc);
+        console.log('User profile created in Firestore');
+        
+      } catch (firestoreError) {
+        console.error('Critical error creating user in Firestore:', firestoreError);
+        // If we can't create the user in Firestore, we should clean up the auth user
         try {
-          // Generate referral code
-          const referralCode = 'SUBX-' + Math.random().toString(36).substr(2, 5).toUpperCase();
-          
-          // Insert into new users table
-          const { error: userError } = await supabase
-            .from('users_new')
-            .insert({
-              id: data.user.id,
-              name: userData.full_name || userData.name || email.split('@')[0],
-              email: email,
-              phone: userData.phone || null,
-              referral_code: referralCode,
-              referred_by: userData.referral_code ? 
-                (await getUserIdByReferralCode(userData.referral_code)) : null
-            });
-          
-          if (userError) {
-            console.error('Error creating user in users_new table:', userError);
-            throw userError;
-          }
-          
-          console.log('User created in users_new table with referral code:', referralCode);
-          
-          // Step 3: Also create in user_profiles for backward compatibility
-          try {
-            const { error: profileError } = await supabase
-              .from('user_profiles')
-              .insert({
-                id: data.user.id,
-                full_name: userData.full_name || userData.name || email.split('@')[0],
-                email: email,
-                phone: userData.phone || null,
-                referral_code: referralCode,
-                created_at: new Date().toISOString()
-              });
-            
-            if (profileError) {
-              console.warn('User profile creation warning (backward compatibility):', profileError);
-            } else {
-              console.log('User profile created for backward compatibility');
-            }
-          } catch (profileError) {
-            console.warn('Failed to create user profile (backward compatibility):', profileError);
-          }
-          
-        } catch (userTableError) {
-          console.error('Critical error creating user in database:', userTableError);
-          // If we can't create the user in our tables, we should clean up the auth user
-          try {
-            await supabase.auth.admin.deleteUser(data.user.id);
-          } catch (cleanupError) {
-            console.error('Failed to cleanup auth user after database error:', cleanupError);
-          }
-          throw new Error('Failed to create user profile. Please try again.');
+          await user.delete();
+        } catch (cleanupError) {
+          console.error('Failed to cleanup auth user after Firestore error:', cleanupError);
         }
+        throw new Error('Failed to create user profile. Please try again.');
       }
       
       console.log('User registration completed successfully');
-      return data;
+      return userCredential;
       
     } catch (error) {
       console.error('User registration failed:', error);
@@ -103,13 +95,8 @@ export function AuthProvider({ children }) {
 
   async function login(email, password) {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (error) throw error;
-      return data;
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      return userCredential;
     } catch (error) {
       throw error;
     }
@@ -117,8 +104,7 @@ export function AuthProvider({ children }) {
 
   async function logout() {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      await signOut(auth);
       return { success: true };
     } catch (error) {
       throw error;
@@ -127,39 +113,38 @@ export function AuthProvider({ children }) {
 
   async function resetPassword(email) {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
-      if (error) throw error;
+      await sendPasswordResetEmail(auth, email);
       return { success: true };
     } catch (error) {
       throw error;
     }
   }
 
-  // Google authentication removed for now
+  // Helper function to generate referral code
+  function generateReferralCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
 
   // Helper function to get user ID by referral code
   async function getUserIdByReferralCode(referralCode) {
     try {
-      // Try new schema first
-      const { data: newUser, error: newError } = await supabase
-        .from('users_new')
-        .select('id')
-        .eq('referral_code', referralCode)
-        .single();
+      // Try users collection first
+      const usersQuery = await getDocs(query(collection(db, 'users'), where('referral_code', '==', referralCode)));
       
-      if (!newError && newUser) {
-        return newUser.id;
+      if (!usersQuery.empty) {
+        return usersQuery.docs[0].id;
       }
       
-      // Fallback to old schema
-      const { data: oldUser, error: oldError } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('referral_code', referralCode)
-        .single();
+      // Fallback to user_profiles collection
+      const profilesQuery = await getDocs(query(collection(db, 'user_profiles'), where('referral_code', '==', referralCode)));
       
-      if (!oldError && oldUser) {
-        return oldUser.id;
+      if (!profilesQuery.empty) {
+        return profilesQuery.docs[0].id;
       }
       
       return null;
@@ -170,21 +155,21 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setCurrentUser(session?.user || null);
+    // Listen for auth state changes
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // User is signed in
+        console.log('User signed in:', user.email);
+        setCurrentUser(user);
+      } else {
+        // User is signed out
+        console.log('User signed out');
+        setCurrentUser(null);
+      }
       setLoading(false);
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setCurrentUser(session?.user || null);
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    return unsubscribe;
   }, []);
 
   const value = {
@@ -192,7 +177,8 @@ export function AuthProvider({ children }) {
     signup,
     login,
     logout,
-    resetPassword
+    resetPassword,
+    getUserIdByReferralCode
   };
 
   return (

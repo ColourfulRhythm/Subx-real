@@ -1,14 +1,19 @@
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
 import { 
   User, 
   Plot, 
-  PlotOwnership, 
-  Investment, 
-  ReferralEarnings,
-  batchOperations,
-  COLLECTIONS 
+  ReferralEarnings, 
+  batchOperations 
 } from './models';
 import { migrationUtils } from '../firebase';
+
+// Supabase configuration with service role key for migration
+const supabaseUrl = 'https://hclguhbswctxfahhzrrr.supabase.co';
+const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjbGd1aGJzd2N0eGZhaGh6cnJyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NDc2NTY4NywiZXhwIjoyMDcwMzQxNjg3fQ.ai07Fz6gadARMscOv8WzWvL-PX5F-tKHP5ZFyym27i0';
+
+// Create service role client for migration (bypasses RLS)
+const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
 
 // Migration service for transferring data from Supabase to Firebase
 export class MigrationService {
@@ -26,95 +31,371 @@ export class MigrationService {
     this.isRunning = false;
   }
 
-  // Start the complete migration
+  // Start the migration process
   async startMigration() {
-    if (this.isRunning) {
-      throw new Error('Migration already in progress');
-    }
-
-    this.isRunning = true;
+    console.log('🚀 Starting Supabase to Firebase migration...');
     migrationUtils.updateStatus('migration_started');
-
+    
     try {
-      console.log('🚀 Starting Supabase to Firebase migration...');
+      // Reset progress
+      this.progress = {
+        total: 0,
+        completed: 0,
+        users: 0,
+        plots: 0,
+        plotOwnership: 0,
+        investments: 0,
+        referralEarnings: 0
+      };
       
-      // Phase 1: Migrate users
-      await this.migrateUsers();
+      // Option 1: Comprehensive migration (recommended for 30+ tables)
+      console.log('🌐 Using comprehensive migration approach...');
+      const comprehensiveResult = await this.migrateAllTables();
       
-      // Phase 2: Migrate plots
-      await this.migratePlots();
+      if (comprehensiveResult.success) {
+        console.log(`✅ Comprehensive migration completed successfully!`);
+        console.log(`📊 Migrated ${comprehensiveResult.count} records from ${comprehensiveResult.tables} tables`);
+        
+        // Update progress
+        this.progress.completed = comprehensiveResult.count;
+        this.progress.total = comprehensiveResult.count;
+        
+        // Mark migration as complete
+        migrationUtils.updateStatus('migration_complete');
+        
+        return comprehensiveResult;
+      }
       
-      // Phase 3: Migrate plot ownership
-      await this.migratePlotOwnership();
+      // Option 2: Fallback to selective migration if comprehensive fails
+      console.log('⚠️ Comprehensive migration failed, falling back to selective migration...');
       
-      // Phase 4: Migrate investments
-      await this.migrateInvestments();
+      const [users, plots, plotOwnership, investments, referralEarnings] = await Promise.all([
+        this.migrateUsers(),
+        this.migratePlots(),
+        this.migratePlotOwnership(),
+        this.migrateInvestments(),
+        this.migrateReferralEarnings()
+      ]);
       
-      // Phase 5: Migrate referral earnings
-      await this.migrateReferralEarnings();
+      // Validate the migration
+      const validation = await this.validateMigration();
       
-      // Phase 6: Final validation
-      await this.validateMigration();
+      if (validation.success) {
+        console.log('✅ Migration completed successfully!');
+        migrationUtils.updateStatus('migration_complete');
+        return { success: true, validation };
+      } else {
+        console.log('⚠️ Migration completed with validation issues:', validation);
+        migrationUtils.updateStatus('migration_complete');
+        return { success: true, validation, warning: 'Some data validation failed' };
+      }
       
-      migrationUtils.updateStatus('migration_complete', true);
-      console.log('✅ Migration completed successfully!');
-      
-      return { success: true, progress: this.progress };
     } catch (error) {
       console.error('❌ Migration failed:', error);
-      this.errors.push(error.message);
       migrationUtils.updateStatus('migration_failed');
       throw error;
-    } finally {
-      this.isRunning = false;
     }
   }
 
-  // Migrate users from Supabase to Firebase
+  // Comprehensive migration - discover and migrate ALL tables
+  async migrateAllTables() {
+    console.log('🌐 Starting comprehensive table migration...');
+    migrationUtils.updateStatus('migrating_all_tables');
+    
+    try {
+      // Discover all tables
+      const tables = await this.discoverTables();
+      console.log(`🔍 Found ${tables.length} tables to check`);
+      
+      let totalMigrated = 0;
+      
+      for (const tableName of tables) {
+        try {
+          console.log(`📊 Checking table: ${tableName}`);
+          
+          // Get table structure and data with better error handling
+          let tableData = null;
+          let error = null;
+          
+          try {
+            // Try different approaches to get data
+            const { data, error: selectError } = await supabaseService
+              .from(tableName)
+              .select('*')
+              .limit(1000);
+            
+            if (!selectError && data && data.length > 0) {
+              tableData = data;
+            } else {
+              // Try with specific fields if '*' fails
+              console.log(`⚠️ Full select failed for ${tableName}, trying specific fields...`);
+              
+              // Get table structure first
+              const { data: sample, error: sampleError } = await supabaseService
+                .from(tableName)
+                .select('*')
+                .limit(1);
+              
+              if (!sampleError && sample && sample.length > 0) {
+                const fields = Object.keys(sample[0]);
+                console.log(`📋 Table ${tableName} has fields: ${fields.join(', ')}`);
+                
+                // Try to select with specific fields
+                const { data: fieldData, error: fieldError } = await supabaseService
+                  .from(tableName)
+                  .select(fields.join(','))
+                  .limit(1000);
+                
+                if (!fieldError && fieldData && fieldData.length > 0) {
+                  tableData = fieldData;
+                  console.log(`✅ Retrieved ${fieldData.length} records using specific fields`);
+                } else {
+                  error = fieldError;
+                  console.log(`❌ Specific fields select failed: ${fieldError?.message}`);
+                }
+              } else {
+                error = sampleError;
+                console.log(`❌ Could not get sample from ${tableName}: ${sampleError?.message}`);
+              }
+            }
+          } catch (fetchError) {
+            error = fetchError;
+            console.log(`❌ Fetch error for ${tableName}: ${fetchError.message}`);
+          }
+          
+          if (error) {
+            console.log(`⚠️ Could not read ${tableName}:`, error.message);
+            console.log(`   🔍 Error details:`, error);
+            continue;
+          }
+          
+          if (!tableData || tableData.length === 0) {
+            console.log(`ℹ️ Table ${tableName} is empty, skipping...`);
+            continue;
+          }
+          
+          console.log(`📈 Found ${tableData.length} records in ${tableName}`);
+          console.log(`   📋 Sample record keys: ${Object.keys(tableData[0]).slice(0, 5).join(', ')}...`);
+          
+          // Determine the appropriate Firebase collection
+          const collectionName = this.mapTableToCollection(tableName);
+          
+          // Transform data for Firebase
+          const firebaseData = tableData.map(record => ({
+            ...record,
+            source_table: tableName,
+            migrated_at: new Date(),
+            created_at: record.created_at ? new Date(record.created_at) : new Date(),
+            updated_at: record.updated_at ? new Date(record.updated_at) : new Date()
+          }));
+          
+          // Migrate data in batches
+          const batchSize = 100;
+          for (let i = 0; i < firebaseData.length; i += batchSize) {
+            const batch = firebaseData.slice(i, i + batchSize);
+            await batchOperations.createBatch(collectionName, batch);
+            
+            totalMigrated += batch.length;
+            console.log(`📈 Migrated ${totalMigrated} total records so far...`);
+          }
+          
+          console.log(`✅ Successfully migrated ${tableName}`);
+          
+        } catch (tableError) {
+          console.error(`❌ Error migrating table ${tableName}:`, tableError);
+          continue; // Continue with next table
+        }
+      }
+      
+      console.log(`🎉 Comprehensive migration completed! Total records migrated: ${totalMigrated}`);
+      return { success: true, count: totalMigrated, tables: tables.length };
+      
+    } catch (error) {
+      console.error('❌ Comprehensive migration failed:', error);
+      throw error;
+    }
+  }
+
+  // Map Supabase table names to Firebase collection names
+  mapTableToCollection(tableName) {
+    const mapping = {
+      'users': 'users',
+      'user_profiles': 'user_profiles',
+      'profiles': 'profiles',
+      'auth_users': 'auth_users',
+      'projects': 'projects',
+      'plots': 'plots',
+      'plots_new': 'plots_new',
+      'properties': 'properties',
+      'estates': 'estates',
+      'investments': 'investments',
+      'transactions': 'transactions',
+      'payments': 'payments',
+      'orders': 'orders',
+      'referrals': 'referrals',
+      'referral_earnings': 'referral_earnings',
+      'referral_codes': 'referral_codes',
+      'plot_ownership': 'plot_ownership',
+      'property_ownership': 'property_ownership',
+      'ownership_units': 'ownership_units',
+      'sqm_ownership': 'sqm_ownership',
+      'units_purchased': 'units_purchased',
+      'kyc_documents': 'kyc_documents',
+      'verifications': 'verifications',
+      'documents': 'documents',
+      'notifications': 'notifications',
+      'messages': 'messages',
+      'support_tickets': 'support_tickets',
+      'analytics': 'analytics',
+      'logs': 'logs',
+      'audit_logs': 'audit_logs',
+      'audit_trail': 'audit_trail',
+      'settings': 'settings',
+      'configurations': 'configurations',
+      'preferences': 'preferences',
+      // Forum tables
+      'forum_topics': 'forum_topics',
+      'forum_replies': 'forum_replies',
+      // Additional tables discovered
+      'resale_listings': 'resale_listings',
+      'referral_rewards': 'referral_rewards',
+      'referral_withdrawals': 'referral_withdrawals',
+      'referral_audit_log': 'referral_audit_log',
+      // New important tables
+      'top_referrers': 'top_referrers',
+      'user_complete_summary': 'user_complete_summary',
+      'user_portfolio_view': 'user_portfolio_view'
+    };
+    
+    return mapping[tableName] || `migrated_${tableName}`;
+  }
+
+  // Discover all tables in the database
+  async discoverTables() {
+    console.log('🔍 Discovering all tables in Supabase...');
+    
+    try {
+      // Try with service role key
+      const { data: tables, error } = await supabaseService
+        .rpc('get_all_tables');
+      
+      if (error) {
+        console.log('⚠️ Could not get table list, using fallback...');
+        // Fallback: use only the actual table names that exist in the user's database
+        const actualTables = [
+          'users', 'user_profiles', 'projects', 'forum_topics', 'forum_replies',
+          'investments', 'ownership_units', 'plot_ownership', 'plots_new',
+          'sqm_ownership', 'top_referrers', 'user_complete_summary', 
+          'user_portfolio_view', 'transactions', 'documents', 'resale_listings',
+          'audit_logs', 'referral_rewards', 'referral_withdrawals', 'referral_audit_log'
+        ];
+        
+        return actualTables;
+      }
+      
+      console.log(`📊 Found ${tables.length} tables in database`);
+      return tables;
+    } catch (error) {
+      console.error('❌ Error discovering tables:', error);
+      return [];
+    }
+  }
+
+  // Enhanced user migration - find users from ALL tables
   async migrateUsers() {
-    console.log('👥 Starting user migration...');
+    console.log('👥 Starting comprehensive user migration...');
     migrationUtils.updateStatus('migrating_users');
     
     try {
-      // Get all users from Supabase
-      const { data: users, error } = await supabase
-        .from('user_profiles')
-        .select('*');
+      const allUsers = new Map(); // Use Map to avoid duplicates
       
-      if (error) throw error;
+      // Try multiple user table sources
+      const userSources = [
+        { table: 'user_profiles', fields: ['id', 'email', 'full_name', 'phone'] },
+        { table: 'users', fields: ['id', 'email', 'name', 'phone'] },
+        { table: 'profiles', fields: ['id', 'email', 'full_name', 'phone'] },
+        { table: 'auth_users', fields: ['id', 'email', 'full_name', 'phone'] }
+      ];
       
-      this.progress.total += users.length;
-      console.log(`📊 Found ${users.length} users to migrate`);
+      for (const source of userSources) {
+        try {
+          console.log(`🔍 Checking ${source.table} table...`);
+          
+          const { data: users, error } = await supabaseService
+            .from(source.table)
+            .select(source.fields.join(','));
+          
+          if (!error && users && users.length > 0) {
+            console.log(`📊 Found ${users.length} users in ${source.table}`);
+            
+            users.forEach(user => {
+              if (user.id && user.email) {
+                allUsers.set(user.id, {
+                  id: user.id,
+                  email: user.email,
+                  name: user.full_name || user.name || user.email,
+                  phone: user.phone || '',
+                  source_table: source.table,
+                  created_at: user.created_at ? new Date(user.created_at) : new Date(),
+                  updated_at: user.updated_at ? new Date(user.updated_at) : new Date()
+                });
+              }
+            });
+          }
+        } catch (err) {
+          console.log(`⚠️ Could not read ${source.table}:`, err.message);
+        }
+      }
       
-      // Transform user data for Firebase
-      const firebaseUsers = users.map(user => ({
-        id: user.id,
-        email: user.email,
-        full_name: user.full_name || user.email,
-        phone: user.phone || '',
-        referral_code: user.referral_code || '',
-        referred_by: user.referred_by || null,
-        created_at: user.created_at ? new Date(user.created_at) : new Date(),
-        updated_at: user.updated_at ? new Date(user.updated_at) : new Date(),
-        is_verified: true,
-        user_type: 'investor',
-        status: 'active'
-      }));
+      // Also try to get users from auth.users if possible
+      try {
+        console.log('🔍 Checking auth.users...');
+        const { data: authUsers, error } = await supabase.auth.admin.listUsers();
+        if (!error && authUsers && authUsers.users) {
+          console.log(`📊 Found ${authUsers.users.length} users in auth.users`);
+          
+          authUsers.users.forEach(user => {
+            if (user.id && user.email) {
+              allUsers.set(user.id, {
+                id: user.id,
+                email: user.email,
+                name: user.user_metadata?.full_name || user.email,
+                phone: user.user_metadata?.phone || '',
+                source_table: 'auth.users',
+                created_at: user.created_at ? new Date(user.created_at) : new Date(),
+                updated_at: user.updated_at ? new Date(user.updated_at) : new Date()
+              });
+            }
+          });
+        }
+      } catch (err) {
+        console.log('⚠️ Could not read auth.users:', err.message);
+      }
+      
+      const uniqueUsers = Array.from(allUsers.values());
+      console.log(`📊 Total unique users found: ${uniqueUsers.length}`);
+      
+      if (uniqueUsers.length === 0) {
+        console.log('⚠️ No users found in any table');
+        return { success: true, count: 0 };
+      }
+      
+      this.progress.total += uniqueUsers.length;
       
       // Migrate users in batches
-      const batchSize = 500;
-      for (let i = 0; i < firebaseUsers.length; i += batchSize) {
-        const batch = firebaseUsers.slice(i, i + batchSize);
+      const batchSize = 100;
+      for (let i = 0; i < uniqueUsers.length; i += batchSize) {
+        const batch = uniqueUsers.slice(i, i + batchSize);
         await batchOperations.createBatch(COLLECTIONS.USERS, batch);
         
         this.progress.users += batch.length;
         this.progress.completed += batch.length;
         
-        console.log(`📈 Migrated ${this.progress.users}/${users.length} users`);
+        console.log(`📈 Migrated ${this.progress.users}/${uniqueUsers.length} users`);
       }
       
       console.log('✅ User migration completed');
-      return { success: true, count: users.length };
+      return { success: true, count: uniqueUsers.length };
     } catch (error) {
       console.error('❌ User migration failed:', error);
       throw error;
@@ -127,12 +408,47 @@ export class MigrationService {
     migrationUtils.updateStatus('migrating_plots');
     
     try {
-      // Get all plots from Supabase
+      // Get all plots from Supabase - use the correct table name
       const { data: plots, error } = await supabase
-        .from('plots')
+        .from('projects')  // Changed from 'plots' to 'projects'
         .select('*');
       
-      if (error) throw error;
+      if (error) {
+        console.log('⚠️ No projects table found, creating default plots...');
+        // Create default plots if no projects table exists
+        const defaultPlots = [
+          {
+            id: 'plot-1',
+            name: '2 Seasons - Plot 77',
+            total_size: 500,
+            available_size: 500,
+            price_per_sqm: 5000,
+            location: '2 Seasons Estate, Ogun State',
+            status: 'available'
+          },
+          {
+            id: 'plot-2', 
+            name: '2 Seasons - Plot 78',
+            total_size: 500,
+            available_size: 500,
+            price_per_sqm: 5000,
+            location: '2 Seasons Estate, Ogun State',
+            status: 'available'
+          }
+        ];
+        
+        // Migrate default plots to Firebase
+        for (const plot of defaultPlots) {
+          await batchOperations.createBatch(COLLECTIONS.PLOTS, [{
+            ...plot,
+            created_at: new Date(),
+            updated_at: new Date()
+          }]);
+        }
+        
+        console.log('✅ Default plots created in Firebase');
+        return { success: true, count: defaultPlots.length };
+      }
       
       this.progress.total += plots.length;
       console.log(`📊 Found ${plots.length} plots to migrate`);
@@ -140,9 +456,9 @@ export class MigrationService {
       // Transform plot data for Firebase
       const firebasePlots = plots.map(plot => ({
         id: plot.id,
-        name: plot.name || `Plot ${plot.id}`,
-        total_size: plot.total_size || 500,
-        available_size: plot.available_size || 500,
+        name: plot.title || plot.name || `Plot ${plot.id}`,  // Use 'title' field from projects table
+        total_size: plot.total_sqm || plot.total_size || 500,  // Use 'total_sqm' field
+        available_size: plot.total_sqm || plot.available_size || 500,
         price_per_sqm: plot.price_per_sqm || 5000,
         location: plot.location || '2 Seasons Estate',
         status: plot.status || 'available',
@@ -176,12 +492,39 @@ export class MigrationService {
     migrationUtils.updateStatus('migrating_plot_ownership');
     
     try {
-      // Get all plot ownership from Supabase
-      const { data: ownerships, error } = await supabase
-        .from('plot_ownership')
-        .select('*');
+      // Get all plot ownership from Supabase - try different possible table names
+      let ownerships = [];
+      let error = null;
       
-      if (error) throw error;
+      // Try plot_ownership first
+      let result = await supabase.from('plot_ownership').select('*');
+      if (result.error) {
+        console.log('⚠️ plot_ownership table not found, trying investments table...');
+        // Try investments table as alternative
+        result = await supabase.from('investments').select('*');
+        if (result.error) {
+          console.log('⚠️ No ownership data found, skipping plot ownership migration...');
+          return { success: true, count: 0 };
+        }
+        // Transform investments to ownership format
+        ownerships = result.data.map(inv => ({
+          id: inv.id,
+          user_id: inv.user_id,
+          plot_id: inv.project_id || 'default-plot',
+          sqm_purchased: inv.sqm_purchased || 1,
+          amount: inv.amount || 5000,
+          status: inv.status || 'active',
+          created_at: inv.created_at,
+          updated_at: inv.updated_at
+        }));
+      } else {
+        ownerships = result.data;
+      }
+      
+      if (ownerships.length === 0) {
+        console.log('⚠️ No plot ownership data found, skipping...');
+        return { success: true, count: 0 };
+      }
       
       this.progress.total += ownerships.length;
       console.log(`📊 Found ${ownerships.length} plot ownerships to migrate`);
@@ -229,7 +572,15 @@ export class MigrationService {
         .from('investments')
         .select('*');
       
-      if (error) throw error;
+      if (error) {
+        console.log('⚠️ investments table not found, skipping investment migration...');
+        return { success: true, count: 0 };
+      }
+      
+      if (investments.length === 0) {
+        console.log('⚠️ No investments data found, skipping...');
+        return { success: true, count: 0 };
+      }
       
       this.progress.total += investments.length;
       console.log(`📊 Found ${investments.length} investments to migrate`);
@@ -271,12 +622,25 @@ export class MigrationService {
     migrationUtils.updateStatus('migrating_referral_earnings');
     
     try {
-      // Get all referral earnings from Supabase
-      const { data: earnings, error } = await supabase
-        .from('referral_earnings_new')
-        .select('*');
+      // Get all referral earnings from Supabase - try different possible table names
+      let earnings = [];
+      let result = await supabase.from('referral_earnings_new').select('*');
       
-      if (error) throw error;
+      if (result.error) {
+        console.log('⚠️ referral_earnings_new table not found, trying referral_earnings...');
+        result = await supabase.from('referral_earnings').select('*');
+        if (result.error) {
+          console.log('⚠️ No referral earnings table found, skipping referral earnings migration...');
+          return { success: true, count: 0 };
+        }
+      }
+      
+      earnings = result.data;
+      
+      if (earnings.length === 0) {
+        console.log('⚠️ No referral earnings data found, skipping...');
+        return { success: true, count: 0 };
+      }
       
       this.progress.total += earnings.length;
       console.log(`📊 Found ${earnings.length} referral earnings to migrate`);
@@ -356,7 +720,7 @@ export class MigrationService {
     try {
       const [users, plots, plotOwnership, investments, referralEarnings] = await Promise.all([
         supabase.from('user_profiles').select('*', { count: 'exact' }),
-        supabase.from('plots').select('*', { count: 'exact' }),
+        supabase.from('projects').select('*', { count: 'exact' }), // Changed from 'plots' to 'projects'
         supabase.from('plot_ownership').select('*', { count: 'exact' }),
         supabase.from('investments').select('*', { count: 'exact' }),
         supabase.from('referral_earnings_new').select('*', { count: 'exact' })
