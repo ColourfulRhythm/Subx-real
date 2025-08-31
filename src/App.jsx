@@ -27,6 +27,7 @@ import InviteEarn from './pages/InviteEarn'
 import BlogIndex from './routes/blog/index'
 import LandInvestmentNigeria from './routes/blog/land-investment-nigeria'
 import CoOwnershipNigeria from './routes/blog/co-ownership-nigeria'
+import MigrationDashboard from './components/MigrationDashboard'
 import Contact from './routes/Contact'
 
 const ProtectedRoute = ({ children, requiredUserType }) => {
@@ -251,6 +252,11 @@ const App = () => {
             <Route path="/blog/co-ownership-nigeria" element={
               <PageTransition>
                 <CoOwnershipNigeria />
+              </PageTransition>
+            } />
+            <Route path="/migration" element={
+              <PageTransition>
+                <MigrationDashboard />
               </PageTransition>
             } />
           </Routes>
