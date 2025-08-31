@@ -124,6 +124,9 @@ export default function LandingPage() {
               </Link>
             </div>
             <div className="flex items-center space-x-4">
+              <Link to="/contact" className="text-gray-600 hover:text-gray-900">
+                Contact
+              </Link>
               <Link to="/login" className="text-gray-600 hover:text-gray-900">
                 Login
               </Link>
@@ -391,6 +394,7 @@ export default function LandingPage() {
                 {[
                   { name: 'About', href: '/about' },
                   { name: 'Blog', href: '/blog' },
+                  { name: 'Contact', href: '/contact' },
                   { name: 'Careers', href: '#' }
                 ].map((item) => (
                   <li key={item.name}>

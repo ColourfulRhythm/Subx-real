@@ -27,6 +27,7 @@ import InviteEarn from './pages/InviteEarn'
 import BlogIndex from './routes/blog/index'
 import LandInvestmentNigeria from './routes/blog/land-investment-nigeria'
 import CoOwnershipNigeria from './routes/blog/co-ownership-nigeria'
+import Contact from './routes/Contact'
 
 const ProtectedRoute = ({ children, requiredUserType }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated')
@@ -149,6 +150,11 @@ const App = () => {
             <Route path="/faq" element={
               <PageTransition>
                 <FAQ />
+              </PageTransition>
+            } />
+            <Route path="/contact" element={
+              <PageTransition>
+                <Contact />
               </PageTransition>
             } />
             <Route path="/about" element={
