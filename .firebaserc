@@ -1,12 +1,12 @@
 {
   "projects": {
-    "default": "ad-promoter-36ef7"
+    "default": "subx-825e9"
   },
   "targets": {
-    "ad-promoter-36ef7": {
+    "subx-825e9": {
       "hosting": {
         "main": [
-          "ad-promoter-36ef7"
+          "subx-825e9"
         ]
       }
     }

@@ -6,12 +6,13 @@ import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", // You'll need to add your actual API key
-  authDomain: "ad-promoter-36ef7.firebaseapp.com",
-  projectId: "ad-promoter-36ef7",
-  storageBucket: "ad-promoter-36ef7.appspot.com",
-  messagingSenderId: "123456789", // You'll need to add your actual sender ID
-  appId: "1:123456789:web:abcdef123456" // You'll need to add your actual app ID
+  apiKey: "AIzaSyC60bWkujXkpdB_jASgZhi7rb9njUXYiSc",
+  authDomain: "subx-825e9.firebaseapp.com",
+  projectId: "subx-825e9",
+  storageBucket: "subx-825e9.firebasestorage.app",
+  messagingSenderId: "853877174483",
+  appId: "1:853877174483:web:9001636a7cd1e9160ca426",
+  measurementId: "G-FNQZQRHBVL"
 };
 
 // Initialize Firebase
