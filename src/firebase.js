@@ -15,6 +15,13 @@ const firebaseConfig = {
   measurementId: "G-FNQZQRHBVL"
 };
 
+// Confirm configuration is loaded
+console.log('✅ Firebase configuration loaded successfully:', {
+  apiKey: firebaseConfig.apiKey ? 'SET' : 'MISSING',
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId
+});
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
