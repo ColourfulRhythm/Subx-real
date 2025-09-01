@@ -1,6 +1,7 @@
 {
   "projects": {
-    "default": "subx-825e9"
+    "default": "subx-825e9",
+    "production": "subx-825e9"
   },
   "targets": {
     "subx-825e9": {

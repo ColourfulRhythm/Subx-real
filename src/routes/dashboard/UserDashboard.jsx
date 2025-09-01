@@ -10,6 +10,8 @@ import jsPDF from 'jspdf';
 import PaymentSuccessModal from '../../components/PaymentSuccessModal';
 import { 
   getPlotDisplayName, 
+  getPlotLocation,
+  getPlotBranding,
   generateDocumentContent
 } from '../../utils/plotNamingConsistency';
 
