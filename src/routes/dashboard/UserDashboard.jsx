@@ -340,45 +340,7 @@ export default function UserDashboard() {
     }
   }, [userProperties]);
 
-  // Test user creation for development
-  const createTestUser = async () => {
-    try {
-      const { createUserWithEmailAndPassword } = await import('firebase/auth');
-      
-      // Create a test user
-      const userCredential = await createUserWithEmailAndPassword(
-        auth, 
-        'test@subx.com', 
-        'testpassword123'
-      );
-      
-      const user = userCredential.user;
-      console.log('Test user created:', user.email);
-      
-      // Sign in with the test user
-      await signInWithEmailAndPassword(auth, 'test@subx.com', 'testpassword123');
-      
-      toast.success('Test user created and signed in!');
-      
-      // Refresh the page to load user data
-      window.location.reload();
-      
-    } catch (error) {
-      console.error('Error creating test user:', error);
-      if (error.code === 'auth/email-already-in-use') {
-        // User already exists, try to sign in
-        try {
-          await signInWithEmailAndPassword(auth, 'test@subx.com', 'testpassword123');
-          toast.success('Test user signed in!');
-          window.location.reload();
-        } catch (signInError) {
-          toast.error('Failed to sign in test user: ' + signInError.message);
-        }
-      } else {
-        toast.error('Failed to create test user: ' + error.message);
-      }
-    }
-  };
+
 
   const handleLogout = async () => {
     try {
@@ -3431,13 +3393,7 @@ export default function UserDashboard() {
         )}
       </AnimatePresence>
 
-      {/* Test user creation for development */}
-      <button
-        onClick={createTestUser}
-        className="fixed bottom-4 right-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
-      >
-        Create Test User
-      </button>
+
     </div>
   );
 }
