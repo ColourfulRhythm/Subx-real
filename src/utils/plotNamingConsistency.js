@@ -100,6 +100,26 @@ export const transformOwnershipForDisplay = (ownership) => {
 };
 
 /**
+ * Transform co-owners data for consistent display
+ * @param {Array} coOwners - Array of co-owner objects
+ * @param {number|string} plotId - The plot ID
+ * @returns {Array} - Co-owners with consistent naming
+ */
+export const transformCoOwnersForDisplay = (coOwners, plotId) => {
+  if (!Array.isArray(coOwners)) return coOwners;
+  
+  const plotName = getPlotDisplayName(plotId);
+  
+  return coOwners.map(coOwner => ({
+    ...coOwner,
+    plotName: plotName,
+    plotReference: plotName,
+    // Ensure co-owner display is consistent
+    ownershipDisplay: `${coOwner.sqmOwned || coOwner.sqm || 0} sqm in ${plotName}`
+  }));
+};
+
+/**
  * Transform documents data for consistent display
  * @param {Array} documents - Array of document objects
  * @param {number|string} plotId - The plot ID

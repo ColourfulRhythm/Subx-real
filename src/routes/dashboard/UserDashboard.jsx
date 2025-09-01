@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { auth, db } from '../../firebase';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs, addDoc, orderBy, limit } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase, paystackKey } from '../../supabase';
+import { paystackKey } from '../../supabase';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import PaymentSuccessModal from '../../components/PaymentSuccessModal';
@@ -212,10 +215,10 @@ export default function UserDashboard() {
 
     // Check verification status - temporarily disabled for development
     const checkVerificationStatus = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = auth.currentUser;
       if (user) {
         // Check email verification
-        if (!user.email_confirmed_at) {
+        if (!user.emailVerified) {
           toast.error('Please verify your email to access the dashboard');
           navigate('/login');
           return;
@@ -224,7 +227,7 @@ export default function UserDashboard() {
         
         // CRITICAL: Clear any old data when user changes
         const lastUserId = localStorage.getItem('lastUserId');
-        if (lastUserId && lastUserId !== user.id) {
+        if (lastUserId && lastUserId !== user.uid) {
           console.log('User changed, clearing old data');
           setUserData({
             name: '',
@@ -303,7 +306,7 @@ export default function UserDashboard() {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      await signOut(auth);
       
       // CRITICAL: Clear ALL cached data on logout
       localStorage.removeItem('isAuthenticated');
@@ -888,11 +891,11 @@ export default function UserDashboard() {
   const fetchUserData = async () => {
     console.log('🚀 fetchUserData called from:', new Error().stack?.split('\n')[2] || 'unknown location');
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = auth.currentUser;
       if (!user) return;
 
       // CRITICAL FIX: Clear localStorage data when switching users
-      const currentUserId = user.id;
+      const currentUserId = user.uid;
       const lastUserId = localStorage.getItem('lastUserId');
       
       if (lastUserId && lastUserId !== currentUserId) {
@@ -907,8 +910,8 @@ export default function UserDashboard() {
       // Store current user ID
       localStorage.setItem('lastUserId', currentUserId);
 
-      // Railway backend is down, skip this step
-      console.log('Railway backend unavailable, using Supabase data only');
+      // Firebase backend is available, using Firebase data
+      console.log('Firebase backend available, using Firebase data');
 
       // Calculate totals from userProperties state instead of fetching from view
       const totalSqm = userProperties.reduce((sum, property) => sum + (property.sqmOwned || 0), 0);
@@ -922,31 +925,28 @@ export default function UserDashboard() {
         totalPlots 
       });
 
-      // Load profile data from user_profiles table
+      // Load profile data from Firebase user_profiles collection
       let profileData = null;
       try {
-        const { data: profile, error: profileError } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+        const profileRef = doc(db, 'user_profiles', user.uid);
+        const profileSnap = await getDoc(profileRef);
         
-        if (profile && !profileError) {
-          profileData = profile;
-          console.log('✅ Profile loaded from database:', profile);
+        if (profileSnap.exists()) {
+          profileData = profileSnap.data();
+          console.log('✅ Profile loaded from Firebase:', profileData);
         }
       } catch (profileError) {
-        console.log('No profile found in database, using auth metadata');
+        console.log('No profile found in Firebase, using auth metadata');
       }
 
       // Create complete userData with real investment info and profile data
       const completeUserData = {
-        name: profileData?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'User',
+        name: profileData?.full_name || user?.displayName || user?.email?.split('@')[0] || 'User',
         email: profileData?.email || user?.email || '',
-        phone: profileData?.phone || user?.user_metadata?.phone || null,
-        address: profileData?.address || user?.user_metadata?.address || null,
-        dateOfBirth: profileData?.date_of_birth || user?.user_metadata?.date_of_birth || null,
-        occupation: profileData?.occupation || user?.user_metadata?.occupation || null,
+        phone: profileData?.phone || user?.phoneNumber || null,
+        address: profileData?.address || null,
+        dateOfBirth: profileData?.date_of_birth || null,
+        occupation: profileData?.occupation || null,
         avatar: '/subx-logo/default-avatar.png',
         portfolioValue: `₦${totalAmount.toLocaleString()}`,
         totalLandOwned: `${totalSqm} sqm`,
@@ -980,7 +980,7 @@ export default function UserDashboard() {
 
   const updateUserProfile = async (profileData) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = auth.currentUser;
       if (!user) throw new Error('No authenticated user');
 
       // Update local state immediately for better UX
@@ -1003,85 +1003,55 @@ export default function UserDashboard() {
       localStorage.setItem('userName', profileData.name || userData.name);
       localStorage.setItem('userEmail', profileData.email || userData.email);
       
-      // Save to Supabase database (primary method)
+      // Save to Firebase database (primary method)
       try {
-        // First, ensure user profile exists in user_profiles table
-        const { data: existingProfile, error: checkError } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (checkError && checkError.code !== 'PGRST116') {
-          console.log('Error checking existing profile:', checkError);
-        }
+        // First, ensure user profile exists in user_profiles collection
+        const profileRef = doc(db, 'user_profiles', user.uid);
+        const profileSnap = await getDoc(profileRef);
 
         let profileUpdateResult;
         
-        if (existingProfile) {
+        if (profileSnap.exists()) {
           // Update existing profile
-          const { data, error } = await supabase
-            .from('user_profiles')
-            .update({
-              full_name: profileData.name || null,
-              email: profileData.email || null,
-              phone: profileData.phone || null,
-              address: profileData.address || null,
-              date_of_birth: profileData.dateOfBirth && profileData.dateOfBirth.trim() !== '' ? profileData.dateOfBirth : null,
-              occupation: profileData.occupation || null,
-              updated_at: new Date().toISOString()
-            })
-            .eq('user_id', user.id)
-            .select()
-            .single();
-          
-          if (error) throw error;
-          profileUpdateResult = data;
-        } else {
-          // Create new profile
-          const { data, error } = await supabase
-            .from('user_profiles')
-            .insert({
-              user_id: user.id,
-              full_name: profileData.name || null,
-              email: profileData.email || null,
-              phone: profileData.phone || null,
-              address: profileData.address || null,
-              date_of_birth: profileData.dateOfBirth && profileData.dateOfBirth.trim() !== '' ? profileData.dateOfBirth : null,
-              occupation: profileData.occupation || null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-          
-          if (error) throw error;
-          profileUpdateResult = data;
-        }
-        
-        console.log('✅ Profile updated in Supabase:', profileUpdateResult);
-        
-        // Also try to update auth metadata
-        const { error: authError } = await supabase.auth.updateUser({
-          data: {
+          await updateDoc(profileRef, {
             full_name: profileData.name || null,
+            email: profileData.email || null,
             phone: profileData.phone || null,
             address: profileData.address || null,
             date_of_birth: profileData.dateOfBirth && profileData.dateOfBirth.trim() !== '' ? profileData.dateOfBirth : null,
-            occupation: profileData.occupation || null
-          }
-        });
-        
-        if (authError) {
-          console.log('Auth metadata update failed (non-critical):', authError);
+            occupation: profileData.occupation || null,
+            updated_at: new Date().toISOString()
+          });
+          
+          const updatedSnap = await getDoc(profileRef);
+          profileUpdateResult = updatedSnap.data();
         } else {
-          console.log('✅ Auth metadata updated successfully');
+          // Create new profile
+          await setDoc(profileRef, {
+            user_id: user.uid,
+            full_name: profileData.name || null,
+            email: profileData.email || null,
+            phone: profileData.phone || null,
+            address: profileData.address || null,
+            date_of_birth: profileData.dateOfBirth && profileData.dateOfBirth.trim() !== '' ? profileData.dateOfBirth : null,
+            occupation: profileData.occupation || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+          const newSnap = await getDoc(profileRef);
+          profileUpdateResult = newSnap.data();
         }
         
-      } catch (supabaseError) {
-        console.error('Failed to save to Supabase:', supabaseError);
+        console.log('✅ Profile updated in Firebase:', profileUpdateResult);
+        
+        // Firebase Auth doesn't support custom metadata updates like Supabase
+        // Profile data is stored in Firestore instead
+        
+      } catch (firebaseError) {
+        console.error('Failed to save to Firebase:', firebaseError);
         // Fallback to localStorage only
-        console.log('Profile saved to localStorage only due to Supabase error');
+        console.log('Profile saved to localStorage only due to Firebase error');
       }
       
       toast.success('Profile updated successfully!');
@@ -1109,7 +1079,7 @@ export default function UserDashboard() {
 
   const savePropertyDocument = async (propertyId, documentData) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = auth.currentUser;
       if (!user) throw new Error('No authenticated user');
 
       const response = await apiCall(`/properties/${propertyId}/documents`, {
@@ -1130,21 +1100,24 @@ export default function UserDashboard() {
   // NUCLEAR RESET - COMPLETELY NEW FUNCTION
   const fetchUserPropertiesNUCLEAR = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = auth.currentUser;
       if (!user) return;
 
       console.log('🔥 NUCLEAR RESET - Fetching plot ownership for user:', user.email);
       
-      // Fetch from plot_ownership table instead of investments
-      const { data: plotOwnership, error } = await supabase
-        .from('plot_ownership')
-        .select('*')
-        .eq('user_id', user.id);
+      // Fetch from Firebase plot_ownership collection instead of Supabase
+      const plotOwnershipRef = collection(db, 'plot_ownership');
+      const q = query(plotOwnershipRef, where('user_id', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+      
+      const plotOwnership = [];
+      querySnapshot.forEach((doc) => {
+        plotOwnership.push({ id: doc.id, ...doc.data() });
+      });
       
       console.log('🔥 NUCLEAR RESET - Plot ownership query result:', plotOwnership);
-      console.log('🔥 NUCLEAR RESET - Query error:', error);
       
-      if (!error && plotOwnership && plotOwnership.length > 0) {
+      if (plotOwnership && plotOwnership.length > 0) {
         // Transform the data to match expected format with consistent naming
         const transformedProperties = plotOwnership.map(ownership => {
           const plotId = ownership.plot_id;
@@ -1193,7 +1166,7 @@ export default function UserDashboard() {
   const handleOwnershipSubmit = async () => {
     try {
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = auth.currentUser;
       if (!user) {
         toast.error('Please log in to make a payment');
         return;
@@ -1207,7 +1180,7 @@ export default function UserDashboard() {
       }
 
       // Check email verification
-      if (!user.email_confirmed_at) {
+      if (!user.emailVerified) {
         toast.error('Please verify your email before making a payment');
         return;
       }

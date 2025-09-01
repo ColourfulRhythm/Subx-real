@@ -10,6 +10,7 @@ import PaymentSuccessModal from '../../components/PaymentSuccessModal'
 import DeedSignatureModal from '../../components/DeedSignatureModal'
 import { generateReceipt, generateOwnershipCertificate, generateDeedPDF } from '../../components/ReceiptDownload'
 import jsPDF from 'jspdf'
+import { getPlotDisplayName, getPlotLocation } from '../../utils/plotNamingConsistency'
 // import { BadgeDisplay, Leaderboard, checkBadgeEligibility, checkAchievementMilestones } from '../../components/BadgeSystem'
 
 // API endpoints (to be implemented)
@@ -90,7 +91,7 @@ const generateReceiptBlob = async (paymentData) => {
     doc.text(`Reference: ${paymentData.reference}`, 20, 45);
     doc.text(`Name: ${paymentData.user.name}`, 20, 55);
     doc.text(`Email: ${paymentData.user.email}`, 20, 65);
-    doc.text(`Project: ${paymentData.project.title}`, 20, 75);
+    doc.text(`Project: ${getPlotDisplayName(paymentData.project.plot_id || paymentData.project.id)}`, 20, 75);
     doc.text(`Amount: ₦${paymentData.amount.toLocaleString()}`, 20, 85);
     doc.text(`Land Area: ${paymentData.sqm} sqm`, 20, 95);
     doc.text('Thank you for your payment!', 20, 115);
@@ -257,8 +258,8 @@ export default function InvestorDashboard() {
   const mockProjectsData = [
           {
         id: 1,
-        title: '2 Seasons - Plot 77',
-        description: 'Premium residential plot in 2 Seasons Estate. 500 sqm total plot size. Minimum purchase: 1 sqm at ₦5,000 per sqm.',
+              title: 'Plot 77',
+      description: 'Premium residential plot in 2 Seasons Estate. 500 sqm total plot size. Minimum purchase: 1 sqm at ₦5,000 per sqm.',
         location: 'Ogun State',
         type: 'Residential',
         amount: '₦2,500,000',
@@ -415,8 +416,8 @@ A regenerative, mixed-use lifestyle village in Ogun State — where wellness, to
     },
           {
         id: 3,
-        title: '2 Seasons - Plot 81',
-        description: 'Premium residential plot in 2 Seasons Estate. 500 sqm total plot size. Minimum purchase: 1 sqm at ₦5,000 per sqm.',
+              title: 'Plot 79',
+      description: 'Premium residential plot in 2 Seasons Estate. 500 sqm total plot size. Minimum purchase: 1 sqm at ₦5,000 per sqm.',
         location: 'Ogun State',
         type: 'Residential',
         amount: '₦2,500,000',
