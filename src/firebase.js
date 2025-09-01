@@ -4,22 +4,16 @@ import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
-// Firebase configuration - using environment variables
+// Firebase configuration - hardcoded for production
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "subx-825e9.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "subx-825e9",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "subx-825e9.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "853877174483",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:853877174483:web:9001636a7cd1e9160ca426",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-FNQZQRHBVL"
+  apiKey: "AIzaSyC60bWkujXkpdB_jASgZhi7rb9njUXYiSc",
+  authDomain: "subx-825e9.firebaseapp.com",
+  projectId: "subx-825e9",
+  storageBucket: "subx-825e9.firebasestorage.app",
+  messagingSenderId: "853877174483",
+  appId: "1:853877174483:web:9001636a7cd1e9160ca426",
+  measurementId: "G-FNQZQRHBVL"
 };
-
-// Validate required configuration
-if (!firebaseConfig.apiKey) {
-  console.error('❌ VITE_FIREBASE_API_KEY is required but not set in environment variables');
-  throw new Error('Firebase API key is required. Please set VITE_FIREBASE_API_KEY in your environment variables.');
-}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
