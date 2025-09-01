@@ -267,8 +267,15 @@ export default function UserDashboard() {
     
     // Set up auto-refresh every 30 seconds to ensure real-time data
     const refreshInterval = setInterval(async () => {
-      await fetchUserPropertiesNUCLEAR();
-      // fetchUserData() will be triggered by the useEffect when userProperties changes
+      // Check if user is still authenticated before making requests
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        await fetchUserPropertiesNUCLEAR();
+        // fetchUserData() will be triggered by the useEffect when userProperties changes
+      } else {
+        console.log('User no longer authenticated, stopping auto-refresh');
+        clearInterval(refreshInterval);
+      }
     }, 30000);
     
     // Load Paystack script
@@ -1108,7 +1115,10 @@ export default function UserDashboard() {
   const fetchUserPropertiesNUCLEAR = async () => {
     try {
       const user = auth.currentUser;
-      if (!user) return;
+      if (!user) {
+        console.log('🔥 NUCLEAR RESET - No authenticated user, skipping property fetch');
+        return;
+      }
 
       console.log('🔥 NUCLEAR RESET - Fetching plot ownership for user:', user.email);
       
