@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { supabase } from '../supabase';
+import { auth, db } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
 
 export default function ReferralWallet({ user }) {
   const [referralBalance, setReferralBalance] = useState(0);
@@ -13,29 +15,18 @@ export default function ReferralWallet({ user }) {
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    // Get current user from session if not provided
-    const getCurrentUser = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          setCurrentUser(session.user);
-          fetchReferralData(session.user.id);
-        } else {
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error getting current user:', error);
+    // Get current user from Firebase Auth
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUser(user);
+        fetchReferralData(user.uid);
+      } else {
         setLoading(false);
       }
-    };
+    });
 
-    if (user && user.id) {
-      setCurrentUser(user);
-      fetchReferralData(user.id);
-    } else {
-      getCurrentUser();
-    }
-  }, [user]);
+    return unsubscribe;
+  }, []);
 
   const fetchReferralData = async (userId) => {
     try {
@@ -48,36 +39,31 @@ export default function ReferralWallet({ user }) {
         return;
       }
       
-      // Get referral rewards
-      const { data: rewards, error: rewardsError } = await supabase
-        .from('referral_rewards')
-        .select('*')
-        .eq('referrer_id', userId)
-        .eq('status', 'paid')
-        .order('created_at', { ascending: false });
-
-      if (rewardsError) {
-        console.error('Error fetching rewards:', rewardsError);
-        // Try alternative query
-        const { data: altRewards, error: altError } = await supabase
-          .from('referral_rewards')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('status', 'paid')
-          .order('created_at', { ascending: false });
+      // Get referral rewards from Firestore
+      const referralsRef = collection(db, 'referrals');
+      const referralsQuery = query(referralsRef, where('referrer_id', '==', userId));
+      const referralsSnapshot = await getDocs(referralsQuery);
+      
+      if (!referralsSnapshot.empty) {
+        const referrals = referralsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
         
-        if (!altError && altRewards) {
-          const totalBalance = altRewards.reduce((sum, reward) => sum + (reward.amount || 0), 0) || 0;
-          setReferralBalance(totalBalance);
-          setReferralHistory(altRewards || []);
-        }
-      } else {
-        const totalBalance = rewards?.reduce((sum, reward) => sum + (reward.amount || 0), 0) || 0;
+        // Calculate total balance from completed referrals
+        const completedReferrals = referrals.filter(ref => ref.status === 'completed');
+        const totalBalance = completedReferrals.reduce((sum, ref) => sum + (ref.commission || 0), 0);
+        
         setReferralBalance(totalBalance);
-        setReferralHistory(rewards || []);
+        setReferralHistory(completedReferrals);
+      } else {
+        setReferralBalance(0);
+        setReferralHistory([]);
       }
     } catch (error) {
       console.error('Error fetching referral data:', error);
+      setReferralBalance(0);
+      setReferralHistory([]);
     } finally {
       setLoading(false);
     }
@@ -85,7 +71,7 @@ export default function ReferralWallet({ user }) {
 
   const handleBuySqm = async () => {
     try {
-      const userId = currentUser?.id || user?.id;
+      const userId = currentUser?.uid;
       
       // Safety check for user
       if (!userId) {
@@ -99,49 +85,40 @@ export default function ReferralWallet({ user }) {
         alert('Insufficient referral balance for this purchase');
         return;
       }
-
-      // Create investment using referral balance
-      const { error: investmentError } = await supabase
-        .from('investments')
-        .insert({
-          user_id: userId,
-          project_id: 1, // Default to Plot 77
-          sqm_purchased: selectedSqm,
-          amount: sqmCost,
-          payment_reference: `REF-${Date.now()}`,
-          status: 'completed',
-          source: 'referral_balance'
+      
+      // Create purchase record in Firestore
+      const purchaseRef = collection(db, 'referral_purchases');
+      await addDoc(purchaseRef, {
+        user_id: userId,
+        sqm_amount: selectedSqm,
+        cost: sqmCost,
+        purchase_date: new Date(),
+        status: 'completed'
+      });
+      
+      // Update user's referral balance
+      const newBalance = referralBalance - sqmCost;
+      setReferralBalance(newBalance);
+      
+      // Update user profile in Firestore
+      const userProfilesRef = collection(db, 'user_profiles');
+      const profileQuery = query(userProfilesRef, where('user_id', '==', userId));
+      const profileSnapshot = await getDocs(profileQuery);
+      
+      if (!profileSnapshot.empty) {
+        const profileDoc = doc(db, 'user_profiles', profileSnapshot.docs[0].id);
+        await updateDoc(profileDoc, {
+          wallet_balance: newBalance,
+          updated_at: new Date()
         });
-
-      if (investmentError) {
-        console.error('Error creating investment:', investmentError);
-        alert('Failed to create investment');
-        return;
       }
-
-      // Update referral balance
-      const { error: balanceError } = await supabase
-        .from('referral_rewards')
-        .update({ 
-          status: 'used_for_purchase',
-          used_amount: sqmCost,
-          used_at: new Date().toISOString()
-        })
-        .eq('referrer_id', userId)
-        .eq('status', 'paid');
-
-      if (balanceError) {
-        console.error('Error updating balance:', balanceError);
-      }
-
-      // Refresh data
-      await fetchReferralData(userId);
+      
       setShowBuyModal(false);
-      alert(`Successfully purchased ${selectedSqm} sqm using referral balance!`);
+      alert(`Successfully purchased ${selectedSqm} sqm for ₦${sqmCost.toLocaleString()}`);
       
     } catch (error) {
-      console.error('Error buying SQM:', error);
-      alert('Failed to purchase SQM');
+      console.error('Error processing purchase:', error);
+      alert('Failed to process purchase. Please try again.');
     }
   };
 
@@ -159,64 +136,51 @@ export default function ReferralWallet({ user }) {
 
   const handleWithdraw = async () => {
     try {
-      const userId = currentUser?.id || user?.id;
+      const userId = currentUser?.uid;
       
-      // Safety check for user
       if (!userId) {
         alert('User information not available');
         return;
       }
       
-      if (withdrawAmount > referralBalance) {
-        alert('Insufficient balance for withdrawal');
+      if (withdrawAmount <= 0 || withdrawAmount > referralBalance) {
+        alert('Invalid withdrawal amount');
         return;
       }
-
-      if (withdrawAmount < 1000) {
-        alert('Minimum withdrawal amount is ₦1,000');
-        return;
-      }
-
-      // Create withdrawal request
-      const { error: withdrawalError } = await supabase
-        .from('referral_withdrawals')
-        .insert({
-          user_id: userId,
-          amount: withdrawAmount,
-          status: 'pending',
-          created_at: new Date().toISOString()
+      
+      // Create withdrawal record in Firestore
+      const withdrawalsRef = collection(db, 'referral_withdrawals');
+      await addDoc(withdrawalsRef, {
+        user_id: userId,
+        amount: withdrawAmount,
+        withdrawal_date: new Date(),
+        status: 'pending'
+      });
+      
+      // Update user's referral balance
+      const newBalance = referralBalance - withdrawAmount;
+      setReferralBalance(newBalance);
+      
+      // Update user profile in Firestore
+      const userProfilesRef = collection(db, 'user_profiles');
+      const profileQuery = query(userProfilesRef, where('user_id', '==', userId));
+      const profileSnapshot = await getDocs(profileQuery);
+      
+      if (!profileSnapshot.empty) {
+        const profileDoc = doc(db, 'user_profiles', profileSnapshot.docs[0].id);
+        await updateDoc(profileDoc, {
+          wallet_balance: newBalance,
+          updated_at: new Date()
         });
-
-      if (withdrawalError) {
-        console.error('Error creating withdrawal:', withdrawalError);
-        alert('Failed to create withdrawal request');
-        return;
       }
-
-      // Update referral balance
-      const { error: balanceError } = await supabase
-        .from('referral_rewards')
-        .update({ 
-          status: 'withdrawal_pending',
-          withdrawal_amount: withdrawAmount,
-          withdrawal_requested_at: new Date().toISOString()
-        })
-        .eq('referrer_id', userId)
-        .eq('status', 'paid')
-        .limit(1);
-
-      if (balanceError) {
-        console.error('Error updating balance:', balanceError);
-      }
-
-      // Refresh data
-      await fetchReferralData(userId);
+      
       setShowWithdrawModal(false);
-      alert('Withdrawal request submitted successfully! You will receive payment within 24-48 hours.');
+      setWithdrawAmount(0);
+      alert(`Withdrawal request submitted for ₦${withdrawAmount.toLocaleString()}`);
       
     } catch (error) {
-      console.error('Error withdrawing:', error);
-      alert('Failed to submit withdrawal request');
+      console.error('Error processing withdrawal:', error);
+      alert('Failed to process withdrawal. Please try again.');
     }
   };
 

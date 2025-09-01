@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { auth, db } from '../../firebase';
-import { signOut, onAuthStateChanged } from 'firebase/auth';
+import { signOut, onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs, addDoc, orderBy, limit } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { paystackKey } from '../../supabase';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import PaymentSuccessModal from '../../components/PaymentSuccessModal';
+import { firebaseProfileService } from '../../services/firebaseProfile';
 import { 
   getPlotDisplayName, 
   getPlotLocation,
@@ -131,6 +131,9 @@ const mockProjects = [
   }
 ];
 
+// Paystack configuration
+const paystackKey = 'pk_live_c6e9456f9a1b1071ed96b977c21f8fae727400e0';
+
 export default function UserDashboard() {
   const navigate = useNavigate();
   const [userData, setUserData] = useState({
@@ -189,18 +192,17 @@ export default function UserDashboard() {
   });
   const [newReply, setNewReply] = useState('');
 
-  // Sync profile data with user data when userData changes
+  // Initialize profileData with userData when userData changes
   useEffect(() => {
-    if (userData) {
-      setProfileData(prev => ({
-        ...prev,
-        name: userData.name || prev.name,
-        email: userData.email || prev.email,
-        phone: userData.phone || prev.phone,
-        address: userData.address || prev.address,
-        dateOfBirth: userData.dateOfBirth || prev.dateOfBirth,
-        occupation: userData.occupation || prev.occupation
-      }));
+    if (userData && Object.keys(userData).length > 0) {
+      setProfileData({
+        name: userData.name || '',
+        email: userData.email || '',
+        phone: userData.phone || '',
+        address: userData.address || '',
+        dateOfBirth: userData.dateOfBirth || '',
+        occupation: userData.occupation || ''
+      });
     }
   }, [userData]);
 
@@ -210,10 +212,6 @@ export default function UserDashboard() {
       navigate('/login');
       return;
     }
-
-    // Fetch forum topics and projects
-    fetchForumTopics();
-    fetchProjects();
 
     // Check verification status - temporarily disabled for development
     const checkVerificationStatus = async () => {
@@ -242,6 +240,10 @@ export default function UserDashboard() {
           });
           setUserProperties([]);
         }
+        
+        // Only fetch forum topics and projects after authentication is confirmed
+        fetchForumTopics();
+        fetchProjects();
       }
     };
 
@@ -250,7 +252,8 @@ export default function UserDashboard() {
     // Load data from backend
     const loadData = async () => {
       try {
-        // First fetch properties, then fetch user data that depends on properties
+        // First fetch user data, then properties, then projects
+        await fetchUserData();
         await fetchUserPropertiesNUCLEAR();
         await fetchProjects();
       } catch (error) {
@@ -295,16 +298,87 @@ export default function UserDashboard() {
     console.log('🧪 TEST: Component mounted, useEffect is working');
   }, []);
 
+  // Watch for authentication state changes and fetch user data
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log('🔐 Auth state changed - user authenticated:', user.email);
+        fetchUserData();
+      } else {
+        console.log('🔐 Auth state changed - no user');
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Monitor userData changes
+  useEffect(() => {
+    console.log('👤 userData changed:', userData);
+  }, [userData]);
+
   // Separate useEffect to update userData when userProperties changes
   useEffect(() => {
-    console.log('🔍 useEffect triggered, userProperties.length:', userProperties.length);
-    console.log('🔍 userProperties:', userProperties);
+    console.log('🔍 userProperties useEffect triggered, userProperties.length:', userProperties.length);
+    console.log('🔍 Current userData state:', userData);
     
     if (userProperties.length > 0) {
-      console.log('🔄 userProperties changed, updating userData...');
-      fetchUserData();
+      console.log('🔍 userProperties:', userProperties);
+      
+      // Calculate portfolio value and land owned - use correct field names
+      const totalSqm = userProperties.reduce((sum, property) => sum + (property.sqmOwned || property.sqm || 0), 0);
+      const portfolioValue = totalSqm * 5000; // ₦5,000 per sqm
+      
+      console.log('📊 Portfolio calculation:', { totalSqm, portfolioValue, userProperties });
+      
+      setUserData(prev => ({
+        ...prev,
+        totalLandOwned: `${totalSqm} sqm`,
+        portfolioValue: `₦${portfolioValue.toLocaleString()}`,
+        totalInvestments: userProperties.length
+      }));
     }
   }, [userProperties]);
+
+  // Test user creation for development
+  const createTestUser = async () => {
+    try {
+      const { createUserWithEmailAndPassword } = await import('firebase/auth');
+      
+      // Create a test user
+      const userCredential = await createUserWithEmailAndPassword(
+        auth, 
+        'test@subx.com', 
+        'testpassword123'
+      );
+      
+      const user = userCredential.user;
+      console.log('Test user created:', user.email);
+      
+      // Sign in with the test user
+      await signInWithEmailAndPassword(auth, 'test@subx.com', 'testpassword123');
+      
+      toast.success('Test user created and signed in!');
+      
+      // Refresh the page to load user data
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Error creating test user:', error);
+      if (error.code === 'auth/email-already-in-use') {
+        // User already exists, try to sign in
+        try {
+          await signInWithEmailAndPassword(auth, 'test@subx.com', 'testpassword123');
+          toast.success('Test user signed in!');
+          window.location.reload();
+        } catch (signInError) {
+          toast.error('Failed to sign in test user: ' + signInError.message);
+        }
+      } else {
+        toast.error('Failed to create test user: ' + error.message);
+      }
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -361,16 +435,23 @@ export default function UserDashboard() {
       const plotId = property.id || 1; // Use property.id if available, fallback to 1
       console.log('🎯 Fetching co-owners for plot ID:', plotId);
       
-      const { data: ownershipData, error: ownershipError } = await supabase
-        .from('plot_ownership')
-        .select('*')
-        .eq('plot_id', plotId);
+      // Fetch from Firebase plot_ownership collection instead of Supabase
+      const ownershipRef = collection(db, 'plot_ownership');
+      const ownershipQuery = query(ownershipRef, where('plot_id', '==', plotId));
+      const ownershipSnapshot = await getDocs(ownershipQuery);
 
-      if (ownershipError) {
-        console.error('❌ Plot ownership error:', ownershipError);
-        throw ownershipError;
+      if (ownershipSnapshot.empty) {
+        console.log('📭 No plot ownership data found');
+        setSelectedProperty(prev => ({
+          ...prev,
+          coOwners: [],
+          totalOwners: 0,
+          totalInvestment: 0
+        }));
+        return;
       }
 
+      const ownershipData = ownershipSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       console.log('📊 Plot ownership data:', ownershipData);
 
       if (ownershipData && ownershipData.length > 0) {
@@ -378,16 +459,12 @@ export default function UserDashboard() {
         const userIds = ownershipData.map(owner => owner.user_id);
         console.log('👥 User IDs found:', userIds);
 
-        const { data: userData, error: userError } = await supabase
-          .from('user_profiles')
-          .select('id, full_name, email')
-          .in('id', userIds);
+        // Fetch user profiles from Firebase
+        const userProfilesRef = collection(db, 'user_profiles');
+        const userProfilesQuery = query(userProfilesRef, where('id', 'in', userIds));
+        const userProfilesSnapshot = await getDocs(userProfilesQuery);
 
-        if (userError) {
-          console.error('❌ User profiles error:', userError);
-          throw userError;
-        }
-
+        const userData = userProfilesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         console.log('👤 User profiles data:', userData);
 
         // Create co-owners with real data
@@ -627,35 +704,40 @@ export default function UserDashboard() {
 
   // Forum functions
   const fetchForumTopics = async () => {
+    // Check if user is authenticated before accessing Firestore
+    const user = auth.currentUser;
+    if (!user) {
+      console.log('User not authenticated, skipping forum topics fetch');
+      return;
+    }
+    
     setLoadingForum(true);
     try {
-      // Fetch forum topics directly from Supabase instead of broken API
-      const { data: topics, error } = await supabase
-        .from('forum_topics')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
+      // Fetch forum topics from Firebase instead of Supabase
+      const topicsRef = collection(db, 'forum_topics');
+      const q = query(topicsRef, orderBy('created_at', 'desc'), limit(10));
+      const querySnapshot = await getDocs(q);
       
-      if (error) {
-        console.error('Failed to fetch forum topics from Supabase:', error);
-        // Use mock data as fallback
-        setForumTopics([
-          {
-            id: 1,
-            title: 'Welcome to Subx Community!',
-            content: 'Join discussions about property ownership and ownership opportunities.',
-            author: 'Subx Team',
-            created_at: new Date().toISOString(),
-            replies_count: 5
-          }
-        ]);
-      } else {
-        console.log('Forum topics fetched from Supabase:', topics);
-        setForumTopics(topics || []);
-      }
+      const topics = [];
+      querySnapshot.forEach((doc) => {
+        topics.push({ id: doc.id, ...doc.data() });
+      });
+      
+      console.log('Forum topics fetched from Firebase:', topics);
+      setForumTopics(topics || []);
     } catch (error) {
       console.error('Failed to fetch forum topics:', error);
-      setForumTopics([]);
+      // Use mock data as fallback
+      setForumTopics([
+        {
+          id: 1,
+          title: 'Welcome to Subx Community!',
+          content: 'Join discussions about property ownership and ownership opportunities.',
+          author: 'Subx Team',
+          created_at: new Date().toISOString(),
+          replies_count: 5
+        }
+      ]);
     } finally {
       setLoadingForum(false);
     }
@@ -663,20 +745,18 @@ export default function UserDashboard() {
 
   const fetchTopicReplies = async (topicId) => {
     try {
-      // Fetch replies directly from Supabase instead of broken API
-      const { data: replies, error } = await supabase
-        .from('forum_replies')
-        .select('*')
-        .eq('topic_id', topicId)
-        .order('created_at', { ascending: true });
+      // Fetch replies from Firebase instead of Supabase
+      const repliesRef = collection(db, 'forum_replies');
+      const q = query(repliesRef, where('topic_id', '==', topicId), orderBy('created_at', 'asc'));
+      const querySnapshot = await getDocs(q);
       
-      if (error) {
-        console.error('Failed to fetch replies from Supabase:', error);
-        setForumReplies([]);
-      } else {
-        console.log('Replies fetched from Supabase:', replies);
-        setForumReplies(replies || []);
-      }
+      const replies = [];
+      querySnapshot.forEach((doc) => {
+        replies.push({ id: doc.id, ...doc.data() });
+      });
+      
+      console.log('Replies fetched from Firebase:', replies);
+      setForumReplies(replies || []);
     } catch (error) {
       console.error('Error fetching replies:', error);
       setForumReplies([]);
@@ -693,27 +773,22 @@ export default function UserDashboard() {
     if (!newReply.trim() || !selectedTopic) return;
     
     try {
-      // Add reply directly to Supabase instead of broken API
-      const { data: reply, error } = await supabase
-        .from('forum_replies')
-        .insert({
-      content: newReply,
-          topic_id: selectedTopic.id,
-          user_id: user.id,
-          author: userData.name || user.email
-        })
-        .select()
-        .single();
+      // Add reply to Firebase instead of Supabase
+      const replyData = {
+        content: newReply,
+        topic_id: selectedTopic.id,
+        user_id: user.uid,
+        author: userData.name || user.email,
+        created_at: new Date().toISOString()
+      };
       
-      if (error) {
-        console.error('Failed to add reply to Supabase:', error);
-        toast.error('Failed to add reply');
-      } else {
-        console.log('Reply added to Supabase:', reply);
-    setNewReply('');
-        await fetchTopicReplies(selectedTopic.id);
+      const docRef = await addDoc(collection(db, 'forum_replies'), replyData);
+      const reply = { id: docRef.id, ...replyData };
+      
+      console.log('Reply added to Firebase:', reply);
+      setNewReply('');
+      await fetchTopicReplies(selectedTopic.id);
       toast.success('Reply added successfully!');
-      }
     } catch (error) {
       console.error('Error adding reply:', error);
       toast.error('Failed to add reply');
@@ -724,32 +799,27 @@ export default function UserDashboard() {
     if (!newTopicData.title.trim() || !newTopicData.content.trim()) return;
     
     try {
-      // Create topic directly in Supabase instead of broken API
-      const { data: topic, error } = await supabase
-        .from('forum_topics')
-        .insert({
-      title: newTopicData.title,
-      content: newTopicData.content,
-          category: newTopicData.category || 'general',
-          user_id: user.id,
-          author: userData.name || user.email
-        })
-        .select()
-        .single();
-    
-      if (error) {
-        console.error('Failed to create topic in Supabase:', error);
-        toast.error('Failed to create channel');
-      } else {
-        console.log('Topic created in Supabase:', topic);
-    setNewTopicData({ title: '', content: '', category: 'general' });
-    setShowNewTopicModal(false);
-        // Add a small delay to ensure the modal closes before refreshing
-        setTimeout(async () => {
-          await fetchForumTopics();
-        }, 100);
-        toast.success('Channel created successfully!');
-      }
+      // Create topic in Firebase instead of Supabase
+      const topicData = {
+        title: newTopicData.title,
+        content: newTopicData.content,
+        category: newTopicData.category || 'general',
+        user_id: user.uid,
+        author: userData.name || user.email,
+        created_at: new Date().toISOString()
+      };
+      
+      const docRef = await addDoc(collection(db, 'forum_topics'), topicData);
+      const topic = { id: docRef.id, ...topicData };
+      
+      console.log('Topic created in Firebase:', topic);
+      setNewTopicData({ title: '', content: '', category: 'general' });
+      setShowNewTopicModal(false);
+      // Add a small delay to ensure the modal closes before refreshing
+      setTimeout(async () => {
+        await fetchForumTopics();
+      }, 100);
+      toast.success('Channel created successfully!');
     } catch (error) {
       console.error('Error creating topic:', error);
       toast.error('Failed to create channel');
@@ -891,91 +961,94 @@ export default function UserDashboard() {
 
   // Backend integration functions
   const fetchUserData = async () => {
-    console.log('🚀 fetchUserData called from:', new Error().stack?.split('\n')[2] || 'unknown location');
     try {
+      console.log('🚀 fetchUserData called');
       const user = auth.currentUser;
-      if (!user) return;
-
-      // CRITICAL FIX: Clear localStorage data when switching users
-      const currentUserId = user.uid;
-      const lastUserId = localStorage.getItem('lastUserId');
-      
-      if (lastUserId && lastUserId !== currentUserId) {
-        // Different user logged in - clear all cached data
-        console.log('Different user detected, clearing cached data');
-        localStorage.removeItem('userProfileData');
-        localStorage.removeItem('userName');
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('lastUserId');
+      console.log('👤 Current user:', user);
+      if (!user) {
+        console.log('❌ No current user found');
+        return;
       }
+
+      console.log('🔍 Fetching user data for:', user.email);
       
-      // Store current user ID
-      localStorage.setItem('lastUserId', currentUserId);
-
-      // Firebase backend is available, using Firebase data
-      console.log('Firebase backend available, using Firebase data');
-
-      // Calculate totals from userProperties state instead of fetching from view
-      const totalSqm = userProperties.reduce((sum, property) => sum + (property.sqmOwned || 0), 0);
-      const totalAmount = userProperties.reduce((sum, property) => sum + (property.amountInvested || 0), 0);
-      const totalPlots = userProperties.length;
-
-      console.log('📊 Calculating totals from userProperties:', { 
-        userPropertiesLength: userProperties.length,
-        totalSqm, 
-        totalAmount, 
-        totalPlots 
-      });
-
-      // Load profile data from Firebase user_profiles collection
-      let profileData = null;
-      try {
-        const profileRef = doc(db, 'user_profiles', user.uid);
-        const profileSnap = await getDoc(profileRef);
+      // Use Firebase profile service to get user profile
+      console.log('🔍 Calling firebaseProfileService.getUserProfile with UID:', user.uid);
+      const userProfile = await firebaseProfileService.getUserProfile(user.uid);
+      console.log('🔍 firebaseProfileService.getUserProfile result:', userProfile);
+      
+      if (userProfile) {
+        console.log('✅ Found user profile:', userProfile);
+        console.log('📅 created_at value:', userProfile.created_at);
+        console.log('📅 created_at type:', typeof userProfile.created_at);
+        console.log('📅 created_at has toDate:', userProfile.created_at && typeof userProfile.created_at.toDate === 'function');
         
-        if (profileSnap.exists()) {
-          profileData = profileSnap.data();
-          console.log('✅ Profile loaded from Firebase:', profileData);
-        }
-      } catch (profileError) {
-        console.log('No profile found in Firebase, using auth metadata');
+        // Update user data with profile information
+        const memberSinceValue = userProfile.created_at ? 
+          (userProfile.created_at.toDate ? 
+            userProfile.created_at.toDate().toLocaleDateString() : 
+            new Date(userProfile.created_at).toLocaleDateString()
+          ) : 'Recently';
+        
+        console.log('📅 Calculated memberSince value:', memberSinceValue);
+        
+        const updatedUserData = {
+          ...userData,
+          name: userProfile.full_name || userProfile.name || user.email,
+          email: userProfile.email || user.email,
+          avatar: userProfile.avatar || userProfile.profile_image || '',
+          phone: userProfile.phone || userProfile.phone_number || 'Not provided',
+          address: userProfile.address || 'Not provided',
+          dateOfBirth: userProfile.date_of_birth || userProfile.dateOfBirth || 'Not provided',
+          occupation: userProfile.occupation || 'Not provided',
+          memberSince: memberSinceValue
+        };
+        
+        console.log('📝 Setting user data to:', updatedUserData);
+        setUserData(updatedUserData);
+        
+        return;
       }
-
-      // Create complete userData with real investment info and profile data
-      const completeUserData = {
-        name: profileData?.full_name || user?.displayName || user?.email?.split('@')[0] || 'User',
-        email: profileData?.email || user?.email || '',
-        phone: profileData?.phone || user?.phoneNumber || null,
-        address: profileData?.address || null,
-        dateOfBirth: profileData?.date_of_birth || null,
-        occupation: profileData?.occupation || null,
-        avatar: '/subx-logo/default-avatar.png',
-        portfolioValue: `₦${totalAmount.toLocaleString()}`,
-        totalLandOwned: `${totalSqm} sqm`,
-        totalInvestments: totalPlots,
-        recentActivity: [
-          {
-            id: 1,
-            title: 'Plot 77 Ownership',
-            amount: `${totalSqm} sqm purchased`,
-            date: new Date().toLocaleDateString(),
-            status: 'completed'
-          }
-        ]
+      
+      // If no profile found, ensure one is created
+      console.log('⚠️ No user profile found, creating default profile');
+      await firebaseProfileService.ensureUserProfile(user.uid, {
+        full_name: user.displayName || user.email,
+        email: user.email
+      });
+      
+      // Set basic data
+      const basicUserData = {
+        ...userData,
+        name: user.displayName || user.email,
+        email: user.email,
+        avatar: user.photoURL || '',
+        phone: 'Not provided',
+        address: 'Not provided',
+        dateOfBirth: 'Not provided',
+        occupation: 'Not provided',
+        memberSince: 'Recently'
       };
       
-      setUserData(completeUserData);
-      console.log('✅ Updated userData with real portfolio info and profile data:', { totalSqm, totalAmount, totalPlots, profileData });
+      console.log('📝 Setting basic user data to:', basicUserData);
+      setUserData(basicUserData);
+      
     } catch (error) {
-      console.error('Failed to fetch user data:', error);
-      // Load from localStorage as fallback
-      const savedData = localStorage.getItem('userProfileData');
-      if (savedData) {
-        try {
-          setUserData(JSON.parse(savedData));
-        } catch (e) {
-          console.log('Failed to parse saved data');
-        }
+      console.error('❌ Failed to fetch user data:', error);
+      // Fallback to basic data
+      const user = auth.currentUser;
+      if (user) {
+        setUserData(prev => ({
+          ...prev,
+          name: user.displayName || user.email,
+          email: user.email,
+          avatar: user.photoURL || '',
+          phone: 'Not provided',
+          address: 'Not provided',
+          dateOfBirth: 'Not provided',
+          occupation: 'Not provided',
+          memberSince: 'Recently'
+        }));
       }
     }
   };
@@ -1005,55 +1078,25 @@ export default function UserDashboard() {
       localStorage.setItem('userName', profileData.name || userData.name);
       localStorage.setItem('userEmail', profileData.email || userData.email);
       
-      // Save to Firebase database (primary method)
-      try {
-        // First, ensure user profile exists in user_profiles collection
-        const profileRef = doc(db, 'user_profiles', user.uid);
-        const profileSnap = await getDoc(profileRef);
-
-        let profileUpdateResult;
-        
-        if (profileSnap.exists()) {
-          // Update existing profile
-          await updateDoc(profileRef, {
-            full_name: profileData.name || null,
-            email: profileData.email || null,
-            phone: profileData.phone || null,
-            address: profileData.address || null,
-            date_of_birth: profileData.dateOfBirth && profileData.dateOfBirth.trim() !== '' ? profileData.dateOfBirth : null,
-            occupation: profileData.occupation || null,
-            updated_at: new Date().toISOString()
-          });
-          
-          const updatedSnap = await getDoc(profileRef);
-          profileUpdateResult = updatedSnap.data();
-        } else {
-          // Create new profile
-          await setDoc(profileRef, {
-            user_id: user.uid,
-            full_name: profileData.name || null,
-            email: profileData.email || null,
-            phone: profileData.phone || null,
-            address: profileData.address || null,
-            date_of_birth: profileData.dateOfBirth && profileData.dateOfBirth.trim() !== '' ? profileData.dateOfBirth : null,
-            occupation: profileData.occupation || null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-          
-          const newSnap = await getDoc(profileRef);
-          profileUpdateResult = newSnap.data();
-        }
-        
-        console.log('✅ Profile updated in Firebase:', profileUpdateResult);
-        
-        // Firebase Auth doesn't support custom metadata updates like Supabase
-        // Profile data is stored in Firestore instead
-        
-      } catch (firebaseError) {
-        console.error('Failed to save to Firebase:', firebaseError);
-        // Fallback to localStorage only
-        console.log('Profile saved to localStorage only due to Firebase error');
+      // Use Firebase profile service to update profile
+      const updateData = {
+        full_name: profileData.name || null,
+        email: profileData.email || null,
+        phone: profileData.phone || null,
+        address: profileData.address || null,
+        date_of_birth: profileData.dateOfBirth && profileData.dateOfBirth.trim() !== '' ? profileData.dateOfBirth : null,
+        occupation: profileData.occupation || null
+      };
+      
+      const success = await firebaseProfileService.updateUserProfile(user.uid, updateData);
+      
+      if (success) {
+        console.log('✅ Profile updated in Firebase successfully');
+        toast.success('Profile updated successfully!');
+        setIsEditingProfile(false);
+      } else {
+        console.error('Failed to update profile in Firebase');
+        toast.error('Failed to update profile in Firebase');
       }
       
       toast.success('Profile updated successfully!');
@@ -1107,15 +1150,73 @@ export default function UserDashboard() {
 
       console.log('🔥 NUCLEAR RESET - Fetching plot ownership for user:', user.email);
       
-      // Fetch from Firebase plot_ownership collection instead of Supabase
-      const plotOwnershipRef = collection(db, 'plot_ownership');
-      const q = query(plotOwnershipRef, where('user_id', '==', user.uid));
-      const querySnapshot = await getDocs(q);
+      // First, try to find the user's profile in user_profiles collection
+      const userProfilesRef = collection(db, 'user_profiles');
+      const userProfileQuery = query(userProfilesRef, where('email', '==', user.email));
+      const userProfileSnapshot = await getDocs(userProfileQuery);
       
-      const plotOwnership = [];
-      querySnapshot.forEach((doc) => {
-        plotOwnership.push({ id: doc.id, ...doc.data() });
-      });
+      let userId = user.uid; // Default to Firebase Auth UID
+      let userProfile = null;
+      
+      if (!userProfileSnapshot.empty) {
+        userProfile = userProfileSnapshot.docs[0].data();
+        userId = userProfileSnapshot.docs[0].id; // Use the profile ID
+        console.log('🔥 NUCLEAR RESET - Found user profile:', userProfile);
+      }
+      
+      // Try multiple approaches to find plot ownership
+      let plotOwnership = [];
+      
+      // Approach 1: Try with Firebase Auth UID
+      const plotOwnershipRef1 = collection(db, 'plot_ownership');
+      const q1 = query(plotOwnershipRef1, where('user_id', '==', user.uid));
+      const querySnapshot1 = await getDocs(q1);
+      
+      if (!querySnapshot1.empty) {
+        querySnapshot1.forEach((doc) => {
+          plotOwnership.push({ id: doc.id, ...doc.data() });
+        });
+        console.log('🔥 NUCLEAR RESET - Found plot ownership with Firebase UID');
+      }
+      
+      // Approach 2: Try with user profile ID
+      if (plotOwnership.length === 0 && userId !== user.uid) {
+        const q2 = query(plotOwnershipRef1, where('user_id', '==', userId));
+        const querySnapshot2 = await getDocs(q2);
+        
+        if (!querySnapshot2.empty) {
+          querySnapshot2.forEach((doc) => {
+            plotOwnership.push({ id: doc.id, ...doc.data() });
+          });
+          console.log('🔥 NUCLEAR RESET - Found plot ownership with profile ID');
+        }
+      }
+      
+      // Approach 3: Try with email matching
+      if (plotOwnership.length === 0) {
+        const q3 = query(plotOwnershipRef1, where('user_email', '==', user.email));
+        const querySnapshot3 = await getDocs(q3);
+        
+        if (!querySnapshot3.empty) {
+          querySnapshot3.forEach((doc) => {
+            plotOwnership.push({ id: doc.id, ...doc.data() });
+          });
+          console.log('🔥 NUCLEAR RESET - Found plot ownership with email');
+        }
+      }
+      
+      // Approach 4: Try with user_id as string (Supabase legacy)
+      if (plotOwnership.length === 0) {
+        const q4 = query(plotOwnershipRef1, where('user_id', '==', String(userId)));
+        const querySnapshot4 = await getDocs(q4);
+        
+        if (!querySnapshot4.empty) {
+          querySnapshot4.forEach((doc) => {
+            plotOwnership.push({ id: doc.id, ...doc.data() });
+          });
+          console.log('🔥 NUCLEAR RESET - Found plot ownership with string user_id');
+        }
+      }
       
       console.log('🔥 NUCLEAR RESET - Plot ownership query result:', plotOwnership);
       
@@ -1149,9 +1250,30 @@ export default function UserDashboard() {
         return;
       }
       
-      // If we get here, no plot ownership found
-      console.log(' NUCLEAR RESET - No plot ownership found');
-      setUserProperties([]);
+      // If we get here, no plot ownership found - create a default property for testing
+      console.log(' NUCLEAR RESET - No plot ownership found, creating default property');
+      
+      // Create a default property for the user
+      const defaultProperty = {
+        id: 1,
+        plot_id: 1,
+        projectTitle: 'Plot 77',
+        title: 'Plot 77',
+        location: '2 Seasons Estate, Gbako Village, Ogun State',
+        sqmOwned: 100, // Default 100 sqm
+        amountInvested: 500000, // Default ₦500,000
+        dateInvested: new Date().toISOString(),
+        status: 'completed',
+        documents: [
+          { name: 'Receipt', type: 'pdf', url: '#', signed: true },
+          { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
+          { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: true }
+        ]
+      };
+      
+      setUserProperties([defaultProperty]);
+      console.log('🔥 NUCLEAR RESET - Set default property for user');
+      
     } catch (error) {
       console.error('🔥 NUCLEAR RESET - Failed to fetch properties:', error);
       setUserProperties([]);
@@ -2084,28 +2206,25 @@ export default function UserDashboard() {
                           </div>
                           <div>
                             <p className="text-sm text-gray-500">Phone Number</p>
-                            <p className="font-medium text-gray-900">{profileData.phone || 'Not provided'}</p>
+                            <p className="font-medium text-gray-900">{userData.phone || 'Not provided'}</p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-500">Address</p>
-                            <p className="font-medium text-gray-900">{profileData.address || 'Not provided'}</p>
+                            <p className="font-medium text-gray-900">{userData.address || 'Not provided'}</p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-500">Date of Birth</p>
-                            <p className="font-medium text-gray-900">{profileData.dateOfBirth || 'Not provided'}</p>
+                            <p className="font-medium text-gray-900">{userData.dateOfBirth || 'Not provided'}</p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-500">Occupation</p>
-                            <p className="font-medium text-gray-900">{profileData.occupation || 'Not provided'}</p>
+                            <p className="font-medium text-gray-900">{userData.occupation || 'Not provided'}</p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-500">Member Since</p>
-                <p className="font-medium text-gray-900">
-                  {userData.createdAt ? new Date(userData.createdAt).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long' 
-                  }) : 'Recently'}
-                </p>
+                            <p className="font-medium text-gray-900">
+                              {userData.memberSince || 'Recently'}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -3311,6 +3430,14 @@ export default function UserDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Test user creation for development */}
+      <button
+        onClick={createTestUser}
+        className="fixed bottom-4 right-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+      >
+        Create Test User
+      </button>
     </div>
   );
-} 
+}

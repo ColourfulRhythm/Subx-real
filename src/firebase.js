@@ -3,6 +3,7 @@ import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
 
 // Firebase configuration - hardcoded for production
 const firebaseConfig = {
@@ -81,4 +82,66 @@ export const migrationUtils = {
     userCount: migrationStatus.userCount,
     dataCount: migrationStatus.dataCount
   })
+};
+
+// Firebase service utilities
+export const firebaseUtils = {
+  // Get user profile from Firestore
+  async getUserProfile(userId) {
+    try {
+      const userProfilesRef = collection(db, 'user_profiles');
+      const profileQuery = query(userProfilesRef, where('user_id', '==', userId));
+      const profileSnapshot = await getDocs(profileQuery);
+      
+      if (!profileSnapshot.empty) {
+        return profileSnapshot.docs[0].data();
+      }
+      
+      // Try alternative query by email
+      const user = auth.currentUser;
+      if (user?.email) {
+        const emailQuery = query(userProfilesRef, where('email', '==', user.email));
+        const emailSnapshot = await getDocs(emailQuery);
+        if (!emailSnapshot.empty) {
+          return emailSnapshot.docs[0].data();
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+  },
+  
+  // Update user profile in Firestore
+  async updateUserProfile(userId, profileData) {
+    try {
+      const userProfilesRef = collection(db, 'user_profiles');
+      const profileQuery = query(userProfilesRef, where('user_id', '==', userId));
+      const profileSnapshot = await getDocs(profileQuery);
+      
+      if (!profileSnapshot.empty) {
+        const docRef = doc(db, 'user_profiles', profileSnapshot.docs[0].id);
+        await updateDoc(docRef, {
+          ...profileData,
+          updated_at: new Date()
+        });
+        return true;
+      } else {
+        // Create new profile if none exists
+        await addDoc(userProfilesRef, {
+          user_id: userId,
+          email: auth.currentUser?.email,
+          ...profileData,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+        return true;
+      }
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      return false;
+    }
+  }
 };

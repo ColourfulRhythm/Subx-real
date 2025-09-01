@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { supabase } from '../supabase';
+// Supabase import removed - using Firebase only
 import { 
   User, 
   Plot, 

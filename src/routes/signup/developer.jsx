@@ -1,11 +1,13 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
-import * as yup from 'yup'
-import { motion } from 'framer-motion'
-import { supabase } from '../../supabase'
-import Navbar from '../../components/Navbar'
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import { motion } from 'framer-motion';
+import { auth, db } from '../../firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { addDoc, collection } from 'firebase/firestore';
+import Navbar from '../../components/Navbar';
 
 const schema = yup.object().shape({
   name: yup.string().required('Name is required'),

@@ -15,7 +15,9 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import axios from 'axios';
-import { supabase } from '../supabase';
+import { auth, db, firebaseUtils } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { collection, query, where, getDocs, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore';
 import ReferralWallet from '../components/ReferralWallet';
 
 const InviteEarn = () => {
@@ -29,135 +31,97 @@ const InviteEarn = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchReferralData();
-  }, []);
-
-  const fetchReferralData = async () => {
-    try {
-      console.log('Starting to fetch referral data...');
-      
-      // Get current Supabase session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        setError('Authentication error: ' + sessionError.message);
-        return;
-      }
-      
-      if (!session) {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        fetchReferralData(user);
+      } else {
         console.log('No active session, redirecting to login');
         setError('Please sign in to access referral features');
         setTimeout(() => navigate('/login'), 2000);
+      }
+    });
+
+    return unsubscribe;
+  }, [navigate]);
+
+  const fetchReferralData = async (user) => {
+    try {
+      console.log('Starting to fetch referral data...');
+      
+      if (!user) {
+        console.log('No authenticated user');
+        setError('Please sign in to access referral features');
         return;
       }
 
-      console.log('Session found, user:', session.user.email);
+      console.log('Session found, user:', user.email);
 
-      // FIRST: Get user profile data directly (this should work)
+      // FIRST: Get user profile data from Firebase
       console.log('Fetching user profile data...');
-      let { data: userProfile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('referral_code, wallet_balance')
-        .eq('id', session.user.id)
-        .single();
+      let userProfile = null;
       
-      console.log('User profile response:', userProfile);
-      
-      if (profileError) {
-        console.error('Profile error:', profileError);
-        // Try alternative query
-        const { data: altProfile, error: altError } = await supabase
-          .from('user_profiles')
-          .select('referral_code, wallet_balance')
-          .eq('user_id', session.user.id)
-          .single();
+      try {
+        // Try to get profile from user_profiles collection
+        const userProfilesRef = collection(db, 'user_profiles');
+        const profileQuery = query(userProfilesRef, where('email', '==', user.email));
+        const profileSnapshot = await getDocs(profileQuery);
         
-        if (altError) {
-          console.error('Alternative profile query failed:', altError);
+        if (!profileSnapshot.empty) {
+          userProfile = profileSnapshot.docs[0].data();
+          console.log('User profile found:', userProfile);
         } else {
-          console.log('Alternative profile query successful:', altProfile);
-          userProfile = altProfile;
+          // Try alternative: get by user_id
+          const altProfileQuery = query(userProfilesRef, where('user_id', '==', user.uid));
+          const altProfileSnapshot = await getDocs(altProfileQuery);
+          
+          if (!altProfileSnapshot.empty) {
+            userProfile = altProfileSnapshot.docs[0].data();
+            console.log('Alternative profile query successful:', userProfile);
+          }
         }
+      } catch (profileError) {
+        console.error('Profile fetch error:', profileError);
       }
 
       // Set basic stats with profile data
       const basicStats = {
-        user_id: session.user.id,
-        referral_code: userProfile?.referral_code || 'SUBX-XXXXX',
-        total_referrals: 0,
-        total_earned: 0,
+        user_id: user.uid,
+        referral_code: userProfile?.referral_code || generateReferralCode(user.uid),
+        total_referrals: userProfile?.total_referrals || 0,
+        total_earned: userProfile?.total_earned || 0,
         wallet_balance: userProfile?.wallet_balance || 0,
-        referred_users: []
+        referred_users: userProfile?.referred_users || []
       };
 
       console.log('Basic stats set:', basicStats);
       setReferralStats(basicStats);
       setWalletBalance(userProfile?.wallet_balance || 0);
 
-      // SECOND: Try RPC functions (but don't fail if they don't work)
+      // SECOND: Fetch referral data from Firestore
       try {
-        console.log('Fetching referral stats via RPC...');
-        const { data: statsData, error: statsError } = await supabase
-          .rpc('get_user_referral_stats', { p_user_id: session.user.id });
-        
-        if (!statsError && statsData) {
-          console.log('RPC stats successful:', statsData);
-          // Merge RPC data with basic data, but preserve working referral_code
-          const mergedStats = {
-            ...basicStats,
-            ...statsData,
-            // CRITICAL: Preserve working referral_code, don't overwrite with null
-            referral_code: statsData.referral_code || basicStats.referral_code || 'SUBX-XXXXX',
-            // Preserve working wallet_balance, don't overwrite with null
-            wallet_balance: statsData.wallet_balance || basicStats.wallet_balance || 0
-          };
-          console.log('Merged stats with preserved data:', mergedStats);
-          setReferralStats(mergedStats);
-        } else {
-          console.log('RPC stats failed, using basic data:', statsError);
-          // Keep the working basic stats
-          setReferralStats(basicStats);
-        }
-      } catch (rpcError) {
-        console.log('RPC stats error (non-critical):', rpcError);
+        console.log('Fetching referral data from Firestore...');
+        await fetchFirestoreReferralData(user.uid, basicStats);
+      } catch (firestoreError) {
+        console.log('Firestore referral data fetch failed, using basic data:', firestoreError);
         // Keep the working basic stats
         setReferralStats(basicStats);
       }
 
-      // THIRD: Try referral history
+      // THIRD: Fetch referral history
       try {
         console.log('Fetching referral history...');
-        const { data: historyData, error: historyError } = await supabase
-          .rpc('get_user_referral_history', { p_user_id: session.user.id });
-        
-        if (!historyError && historyData) {
-          console.log('RPC history successful:', historyData);
-          setReferralHistory(historyData);
-        } else {
-          console.log('RPC history failed, using empty array:', historyError);
-          setReferralHistory([]);
-        }
-      } catch (historyRpcError) {
-        console.log('RPC history error (non-critical):', historyRpcError);
+        await fetchReferralHistory(user.uid);
+      } catch (historyError) {
+        console.log('Referral history fetch failed, using empty array:', historyError);
         setReferralHistory([]);
       }
 
-      // FOURTH: Try leaderboard
+      // FOURTH: Fetch leaderboard
       try {
         console.log('Fetching leaderboard...');
-        const { data: leaderboardData, error: leaderboardError } = await supabase
-          .rpc('get_referral_leaderboard', { p_limit: 10 });
-        
-        if (!leaderboardError && leaderboardData) {
-          console.log('RPC leaderboard successful:', leaderboardData);
-          setLeaderboard(leaderboardData);
-        } else {
-          console.log('RPC leaderboard failed, using empty array:', leaderboardError);
-          setLeaderboard([]);
-        }
-      } catch (leaderboardRpcError) {
-        console.log('RPC leaderboard error (non-critical):', leaderboardRpcError);
+        await fetchLeaderboard();
+      } catch (leaderboardError) {
+        console.log('Leaderboard fetch failed, using empty array:', leaderboardError);
         setLeaderboard([]);
       }
 
@@ -188,6 +152,90 @@ const InviteEarn = () => {
       setError(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Generate referral code for user
+  const generateReferralCode = (userId) => {
+    const prefix = 'SUBX';
+    const suffix = userId.substring(0, 5).toUpperCase();
+    return `${prefix}-${suffix}`;
+  };
+
+  // Fetch referral data from Firestore
+  const fetchFirestoreReferralData = async (userId, basicStats) => {
+    try {
+      // Get referrals collection
+      const referralsRef = collection(db, 'referrals');
+      const referralsQuery = query(referralsRef, where('referrer_id', '==', userId));
+      const referralsSnapshot = await getDocs(referralsQuery);
+      
+      if (!referralsSnapshot.empty) {
+        const referrals = referralsSnapshot.docs.map(doc => doc.data());
+        const totalReferrals = referrals.length;
+        const totalEarned = referrals.reduce((sum, ref) => sum + (ref.commission || 0), 0);
+        
+        const updatedStats = {
+          ...basicStats,
+          total_referrals: totalReferrals,
+          total_earned: totalEarned,
+          referred_users: referrals.map(ref => ({
+            email: ref.referred_email,
+            joined_date: ref.created_at,
+            status: ref.status || 'pending'
+          }))
+        };
+        
+        console.log('Firestore referral data successful:', updatedStats);
+        setReferralStats(updatedStats);
+      }
+    } catch (error) {
+      console.error('Error fetching Firestore referral data:', error);
+      throw error;
+    }
+  };
+
+  // Fetch referral history
+  const fetchReferralHistory = async (userId) => {
+    try {
+      const referralsRef = collection(db, 'referrals');
+      const referralsQuery = query(referralsRef, where('referrer_id', '==', userId));
+      const referralsSnapshot = await getDocs(referralsQuery);
+      
+      if (!referralsSnapshot.empty) {
+        const history = referralsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setReferralHistory(history);
+      }
+    } catch (error) {
+      console.error('Error fetching referral history:', error);
+      throw error;
+    }
+  };
+
+  // Fetch leaderboard
+  const fetchLeaderboard = async () => {
+    try {
+      const userProfilesRef = collection(db, 'user_profiles');
+      const leaderboardQuery = query(userProfilesRef, where('total_referrals', '>', 0));
+      const leaderboardSnapshot = await getDocs(leaderboardQuery);
+      
+      if (!leaderboardSnapshot.empty) {
+        const leaderboardData = leaderboardSnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          .sort((a, b) => (b.total_referrals || 0) - (a.total_referrals || 0))
+          .slice(0, 10);
+        
+        setLeaderboard(leaderboardData);
+      }
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+      throw error;
     }
   };
 

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { supabase } from '../../supabase';
+import { auth } from '../../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import toast from 'react-hot-toast';
 
 export default function VerificationSuccess() {
@@ -11,26 +12,18 @@ export default function VerificationSuccess() {
   const [verificationStatus, setVerificationStatus] = useState('verifying');
 
   useEffect(() => {
-    const handleVerification = async () => {
-      try {
-        // Get the session from URL parameters
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Verification error:', error);
-          setVerificationStatus('error');
-          return;
-        }
-
-        if (data.session?.user?.email_confirmed_at) {
+    const handleVerification = () => {
+      // Check if user is authenticated with Firebase
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user && user.emailVerified) {
           // Email is confirmed
           setVerificationStatus('success');
           
           // Set authentication status
           localStorage.setItem('isAuthenticated', 'true');
           localStorage.setItem('userType', 'investor');
-          localStorage.setItem('userId', data.session.user.id);
-          localStorage.setItem('userEmail', data.session.user.email);
+          localStorage.setItem('userId', user.uid);
+          localStorage.setItem('userEmail', user.email);
           
           toast.success('Email verified successfully!');
           
@@ -41,15 +34,15 @@ export default function VerificationSuccess() {
         } else {
           setVerificationStatus('pending');
         }
-      } catch (error) {
-        console.error('Verification failed:', error);
-        setVerificationStatus('error');
-      } finally {
+        
         setIsVerifying(false);
-      }
+      });
+      
+      return () => unsubscribe();
     };
 
-    handleVerification();
+    const cleanup = handleVerification();
+    return cleanup;
   }, [navigate]);
 
   if (isVerifying) {

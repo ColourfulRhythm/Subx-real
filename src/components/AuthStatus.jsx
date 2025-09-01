@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabase';
+import { auth } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const AuthStatus = () => {
   const [user, setUser] = useState(null);
@@ -15,24 +16,24 @@ const AuthStatus = () => {
   }, []);
 
   if (loading) {
-    return <div className="text-sm text-gray-500">Checking auth status...</div>;
+    return (
+      <div className="text-sm text-gray-500">
+        Checking auth status...
+      </div>
+    );
   }
 
-  if (!user) {
+  if (user) {
     return (
-      <div className="text-sm text-red-500">
-        Not authenticated
+      <div className="text-sm text-green-600">
+        ✅ Authenticated as {user.email}
       </div>
     );
   }
 
   return (
-    <div className="text-sm text-green-500">
-      ✅ Authenticated as: {user.email}
-      <br />
-      <span className="text-xs text-gray-500">
-        UID: {user.uid}
-      </span>
+    <div className="text-sm text-red-600">
+      ❌ Not authenticated
     </div>
   );
 };

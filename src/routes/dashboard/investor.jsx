@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import React, { useState, useEffect, useRef } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { motion, AnimatePresence } from 'framer-motion'
 import AIAnalysis from '../../components/AIAnalysis'
-import { supabase, paystackKey } from '../../supabase'
+// Paystack configuration
+const paystackKey = 'pk_live_c6e9456f9a1b1071ed96b977c21f8fae727400e0';
 import PaymentSuccessModal from '../../components/PaymentSuccessModal'
 import DeedSignatureModal from '../../components/DeedSignatureModal'
 import { generateReceipt, generateOwnershipCertificate, generateDeedPDF } from '../../components/ReceiptDownload'

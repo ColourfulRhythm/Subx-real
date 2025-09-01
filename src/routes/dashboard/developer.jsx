@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { apiCall } from '../../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { supabase } from '../../supabase';
+import { auth } from '../../firebase';
+import { signOut } from 'firebase/auth';
 
 // Validation schema for developer profile
 const developerSchema = yup.object().shape({
@@ -418,7 +418,7 @@ export default function DeveloperDashboard() {
   const handleLogout = async () => {
     try {
       // Sign out from Supabase Auth
-      await supabase.auth.signOut()
+      await signOut(auth)
       
       // Clear localStorage
       localStorage.removeItem('userType');

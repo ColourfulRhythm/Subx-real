@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../contexts/AuthContext'
-import { supabase } from '../../supabase'
+import { auth } from '../../firebase'
+import { signInWithEmailAndPassword } from 'firebase/auth'
 import Navbar from '../../components/Navbar'
 
 export default function Login() {
@@ -27,27 +28,24 @@ export default function Login() {
     setIsLoading(true)
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password
-      })
+      // Use Firebase authentication instead of Supabase
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      const user = userCredential.user
 
-      if (error) {
-        setError(error.message)
-        return
-      }
-
-      if (data.user) {
+      if (user) {
         // Store user info in localStorage for backward compatibility
         localStorage.setItem('isAuthenticated', 'true')
         localStorage.setItem('userType', 'investor') // Default to investor
-        localStorage.setItem('userId', data.user.id)
-        localStorage.setItem('userEmail', data.user.email)
+        localStorage.setItem('userId', user.uid)
+        localStorage.setItem('userEmail', user.email)
+        
+        console.log('User logged in with Firebase:', user.email)
         
         // Navigate to dashboard
         navigate('/dashboard/investor')
       }
     } catch (error) {
+      console.error('Firebase login error:', error)
       setError('Failed to log in: ' + error.message)
     } finally {
       setIsLoading(false)

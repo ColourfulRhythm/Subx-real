@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { supabase } from '../supabase';
+import { useParams, useNavigate } from 'react-router-dom';
+import { auth } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const PropertyDetails = () => {
   const { id } = useParams();

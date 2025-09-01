@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { supabase } from '../../supabase';
+import { auth } from '../../firebase';
+import { signOut } from 'firebase/auth';
 import AuthStatus from '../../components/AuthStatus.jsx';
 
 export default function CleanDashboard() {
@@ -11,28 +12,17 @@ export default function CleanDashboard() {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user || null);
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user || null);
       setLoading(false);
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user || null);
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Supabase signout error:', error);
-      }
+      await signOut(auth);
       localStorage.clear();
       navigate('/');
     } catch (error) {
