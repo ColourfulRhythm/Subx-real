@@ -7,9 +7,6 @@ import jsPDF from 'jspdf';
 import PaymentSuccessModal from '../../components/PaymentSuccessModal';
 import { 
   getPlotDisplayName, 
-  transformPropertyForDisplay,
-  transformDocumentsForDisplay,
-  transformCoOwnersForDisplay,
   generateDocumentContent
 } from '../../utils/plotNamingConsistency';
 
