@@ -5,6 +5,13 @@ import { supabase, paystackKey } from '../../supabase';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import PaymentSuccessModal from '../../components/PaymentSuccessModal';
+import { 
+  getPlotDisplayName, 
+  transformPropertyForDisplay,
+  transformDocumentsForDisplay,
+  transformCoOwnersForDisplay,
+  generateDocumentContent
+} from '../../utils/plotNamingConsistency';
 
 // Backend API functions
 const API_BASE_URL = 'https://subxbackend-production.up.railway.app/api';
@@ -57,8 +64,9 @@ const getRandomSiteImage = () => {
 const mockProjects = [
   {
     id: 1,
-    title: '2 Seasons - Plot 77',
-    location: '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state',
+    plot_id: 1, // Add plot_id for consistent naming
+    title: 'Plot 77',
+    location: '2 Seasons Estate, Gbako Village, Ogun State',
     price: '₦5,000/sq.m',
     totalSqm: 500,
     availableSqm: 500,
@@ -69,8 +77,9 @@ const mockProjects = [
   },
   {
     id: 2,
-    title: '2 Seasons - Plot 79',
-    location: '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state',
+    plot_id: 2, // Add plot_id for consistent naming
+    title: 'Plot 78',
+    location: '2 Seasons Estate, Ogun State',
     price: '₦5,000/sq.m',
     totalSqm: 500,
     availableSqm: 500,
@@ -81,8 +90,9 @@ const mockProjects = [
   },
   {
     id: 3,
-    title: '2 Seasons - Plot 81',
-    location: '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state',
+    plot_id: 3, // Add plot_id for consistent naming
+    title: 'Plot 79',
+    location: '2 Seasons Estate, Ogun State',
     price: '₦5,000/sq.m',
     totalSqm: 500,
     availableSqm: 500,
@@ -93,8 +103,9 @@ const mockProjects = [
   },
   {
     id: 4,
-    title: '2 Seasons - Plot 84',
-    location: '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state',
+    plot_id: 4, // Add plot_id for consistent naming
+    title: 'Plot 84',
+    location: '2 Seasons Estate, Ogun State',
     price: '₦5,000/sq.m',
     totalSqm: 500,
     availableSqm: 500,
@@ -105,8 +116,9 @@ const mockProjects = [
   },
   {
     id: 5,
-    title: '2 Seasons - Plot 87',
-    location: '2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state',
+    plot_id: 5, // Add plot_id for consistent naming
+    title: 'Plot 87',
+    location: '2 Seasons Estate, Ogun State',
     price: '₦5,000/sq.m',
     totalSqm: 500,
     availableSqm: 500,
@@ -434,45 +446,62 @@ export default function UserDashboard() {
   };
 
   const handleViewDocuments = (property) => {
-    // Generate real documents based on the property data
+    // Generate real documents based on the property data with correct plot information
+    const plotId = property.plot_id || property.id;
+    const sqmOwned = property.sqm || property.sqmOwned || 0;
+    const plotName = getPlotDisplayName(plotId);
+    
     const realDocuments = [
       {
         name: 'Ownership Receipt',
-        type: 'pdf',
+        type: 'receipt',
         url: '#',
         signed: true,
-        description: `Receipt for ${property.sqmOwned} sqm purchase in ${property.projectTitle}`,
-        date: property.dateInvested || new Date().toISOString()
+        description: `Receipt for ${sqmOwned} sqm purchase in ${plotName}`,
+        date: property.dateInvested || new Date().toISOString(),
+        sqmOwned: sqmOwned,
+        plotName: plotName
       },
       {
         name: 'Deed of Assignment',
-        type: 'pdf',
+        type: 'deed',
         url: '#',
         signed: false,
         description: 'Legal document transferring land ownership rights',
-        date: new Date().toISOString()
+        date: new Date().toISOString(),
+        sqmOwned: sqmOwned,
+        plotName: plotName
       },
       {
         name: 'Co-ownership Certificate',
-        type: 'pdf',
+        type: 'certificate',
         url: '#',
         signed: true,
-        description: `Certificate confirming ownership of ${property.sqmOwned} sqm`,
-        date: property.dateInvested || new Date().toISOString()
+        description: `Certificate confirming ownership of ${sqmOwned} sqm`,
+        date: property.dateInvested || new Date().toISOString(),
+        sqmOwned: sqmOwned,
+        plotName: plotName
       },
       {
         name: 'Land Survey Report',
-        type: 'pdf',
+        type: 'survey',
         url: '#',
         signed: true,
         description: 'Official survey of the purchased land area',
-        date: new Date().toISOString()
+        date: new Date().toISOString(),
+        sqmOwned: sqmOwned,
+        plotName: plotName
       }
     ];
     
+    // Generate proper document content using the utility
+    const enhancedDocuments = realDocuments.map(doc => 
+      generateDocumentContent(doc, property, userData)
+    );
+    
     setSelectedProperty({
       ...property,
-      documents: realDocuments
+      documents: enhancedDocuments
     });
     setShowDocumentsModal(true);
   };
@@ -679,7 +708,7 @@ export default function UserDashboard() {
         toast.error('Failed to add reply');
       } else {
         console.log('Reply added to Supabase:', reply);
-      setNewReply('');
+    setNewReply('');
         await fetchTopicReplies(selectedTopic.id);
       toast.success('Reply added successfully!');
       }
@@ -1119,22 +1148,29 @@ export default function UserDashboard() {
       console.log('🔥 NUCLEAR RESET - Query error:', error);
       
       if (!error && plotOwnership && plotOwnership.length > 0) {
-        // Transform the data to match expected format
-        const transformedProperties = plotOwnership.map(ownership => ({
-          id: ownership.plot_id,
-          projectTitle: `Plot ${ownership.plot_id}`,
-          title: `Plot ${ownership.plot_id}`,
-          location: '2 Seasons, Gbako Village, Ogun State',
-          sqmOwned: ownership.sqm_owned || 0,
-          amountInvested: ownership.amount_paid || 0,
-          dateInvested: ownership.created_at || new Date().toISOString(),
-          status: 'completed',
-          documents: [
-            { name: 'Receipt', type: 'pdf', url: '#', signed: true },
-            { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
-            { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: true }
-          ]
-        }));
+        // Transform the data to match expected format with consistent naming
+        const transformedProperties = plotOwnership.map(ownership => {
+          const plotId = ownership.plot_id;
+          const plotName = getPlotDisplayName(plotId);
+          const location = getPlotLocation(plotId);
+          
+          return {
+            id: plotId,
+            plot_id: plotId, // Add plot_id for consistent naming
+            projectTitle: plotName,
+            title: plotName,
+            location: location,
+            sqmOwned: ownership.sqm_owned || 0,
+            amountInvested: ownership.amount_paid || 0,
+            dateInvested: ownership.created_at || new Date().toISOString(),
+            status: 'completed',
+            documents: [
+              { name: 'Receipt', type: 'pdf', url: '#', signed: true },
+              { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
+              { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: true }
+            ]
+          };
+        });
         
         setUserProperties(transformedProperties);
         console.log('🔥 NUCLEAR RESET - User properties set from plot ownership:', transformedProperties);
@@ -1221,11 +1257,11 @@ export default function UserDashboard() {
             // Create investment record
             const investmentData = {
               investorId: user.email || user.uid,
-              projectTitle: selectedProject.title,
+              projectTitle: getPlotDisplayName(selectedProject.plot_id || selectedProject.id),
               projectId: selectedProject.id,
               sqm: selectedSqm,
               amount: selectedSqm * 5000,
-              location: selectedProject.location,
+              location: getPlotLocation(selectedProject.plot_id || selectedProject.id),
               description: selectedProject.description,
               paymentReference: response.reference,
               status: 'completed',
@@ -1545,7 +1581,7 @@ export default function UserDashboard() {
                     <div className="relative">
                       <img 
                         src={project.image || '/2-seasons/2seasons-logo.jpg'} 
-                        alt={project.title} 
+                        alt={getPlotDisplayName(project.plot_id || project.id)} 
                         className="w-full h-48 object-cover"
                         onError={(e) => {
                           e.target.src = '/2-seasons/2seasons-logo.jpg';
@@ -1557,13 +1593,13 @@ export default function UserDashboard() {
                     </div>
                     
                     <div className="p-6">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">{project.title}</h3>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">{getPlotDisplayName(project.plot_id || project.id)}</h3>
                       <p className="text-gray-600 mb-4">{project.description}</p>
                       
                       <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
                           <p className="text-sm text-gray-500">Location</p>
-                          <p className="font-medium text-gray-900">{project.location}</p>
+                          <p className="font-medium text-gray-900">{getPlotLocation(project.plot_id || project.id)}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Price</p>
@@ -1728,7 +1764,7 @@ export default function UserDashboard() {
                     <div className="p-6">
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <h3 className="text-xl font-semibold text-gray-900 mb-1">{property.title}</h3>
+                          <h3 className="text-xl font-semibold text-gray-900 mb-1">{getPlotDisplayName(property.plot_id || property.id)}</h3>
                           <p className="text-gray-600 text-sm">{property.location}</p>
                         </div>
                         <div className="text-right">
@@ -1737,7 +1773,7 @@ export default function UserDashboard() {
                         </div>
                       </div>
 
-                      <p className="text-gray-600 mb-4">Plot 77 - 2 Seasons Development</p>
+                      <p className="text-gray-600 mb-4">{getPlotDisplayName(property.plot_id || property.id)} - 2 Seasons Development</p>
                       
                       <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
@@ -1805,7 +1841,7 @@ export default function UserDashboard() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                     <h3 className="mt-4 text-lg font-medium text-gray-900">No properties yet</h3>
-                    <p className="mt-2 text-sm text-gray-500">Your Plot 77 ownership will appear here after you make purchases.</p>
+                    <p className="mt-2 text-sm text-gray-500">Your plot ownership will appear here after you make purchases.</p>
                     <div className="mt-6">
                       <button
                         onClick={() => setActiveTab('opportunities')}
@@ -1844,7 +1880,7 @@ export default function UserDashboard() {
                             className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-3 rounded-lg"
                             onClick={() => togglePlotDocuments(property.id)}
                           >
-                            <h3 className="text-lg font-semibold text-gray-900">{property.title}</h3>
+                            <h3 className="text-lg font-semibold text-gray-900">{getPlotDisplayName(property.plot_id || property.id)}</h3>
                             <div className="flex items-center space-x-2">
                               <span className="text-sm text-gray-500">{property.documents?.length || 0} documents</span>
                               <svg 
@@ -1874,6 +1910,9 @@ export default function UserDashboard() {
                                   }`}>
                                     {document.signed ? 'Signed' : 'Pending'}
                                   </span>
+                                </div>
+                                <div className="text-sm text-gray-600 mb-3">
+                                  {document.document_content || document.description || document.content}
                                 </div>
                                 <div className="flex space-x-2">
                                     <button 
@@ -1907,7 +1946,7 @@ export default function UserDashboard() {
                       {/* Show documents from user properties */}
                       {userProperties && userProperties.map((property) => (
                         <div key={property.id} className="border-b border-gray-200 pb-6 last:border-b-0">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4">{property.title}</h3>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">{getPlotDisplayName(property.plot_id || property.id)}</h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {property.documents?.map((document, index) => (
                               <div key={index} className="bg-gray-50 rounded-lg p-4">
@@ -1924,8 +1963,14 @@ export default function UserDashboard() {
                                     {document.signed ? 'Signed' : 'Pending'}
                                   </span>
                                 </div>
+                                <div className="text-sm text-gray-600 mb-3">
+                                  {document.document_content || document.description || document.content}
+                                </div>
                                 <div className="flex space-x-2">
-                                  <button className="flex-1 px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
+                                  <button 
+                                    onClick={() => handleViewDocument(document)}
+                                    className="flex-1 px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
+                                  >
                                     View
                                   </button>
                                   {!document.signed && (
@@ -2322,7 +2367,7 @@ export default function UserDashboard() {
               className="bg-white rounded-2xl max-w-md w-full p-6"
             >
               <div className="flex justify-between items-start mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Own Land in {selectedProject.title}</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Own Land in {getPlotDisplayName(selectedProject.plot_id || selectedProject.id)}</h2>
                 <button onClick={() => setShowOwnershipModal(false)} className="text-gray-400 hover:text-gray-600">
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2334,13 +2379,13 @@ export default function UserDashboard() {
                 <div>
                                         <img 
                         src={selectedProject.image || '/2-seasons/2seasons-logo.jpg'} 
-                        alt={selectedProject.title} 
+                        alt={getPlotDisplayName(selectedProject.plot_id || selectedProject.id)} 
                         className="w-full h-48 object-cover rounded-lg mb-4"
                         onError={(e) => {
                           e.target.src = '/2-seasons/2seasons-logo.jpg';
                         }}
                       />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{selectedProject.title}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{getPlotDisplayName(selectedProject.plot_id || selectedProject.id)}</h3>
                   <p className="text-gray-600 mb-4">{selectedProject.description}</p>
                 </div>
                 
@@ -2429,7 +2474,7 @@ export default function UserDashboard() {
             >
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4 sm:mb-6">
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Co-owners - {selectedProperty.title}</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Co-owners - {getPlotDisplayName(selectedProperty.plot_id || selectedProperty.id)}</h2>
                   <button onClick={() => setShowCoOwnersModal(false)} className="text-gray-400 hover:text-gray-600">
                     <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2654,16 +2699,16 @@ export default function UserDashboard() {
                   <p className="text-gray-600 mb-4">This is a preview of the {selectedDocument.name} document that you are about to sign.</p>
                   <div className="bg-white border border-gray-200 rounded-lg p-4 min-h-[200px]">
                     <p className="text-sm text-gray-600">
-                      {selectedDocument.name === 'Receipt' && (
+                      {selectedDocument.name === 'Ownership Receipt' && (
                         <>
                           <strong>PAYMENT RECEIPT</strong><br/><br/>
                           <strong>Date:</strong> {new Date().toLocaleDateString()}<br/>
                           <strong>Receipt No:</strong> SUBX-{Math.floor(Math.random() * 1000000)}<br/><br/>
                           <strong>PAYMENT DETAILS:</strong><br/>
-                          • Property: {selectedProperty?.projectTitle || '2 Seasons Plot'}<br/>
+                          • Property: {selectedProperty?.plotName || selectedProperty?.projectTitle || getPlotDisplayName(selectedProperty?.plot_id)}<br/>
                           • Location: 2 Seasons, Gbako Village, Ogun State<br/>
-                          • Square Meters: {selectedProperty?.sqm || '[SQM]'} sqm<br/>
-                          • Amount Paid: ₦{(selectedProperty?.amount || 0).toLocaleString()}<br/>
+                          • Square Meters: {selectedDocument?.sqmOwned || selectedProperty?.sqm || '[SQM]'} sqm<br/>
+                          • Amount Paid: ₦{((selectedDocument?.sqmOwned || selectedProperty?.sqm || 0) * 5000).toLocaleString()}<br/>
                           • Payment Method: Paystack<br/>
                           • Status: Completed<br/><br/>
                           <strong>BUYER:</strong> {userData.name}<br/>
@@ -2671,24 +2716,24 @@ export default function UserDashboard() {
                           <strong>This receipt confirms successful payment for the above property.</strong>
                         </>
                       )}
-                      {selectedDocument.name === 'Deed of Sale (per owner)' && (
+                      {selectedDocument.name === 'Deed of Assignment' && (
                         <>
-                      <strong>DEED OF SALE</strong><br/><br/>
-                          This Deed of Sale is made on {new Date().toLocaleDateString()} between:<br/><br/>
-                      <strong>SELLER:</strong> Focal Point Property Development and Management Services Ltd.<br/>
-                      <strong>BUYER:</strong> {userData.name}<br/><br/>
-                          For the purchase of land in 2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state.<br/><br/>
+                      <strong>DEED OF ASSIGNMENT</strong><br/><br/>
+                          This Deed of Assignment is made on {new Date().toLocaleDateString()} between:<br/><br/>
+                      <strong>ASSIGNOR:</strong> Focal Point Property Development and Management Services Ltd.<br/>
+                      <strong>ASSIGNEE:</strong> {userData.name}<br/><br/>
+                          For the assignment of land rights in 2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state.<br/><br/>
                       <strong>PROPERTY DETAILS:</strong><br/>
-                      • Location: 2 Seasons, Along Gbako/Kajola village road, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state<br/>
-                          • Plot Number: {selectedProperty?.projectTitle?.split(' - ')[1] || '[Plot Number]'}<br/>
-                      • Square Meters: {selectedProperty?.sqm || '[SQM]'} sqm<br/>
-                      • Purchase Price: ₦{(selectedProperty?.amount || 0).toLocaleString()}<br/><br/>
+                      • Location: 2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state<br/>
+                          • Plot Number: {selectedProperty?.plotName || getPlotDisplayName(selectedProperty?.plot_id)}<br/>
+                      • Square Meters: {selectedDocument?.sqmOwned || selectedProperty?.sqm || '[SQM]'} sqm<br/>
+                      • Assignment Value: ₦{((selectedDocument?.sqmOwned || selectedProperty?.sqm || 0) * 5000).toLocaleString()}<br/><br/>
                       <strong>TERMS AND CONDITIONS:</strong><br/>
-                      1. The Seller hereby transfers ownership of the specified land to the Buyer<br/>
-                      2. The Buyer acknowledges receipt of the property and agrees to all terms<br/>
+                      1. The Assignor hereby transfers land ownership rights to the Assignee<br/>
+                      2. The Assignee acknowledges receipt of the property rights and agrees to all terms<br/>
                       3. This deed is legally binding and enforceable under Nigerian law<br/><br/>
                       <strong>SIGNATURE SECTION:</strong><br/>
-                      Buyer Signature: _________________<br/>
+                      Assignee Signature: _________________<br/>
                       Date: _________________
                         </>
                       )}
@@ -2701,12 +2746,32 @@ export default function UserDashboard() {
                           <strong>{userData.name}</strong><br/>
                           <strong>Email:</strong> {userData.email}<br/><br/>
                           <strong>Is a verified co-owner of:</strong><br/>
-                          • Property: {selectedProperty?.projectTitle || '2 Seasons Plot'}<br/>
-                          • Location: 2 Seasons, Gbako Village, Ogun State<br/>
-                          • Square Meters: {selectedProperty?.sqm || '[SQM]'} sqm<br/>
-                          • Ownership Percentage: 100%<br/><br/>
+                          • Property: {selectedProperty?.plotName || getPlotDisplayName(selectedProperty?.plot_id)}<br/>
+                          • Location: 2 Seasons Estate, Gbako Village, Ogun State<br/>
+                          • Square Meters: {selectedDocument?.sqmOwned || selectedProperty?.sqm || '[SQM]'} sqm<br/>
+                          • Ownership Percentage: {selectedDocument?.ownershipPercentage || ((selectedDocument?.sqmOwned || selectedProperty?.sqm || 0) / 500 * 100).toFixed(2)}%<br/><br/>
                           <strong>This certificate confirms legal co-ownership status.</strong><br/><br/>
                           <strong>Issued by:</strong> Subx Real Estate Platform<br/>
+                          <strong>Date:</strong> {new Date().toLocaleDateString()}
+                        </>
+                      )}
+                      {selectedDocument.name === 'Land Survey Report' && (
+                        <>
+                          <strong>LAND SURVEY REPORT</strong><br/><br/>
+                          <strong>Report No:</strong> LSR-{Math.floor(Math.random() * 1000000)}<br/>
+                          <strong>Date:</strong> {new Date().toLocaleDateString()}<br/><br/>
+                          <strong>PROPERTY SURVEY DETAILS:</strong><br/>
+                          • Property: {selectedProperty?.plotName || getPlotDisplayName(selectedProperty?.plot_id)}<br/>
+                          • Location: 2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun State<br/>
+                          • Total Plot Size: 500 sqm<br/>
+                          • Owner's Portion: {selectedDocument?.sqmOwned || selectedProperty?.sqm || '[SQM]'} sqm<br/>
+                          • Survey Date: {new Date().toLocaleDateString()}<br/><br/>
+                          <strong>SURVEY FINDINGS:</strong><br/>
+                          • Land is properly demarcated and surveyed<br/>
+                          • All boundaries are clearly defined<br/>
+                          • Land is suitable for residential development<br/>
+                          • No encumbrances or disputes detected<br/><br/>
+                          <strong>Surveyor:</strong> Licensed Surveyor<br/>
                           <strong>Date:</strong> {new Date().toLocaleDateString()}
                         </>
                       )}
@@ -2835,7 +2900,7 @@ export default function UserDashboard() {
             >
               <div className="p-6">
                 <div className="flex justify-between items-start mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedProject.title}</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">{getPlotDisplayName(selectedProject.plot_id || selectedProject.id)}</h2>
                   <button onClick={() => setShowProjectModal(false)} className="text-gray-400 hover:text-gray-600">
                     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2850,13 +2915,13 @@ export default function UserDashboard() {
                       {/* Main Large Image */}
                       <img 
                         src={selectedProject.image || '/2-seasons/2seasons-logo.jpg'} 
-                        alt={selectedProject.title} 
+                        alt={getPlotDisplayName(selectedProject.plot_id || selectedProject.id)} 
                         className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                         onClick={() => {
                           // Open full-screen image viewer
                           const newWindow = window.open(selectedProject.image || '/2-seasons/2seasons-logo.jpg', '_blank');
                           if (newWindow) {
-                            newWindow.document.title = `${selectedProject.title} - Site Image`;
+                            newWindow.document.title = `${getPlotDisplayName(selectedProject.plot_id || selectedProject.id)} - Site Image`;
                           }
                         }}
                         onError={(e) => {
@@ -2876,7 +2941,7 @@ export default function UserDashboard() {
                               className="w-full h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                               onClick={() => {
                                 // Update main image when thumbnail is clicked
-                                const imgElement = document.querySelector(`img[alt="${selectedProject.title}"]`);
+                                const imgElement = document.querySelector(`img[alt="${getPlotDisplayName(selectedProject.plot_id || selectedProject.id)}"]`);
                                 if (imgElement) {
                                   imgElement.src = image;
                                 }
