@@ -6,41 +6,59 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Users can only access their own investments
+    // Users can read/write their own investments
     match /investments/{investmentId} {
       allow read, write: if request.auth != null && 
-        request.auth.uid == resource.data.user_id;
+        (resource == null || request.auth.uid == resource.data.user_id);
     }
     
-    // Users can only access their own plot ownership
+    // Users can read/write their own plot ownership
     match /plot_ownership/{plotId} {
       allow read, write: if request.auth != null && 
-        request.auth.uid == resource.data.user_id;
+        (resource == null || request.auth.uid == resource.data.user_id);
     }
     
-    // Users can only access their own documents
+    // Users can read/write their own documents
     match /documents/{documentId} {
       allow read, write: if request.auth != null && 
-        request.auth.uid == resource.data.user_id;
+        (resource == null || request.auth.uid == resource.data.user_id);
     }
     
-    // Users can only access their own referrals
+    // Users can read/write their own referrals
     match /referrals/{referralId} {
       allow read, write: if request.auth != null && 
-        (request.auth.uid == resource.data.referrer_id || 
+        (resource == null || 
+         request.auth.uid == resource.data.referrer_id || 
          request.auth.uid == resource.data.referred_id);
     }
     
-    // Users can only access their own referral withdrawals
+    // Users can read/write their own referral withdrawals
     match /referral_withdrawals/{withdrawalId} {
       allow read, write: if request.auth != null && 
-        request.auth.uid == resource.data.user_id;
+        (resource == null || request.auth.uid == resource.data.user_id);
     }
     
     // Projects are publicly readable
     match /projects/{projectId} {
       allow read: if true;
       allow write: if false; // Only admins can modify projects
+    }
+    
+    // Forum topics are publicly readable
+    match /forum_topics/{topicId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Forum posts are publicly readable
+    match /forum_posts/{postId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Allow authenticated users to read/write their own data in any collection
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }

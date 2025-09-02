@@ -20,6 +20,7 @@ import {
 
 // Real data fallback function
 const getRealDataFallback = async (userEmail) => {
+  console.log('🔍 getRealDataFallback called with email:', userEmail);
   const realData = {
     'kingflamebeats@gmail.com': [
       { plot_id: 'plot_77', project_title: 'Plot 77', sqm_owned: 1, amount_paid: 5000, status: 'Active' }
@@ -50,9 +51,13 @@ const getRealDataFallback = async (userEmail) => {
   };
 
   const userData = realData[userEmail.toLowerCase()];
+  console.log('🔍 Looking for user data with key:', userEmail.toLowerCase());
+  console.log('🔍 Available keys in realData:', Object.keys(realData));
+  console.log('🔍 Found userData:', userData);
+  
   if (userData) {
     console.log('✅ Real data fallback found for user:', userEmail, userData);
-    return userData.map(plot => ({
+    const mappedData = userData.map(plot => ({
       ...plot,
       id: `real_${plot.plot_id}_${userEmail}`,
       user_id: auth.currentUser?.uid || 'fallback_uid',
@@ -63,6 +68,8 @@ const getRealDataFallback = async (userEmail) => {
       purchase_date: new Date(),
       created_at: new Date()
     }));
+    console.log('✅ Mapped fallback data:', mappedData);
+    return mappedData;
   }
 
   console.log('⚠️ No real data fallback found for user:', userEmail);
@@ -1457,6 +1464,7 @@ export default function UserDashboard() {
       }
 
       console.log('🔥 NUCLEAR RESET - Fetching plot ownership for user:', user.email);
+      console.log('🔥 NUCLEAR RESET - User UID:', user.uid);
       
       // FIXED: Use only 'users' collection for consistency - no more mixing data sources
       const usersRef = collection(db, 'users');
@@ -1539,9 +1547,11 @@ export default function UserDashboard() {
       
       // FIXED: No more default properties - show actual user data (even if empty)
       console.log('✅ No plot ownership found for user - checking fallback data...');
+      console.log('✅ User email for fallback check:', user.email);
       
       // Check for real data fallback
       const realData = await getRealDataFallback(user.email);
+      console.log('✅ Fallback data result:', realData);
       if (realData.length > 0) {
         console.log('✅ Real data fallback found for user:', user.email, realData);
         
