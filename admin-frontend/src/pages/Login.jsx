@@ -32,7 +32,7 @@ export default function Login() {
           errorMessage = 'No account found with this email';
           break;
         case 'auth/wrong-password':
-          errorMessage = 'Incorrect password';
+          errorMessage = 'Invalid credentials';
           break;
         case 'auth/too-many-requests':
           errorMessage = 'Too many failed attempts. Please try again later';
@@ -40,6 +40,8 @@ export default function Login() {
         default:
           if (err.message === 'User is not authorized as an admin') {
             errorMessage = 'You are not authorized to access the admin panel';
+          } else {
+            errorMessage = 'Invalid credentials';
           }
       }
       

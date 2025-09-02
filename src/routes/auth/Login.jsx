@@ -46,7 +46,7 @@ export default function Login() {
       }
     } catch (error) {
       console.error('Firebase login error:', error)
-      setError('Failed to log in: ' + error.message)
+      setError('Invalid credentials. Please check your email and password.')
     } finally {
       setIsLoading(false)
     }

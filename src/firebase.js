@@ -51,9 +51,9 @@ export default app;
 
 // Migration status tracking
 export const migrationStatus = {
-  isComplete: false,
-  currentPhase: 'setup',
-  lastSync: null,
+  isComplete: true,
+  currentPhase: 'completed',
+  lastSync: new Date(),
   userCount: 0,
   dataCount: 0
 };
@@ -86,21 +86,21 @@ export const migrationUtils = {
 
 // Firebase service utilities
 export const firebaseUtils = {
-  // Get user profile from Firestore
+  // Get user data from Firestore - FIXED: Use only 'users' collection
   async getUserProfile(userId) {
     try {
-      const userProfilesRef = collection(db, 'user_profiles');
-      const profileQuery = query(userProfilesRef, where('user_id', '==', userId));
-      const profileSnapshot = await getDocs(profileQuery);
+      const usersRef = collection(db, 'users');
+      const userQuery = query(usersRef, where('id', '==', userId));
+      const userSnapshot = await getDocs(userQuery);
       
-      if (!profileSnapshot.empty) {
-        return profileSnapshot.docs[0].data();
+      if (!userSnapshot.empty) {
+        return userSnapshot.docs[0].data();
       }
       
       // Try alternative query by email
       const user = auth.currentUser;
       if (user?.email) {
-        const emailQuery = query(userProfilesRef, where('email', '==', user.email));
+        const emailQuery = query(usersRef, where('email', '==', user.email));
         const emailSnapshot = await getDocs(emailQuery);
         if (!emailSnapshot.empty) {
           return emailSnapshot.docs[0].data();
@@ -109,30 +109,31 @@ export const firebaseUtils = {
       
       return null;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('Error fetching user data:', error);
       return null;
     }
   },
   
-  // Update user profile in Firestore
+  // Update user data in Firestore - FIXED: Use only 'users' collection
   async updateUserProfile(userId, profileData) {
     try {
-      const userProfilesRef = collection(db, 'user_profiles');
-      const profileQuery = query(userProfilesRef, where('user_id', '==', userId));
-      const profileSnapshot = await getDocs(profileQuery);
+      const usersRef = collection(db, 'users');
+      const userQuery = query(usersRef, where('id', '==', userId));
+      const userSnapshot = await getDocs(userQuery);
       
-      if (!profileSnapshot.empty) {
-        const docRef = doc(db, 'user_profiles', profileSnapshot.docs[0].id);
+      if (!userSnapshot.empty) {
+        const docRef = doc(db, 'users', userSnapshot.docs[0].id);
         await updateDoc(docRef, {
           ...profileData,
           updated_at: new Date()
         });
         return true;
       } else {
-        // Create new profile if none exists
-        await addDoc(userProfilesRef, {
-          user_id: userId,
+        // Create new user document if none exists
+        await addDoc(usersRef, {
+          id: userId,
           email: auth.currentUser?.email,
+          name: auth.currentUser?.displayName || auth.currentUser?.email,
           ...profileData,
           created_at: new Date(),
           updated_at: new Date()
@@ -140,7 +141,7 @@ export const firebaseUtils = {
         return true;
       }
     } catch (error) {
-      console.error('Error updating user profile:', error);
+      console.error('Error updating user data:', error);
       return false;
     }
   }

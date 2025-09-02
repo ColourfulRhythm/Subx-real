@@ -28,7 +28,7 @@
                 const { data: { session }, error } = await supabase.auth.getSession();
                 
                 if (error) {
-                    statusDiv.innerHTML = `<span style="color: red;">Error: ${error.message}</span>`;
+                    statusDiv.innerHTML = `<span style="color: red;">Error: Authentication failed</span>`;
                     return;
                 }
 
@@ -65,11 +65,11 @@
                         testResultsDiv.innerHTML += `<p style="color: red;">✗ API Error: ${response.status} ${response.statusText}</p>`;
                     }
                 } catch (apiError) {
-                    testResultsDiv.innerHTML += `<p style="color: red;">✗ API Error: ${apiError.message}</p>`;
+                    testResultsDiv.innerHTML += `<p style="color: red;">✗ API Error: Request failed</p>`;
                 }
 
             } catch (error) {
-                statusDiv.innerHTML = `<span style="color: red;">Error: ${error.message}</span>`;
+                statusDiv.innerHTML = `<span style="color: red;">Error: Authentication failed</span>`;
             }
         }
 

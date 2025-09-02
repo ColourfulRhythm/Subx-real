@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../supabase';
+import { auth } from '../firebase';
+import { sendEmailVerification } from 'firebase/auth';
 import toast from 'react-hot-toast';
 
 const VerificationSystem = ({ user, onVerificationComplete, onBack }) => {
@@ -44,45 +45,22 @@ const VerificationSystem = ({ user, onVerificationComplete, onBack }) => {
     try {
       setLoading(true);
       
-      // Check if user is authenticated with Supabase
-      const { data: { session } } = await supabase.auth.getSession();
-      let currentUser = session?.user;
-      
-      // Re-authenticate if needed
-      if (!currentUser && userEmail && userPassword) {
-        try {
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email: userEmail,
-            password: userPassword
-          });
-          
-          if (error) throw error;
-          currentUser = data.user;
-          console.log('Re-authenticated user:', currentUser.email);
-        } catch (authError) {
-          console.error('Re-authentication failed:', authError);
-          throw new Error('Please login again to send verification email');
-        }
-      }
+      // Check if user is authenticated with Firebase
+      const currentUser = auth.currentUser;
       
       if (!currentUser) {
         throw new Error('No authenticated user found. Please login again.');
       }
       
       // Check if email is already verified
-      if (currentUser.email_confirmed_at) {
+      if (currentUser.emailVerified) {
         toast.success('Email is already verified!');
         setEmailVerified(true);
         return;
       }
       
-      // Send verification email using Supabase
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: currentUser.email
-      });
-      
-      if (error) throw error;
+      // Send verification email using Firebase
+      await sendEmailVerification(currentUser);
       
       toast.success('📧 Verification email sent! Check your inbox and spam folder.');
       setResendDisabled(true);
@@ -93,7 +71,7 @@ const VerificationSystem = ({ user, onVerificationComplete, onBack }) => {
       let errorMessage = 'Failed to send verification email. ';
       
       if (error.message) {
-        errorMessage += error.message;
+        errorMessage += ' Please try again.';
       } else {
         errorMessage += 'Please try again.';
       }
@@ -109,7 +87,7 @@ const VerificationSystem = ({ user, onVerificationComplete, onBack }) => {
       setLoading(true);
       
       // For now, we'll skip phone verification as it requires additional setup
-      // You can implement this later with Supabase phone auth if needed
+      // You can implement this later with Firebase phone auth if needed
       toast.info('Phone verification not yet implemented. Please use email verification.');
       
     } catch (error) {
@@ -136,12 +114,12 @@ const VerificationSystem = ({ user, onVerificationComplete, onBack }) => {
   useEffect(() => {
     if (user) {
       // Check if email is verified
-      if (user.email_confirmed_at) {
+      if (user.emailVerified) {
         setEmailVerified(true);
       }
       
       // Check if phone is verified (if applicable)
-      if (user.phone_confirmed_at) {
+      if (user.phoneNumber) {
         setPhoneVerified(true);
       }
     }

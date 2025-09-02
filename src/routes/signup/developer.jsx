@@ -5,8 +5,8 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { motion } from 'framer-motion';
 import { auth, db } from '../../firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { addDoc, collection } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
 import Navbar from '../../components/Navbar';
 
 const schema = yup.object().shape({
@@ -55,48 +55,36 @@ export default function DeveloperSignup() {
     setIsLoading(true)
     setError('')
     try {
-      // Create user with Supabase Auth
-              const { data: authData, error: authError } = await supabase.auth.signUp({
+      // Create user with Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const user = userCredential.user;
+
+      // Update user profile with display name
+      await updateProfile(user, {
+        displayName: data.name
+      });
+
+      if (user) {
+        // Create user profile in Firestore
+        await setDoc(doc(db, 'users', user.uid), {
+          id: user.uid,
+          full_name: data.name,
           email: data.email,
-          password: data.password,
-          options: {
-            data: {
-              full_name: data.name,
-              user_type: 'developer'
-            },
-            emailRedirectTo: `${window.location.origin}/verify`
-          }
-        })
-
-      if (authError) {
-        setError(authError.message)
-        return
-      }
-
-      if (authData.user) {
-        // Create user profile in our users table
-        const { error: profileError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            full_name: data.name
-          })
-
-        if (profileError) {
-          console.warn('Profile creation warning:', profileError)
-        }
+          user_type: 'developer',
+          created_at: new Date(),
+          updated_at: new Date()
+        });
 
         // Create user_profiles record to trigger referral code generation
         try {
-          const { error: userProfileError } = await supabase
-            .from('user_profiles')
-            .insert({
-              id: authData.user.id,
-              full_name: data.name,
-              email: data.email,
-              phone: data.phone || null,
-              created_at: new Date().toISOString()
-            })
+          await setDoc(doc(db, 'user_profiles', user.uid), {
+            id: user.uid,
+            full_name: data.name,
+            email: data.email,
+            phone: data.phone || null,
+            created_at: new Date(),
+            updated_at: new Date()
+          });
 
           if (userProfileError) {
             console.warn('User profile creation warning:', userProfileError)
@@ -120,7 +108,7 @@ export default function DeveloperSignup() {
         navigate('/login')
       }
     } catch (error) {
-      setError('Failed to create account: ' + error.message)
+      setError('Failed to create account. Please try again.')
     } finally {
       setIsLoading(false)
     }

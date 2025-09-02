@@ -11,6 +11,7 @@ import {
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
+
 const AuthContext = createContext();
 
 export function useAuth() {
@@ -25,6 +26,19 @@ export function AuthProvider({ children }) {
     try {
       console.log('Starting user registration for:', email);
       
+      // Validate password requirements
+      if (!password || password.length < 6) {
+        throw new Error('Password must be at least 6 characters long');
+      }
+      
+      if (!/[A-Z]/.test(password)) {
+        throw new Error('Password must contain at least one uppercase letter');
+      }
+      
+      if (!/[^a-zA-Z0-9]/.test(password)) {
+        throw new Error('Password must contain at least one special character');
+      }
+      
       // Step 1: Create Firebase Auth user
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -38,7 +52,7 @@ export function AuthProvider({ children }) {
         });
       }
       
-      // Step 3: Create user document in Firestore
+      // Step 3: Create user document in Firestore - FIXED: Use only 'users' collection
       try {
         const userDocRef = doc(db, 'users', user.uid);
         const userDoc = {
@@ -55,23 +69,7 @@ export function AuthProvider({ children }) {
         };
         
         await setDoc(userDocRef, userDoc);
-        console.log('User document created in Firestore');
-        
-        // Also create in user_profiles collection for compatibility
-        const profileDocRef = doc(db, 'user_profiles', user.uid);
-        const profileDoc = {
-          id: user.uid,
-          user_id: user.uid,
-          full_name: userData.name || user.email?.split('@')[0] || 'User',
-          email: user.email,
-          phone: userData.phone || '',
-          referral_code: userDoc.referral_code,
-          created_at: new Date(),
-          updated_at: new Date()
-        };
-        
-        await setDoc(profileDocRef, profileDoc);
-        console.log('User profile created in Firestore');
+        console.log('User document created in Firestore - users collection only');
         
       } catch (firestoreError) {
         console.error('Critical error creating user in Firestore:', firestoreError);
@@ -89,16 +87,75 @@ export function AuthProvider({ children }) {
       
     } catch (error) {
       console.error('User registration failed:', error);
-      throw error;
+      
+      // Provide user-friendly error messages
+      let userMessage = error.message;
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          userMessage = 'An account with this email already exists.';
+          break;
+        case 'auth/invalid-email':
+          userMessage = 'Invalid email address format.';
+          break;
+        case 'auth/operation-not-allowed':
+          userMessage = 'Email/password accounts are not enabled.';
+          break;
+        case 'auth/weak-password':
+          userMessage = 'Password is too weak. Use at least 6 characters with uppercase, lowercase, and special characters.';
+          break;
+        default:
+          if (error.message.includes('PASSWORD_DOES_NOT_MEET_REQUIREMENTS')) {
+            userMessage = 'Password must contain at least one uppercase letter and one special character.';
+          } else if (error.message === 'Failed to create user profile. Please try again.') {
+            userMessage = error.message; // Keep our custom message
+          } else {
+            userMessage = 'Registration failed. Please try again.';
+          }
+      }
+      
+      const friendlyError = new Error(userMessage);
+      friendlyError.code = error.code;
+      throw friendlyError;
     }
   }
 
   async function login(email, password) {
     try {
+      console.log('Attempting login for:', email);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('✅ Login successful for:', userCredential.user.email);
       return userCredential;
     } catch (error) {
-      throw error;
+      console.error('❌ Login failed:', error.code, error.message);
+      
+      // Provide user-friendly error messages
+      let userMessage = error.message;
+      switch (error.code) {
+        case 'auth/user-not-found':
+          userMessage = 'No account found with this email address.';
+          break;
+        case 'auth/wrong-password':
+          userMessage = 'Incorrect password. Please try again.';
+          break;
+        case 'auth/invalid-email':
+          userMessage = 'Invalid email address format.';
+          break;
+        case 'auth/user-disabled':
+          userMessage = 'This account has been disabled.';
+          break;
+        case 'auth/too-many-requests':
+          userMessage = 'Too many failed attempts. Please try again later.';
+          break;
+        case 'auth/invalid-credential':
+          userMessage = 'Invalid email or password. Please check your credentials.';
+          break;
+        default:
+          userMessage = 'Login failed. Please try again.';
+      }
+      
+      const friendlyError = new Error(userMessage);
+      friendlyError.code = error.code;
+      throw friendlyError;
     }
   }
 
@@ -113,10 +170,39 @@ export function AuthProvider({ children }) {
 
   async function resetPassword(email) {
     try {
-      await sendPasswordResetEmail(auth, email);
+      console.log('Sending password reset email to:', email);
+      
+      // FIXED: Send password reset with custom action URL to redirect to our app
+      const actionCodeSettings = {
+        url: `${window.location.origin}/reset-password`,
+        handleCodeInApp: true
+      };
+      
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      console.log('✅ Password reset email sent successfully');
       return { success: true };
     } catch (error) {
-      throw error;
+      console.error('❌ Password reset failed:', error.code, error.message);
+      
+      // Provide user-friendly error messages
+      let userMessage = error.message;
+      switch (error.code) {
+        case 'auth/user-not-found':
+          userMessage = 'No account found with this email address.';
+          break;
+        case 'auth/invalid-email':
+          userMessage = 'Invalid email address format.';
+          break;
+        case 'auth/too-many-requests':
+          userMessage = 'Too many requests. Please try again later.';
+          break;
+        default:
+          userMessage = 'Failed to send password reset email. Please try again.';
+      }
+      
+      const friendlyError = new Error(userMessage);
+      friendlyError.code = error.code;
+      throw friendlyError;
     }
   }
 
@@ -130,21 +216,13 @@ export function AuthProvider({ children }) {
     return result;
   }
 
-  // Helper function to get user ID by referral code
+  // Helper function to get user ID by referral code - FIXED: Use only 'users' collection
   async function getUserIdByReferralCode(referralCode) {
     try {
-      // Try users collection first
       const usersQuery = await getDocs(query(collection(db, 'users'), where('referral_code', '==', referralCode)));
       
       if (!usersQuery.empty) {
         return usersQuery.docs[0].id;
-      }
-      
-      // Fallback to user_profiles collection
-      const profilesQuery = await getDocs(query(collection(db, 'user_profiles'), where('referral_code', '==', referralCode)));
-      
-      if (!profilesQuery.empty) {
-        return profilesQuery.docs[0].id;
       }
       
       return null;
@@ -155,17 +233,29 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
+    console.log('🔄 Setting up Firebase auth state listener...');
+    
     // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('🔄 Auth state changed:', user ? `User: ${user.email}` : 'No user');
+      
       if (user) {
         // User is signed in
-        console.log('User signed in:', user.email);
+        console.log('✅ User authenticated:', {
+          uid: user.uid,
+          email: user.email,
+          emailVerified: user.emailVerified,
+          displayName: user.displayName
+        });
         setCurrentUser(user);
       } else {
         // User is signed out
-        console.log('User signed out');
+        console.log('❌ No authenticated user');
         setCurrentUser(null);
       }
+      setLoading(false);
+    }, (error) => {
+      console.error('❌ Auth state change error:', error);
       setLoading(false);
     });
 

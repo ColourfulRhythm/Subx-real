@@ -31,8 +31,12 @@ export default function VerificationSuccess() {
           setTimeout(() => {
             navigate('/dashboard/investor');
           }, 3000);
-        } else {
+        } else if (user && !user.emailVerified) {
+          // User exists but email not verified - show pending
           setVerificationStatus('pending');
+        } else {
+          // No user - show error
+          setVerificationStatus('error');
         }
         
         setIsVerifying(false);

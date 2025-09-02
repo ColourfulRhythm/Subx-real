@@ -28,8 +28,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks: {
-            vendor: ['react', 'react-dom', 'react-router-dom'],
-            supabase: ['@supabase/supabase-js']
+            vendor: ['react', 'react-dom', 'react-router-dom']
           }
         }
       }
@@ -38,8 +37,6 @@ export default defineConfig(({ mode }) => {
       __VUE_OPTIONS_API__: true,
       __VUE_PROD_DEVTOOLS__: false,
       // Ensure environment variables are available in production
-      'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
-      'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
       'import.meta.env.VITE_SITE_URL': JSON.stringify(env.VITE_SITE_URL),
       'import.meta.env.MODE': JSON.stringify(mode)
     }

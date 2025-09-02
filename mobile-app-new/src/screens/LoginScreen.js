@@ -40,7 +40,7 @@ const LoginScreen = ({ navigation }) => {
         Alert.alert('Error', result.error);
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Authentication failed');
+      Alert.alert('Error', 'Authentication failed. Please try again.');
     } finally {
       setLoading(false);
     }

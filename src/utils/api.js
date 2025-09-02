@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { auth } from '../firebase';
 
 // Utility function to find available backend port
 export const findBackendPort = async () => {
@@ -58,13 +58,13 @@ export const apiCall = async (endpoint, options = {}) => {
       'Content-Type': 'application/json',
     };
 
-    // Add Supabase auth token if user is authenticated
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        defaultHeaders.Authorization = `Bearer ${session.access_token}`;
-      }
+      // Add Firebase auth token if user is authenticated
+  const user = auth.currentUser;
+  if (user) {
+    const token = await user.getIdToken();
+              if (token) {
+          defaultHeaders.Authorization = `Bearer ${token}`;
+        }
     }
 
     const response = await fetch(url, {

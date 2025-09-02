@@ -4,10 +4,10 @@ export const config = {
   isProduction: window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1',
   isDevelopment: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
   
-  // Supabase Configuration
-  supabase: {
-    url: 'https://hclguhbswctxfahhzrrr.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjbGd1aGJzd2N0eGZhaGh6cnJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3NjU2ODcsImV4cCI6MjA3MDM0MTY4N30.y2ILgUZLd_pJ9rAuRVGTHIIkh1sfhvXRnRlCt4DUzyQ',
+  // Firebase Configuration
+  firebase: {
+    projectId: 'subx-825e9',
+    authDomain: 'subx-825e9.firebaseapp.com',
     siteUrl: window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' 
       ? window.location.origin 
       : 'https://subxhq.com'
@@ -31,6 +31,6 @@ console.log('Environment Configuration:', {
   environment: config.isProduction ? 'production' : 'development',
   hostname: window.location.hostname,
   origin: window.location.origin,
-  supabaseUrl: config.supabase.url,
-  siteUrl: config.supabase.siteUrl
+  firebaseProjectId: config.firebase.projectId,
+  siteUrl: config.firebase.siteUrl
 });

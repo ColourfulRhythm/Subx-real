@@ -16,7 +16,7 @@ export const signInUser = async (email, password) => {
     const userCredential = await mobileAuth.signInWithEmailAndPassword(email, password);
     return { success: true, user: userCredential.user };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: 'Invalid credentials' };
   }
 };
 
@@ -25,7 +25,7 @@ export const signUpUser = async (email, password, displayName) => {
     const userCredential = await mobileAuth.createUserWithEmailAndPassword(email, password, displayName);
     return { success: true, user: userCredential.user };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: 'Failed to create account. Please try again.' };
   }
 };
 
@@ -34,7 +34,7 @@ export const signOutUser = async () => {
     await mobileAuth.signOut();
     return { success: true };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: 'Failed to sign out. Please try again.' };
   }
 };
 
@@ -43,7 +43,7 @@ export const resetPassword = async (email) => {
     await mobileAuth.sendPasswordResetEmail(email);
     return { success: true };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: 'Failed to send password reset email. Please try again.' };
   }
 };
 

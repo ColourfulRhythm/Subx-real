@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../services/supabaseClient';
-import { ensureSupabaseUserProfile } from '../utils/supabaseProfile';
+import { auth } from '../firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { ensureFirebaseUserProfile } from '../utils/firebaseProfile';
 
 const FirebaseAuth = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const FirebaseAuth = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    console.log('Starting email auth...', { authMode, email: email.substring(0, 3) + '***' });
+    console.log('Starting Firebase auth...', { authMode, email: email.substring(0, 3) + '***' });
     
     // Validate form fields for signup
     if (authMode === 'signup') {
@@ -68,13 +69,16 @@ const FirebaseAuth = () => {
       if (authMode === 'signup') {
         // For signup, use email as primary identifier, fallback to phone-based alias
         const signupEmail = authMethod === 'email' ? email : `${phone.replace(/\D/g, '')}@subx.local`;
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email: signupEmail,
-          password,
-          options: { data: { name } }
-        });
-        if (signUpError) throw signUpError;
-        userCredential = data;
+        
+        // Create user with Firebase Auth
+        userCredential = await createUserWithEmailAndPassword(auth, signupEmail, password);
+        
+        // Update user profile with display name
+        if (userCredential.user) {
+          await updateProfile(userCredential.user, {
+            displayName: name
+          });
+        }
         
         // Increment user count for new signups (kept as-is)
         if (window.incrementSubxUserCount) {
@@ -88,27 +92,24 @@ const FirebaseAuth = () => {
         if (authMethod === 'phone') {
           signinEmail = `${phone.replace(/\D/g, '')}@subx.local`;
         }
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({
-          email: signinEmail,
-          password
-        });
-        if (signInError) throw signInError;
-        userCredential = data;
+        
+        // Sign in with Firebase Auth
+        userCredential = await signInWithEmailAndPassword(auth, signinEmail, password);
         
         alert(`Welcome back! You have been successfully logged in as a ${selectedProfile}. You can now access your land sub-ownership dashboard.`);
       }
       
-      const { data: sessionData } = await supabase.auth.getSession();
-      const sessionUser = sessionData?.session?.user;
+      const user = userCredential.user;
       const effectiveEmail = authMethod === 'email' ? email : `${phone.replace(/\D/g, '')}@subx.local`;
 
-      await ensureSupabaseUserProfile(name, authMethod === 'phone' ? phone : undefined, undefined);
+      // Ensure Firebase user profile exists
+      await ensureFirebaseUserProfile(name, authMethod === 'phone' ? phone : undefined, undefined);
       
       // Set authentication status with actual user data
       localStorage.setItem('isAuthenticated', 'true');
       localStorage.setItem('userType', selectedProfile);
       localStorage.setItem('userEmail', effectiveEmail);
-      localStorage.setItem('userName', name || sessionUser?.user_metadata?.name || effectiveEmail);
+      localStorage.setItem('userName', name || user.displayName || effectiveEmail);
       if (authMethod === 'phone') {
         localStorage.setItem('userPhone', phone);
       }
@@ -116,9 +117,23 @@ const FirebaseAuth = () => {
       // Navigate to the new unified dashboard
       navigate('/dashboard');
     } catch (error) {
-      console.error('Email auth error:', error);
-      const msg = (error?.message || '').replace(/^Firebase:\s*/, '');
-      setError(msg || 'Authentication failed');
+      console.error('Firebase auth error:', error);
+      let errorMessage = 'Authentication failed';
+      
+      // Provide user-friendly error messages
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'User not found. Please check your credentials or sign up.';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.';
+      } else if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Email already in use. Please sign in instead.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Please choose a stronger password.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address. Please check your email format.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

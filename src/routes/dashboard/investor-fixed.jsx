@@ -168,34 +168,38 @@ export default function InvestorDashboard() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showDeedSignModal, setShowDeedSignModal] = useState(false);
   const [deedSignature, setDeedSignature] = useState('');
-  
-  // Referral system state
-  const [referralCode, setReferralCode] = useState('');
   const [showReferralModal, setShowReferralModal] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
   const [showReferralSuccess, setShowReferralSuccess] = useState(false);
   const [showReferralError, setShowReferralError] = useState(false);
   const [referralError, setReferralError] = useState('');
   const [showReferralInfo, setShowReferralInfo] = useState(false);
   const [showReferralHistory, setShowReferralHistory] = useState(false);
   const [referralHistory, setReferralHistory] = useState([]);
-  
-  // Referral withdrawal state
   const [showReferralWithdrawal, setShowReferralWithdrawal] = useState(false);
   const [referralWithdrawalAmount, setReferralWithdrawalAmount] = useState('');
   const [referralWithdrawalError, setReferralWithdrawalError] = useState('');
   const [showReferralWithdrawalSuccess, setShowReferralWithdrawalSuccess] = useState(false);
+  const [showReferralWithdrawalError, setShowReferralWithdrawalError] = useState(false);
   const [showReferralWithdrawalInfo, setShowReferralWithdrawalInfo] = useState(false);
   const [showReferralWithdrawalHistory, setShowReferralWithdrawalHistory] = useState(false);
   const [referralWithdrawalHistory, setReferralWithdrawalHistory] = useState([]);
-  
-  // Referral withdrawal modal state
   const [showReferralWithdrawalModal, setShowReferralWithdrawalModal] = useState(false);
   const [referralWithdrawalModalAmount, setReferralWithdrawalModalAmount] = useState('');
   const [referralWithdrawalModalError, setReferralWithdrawalModalError] = useState('');
   const [showReferralWithdrawalModalSuccess, setShowReferralWithdrawalModalSuccess] = useState(false);
+  const [showReferralWithdrawalModalError, setShowReferralWithdrawalModalError] = useState(false);
   const [showReferralWithdrawalModalInfo, setShowReferralWithdrawalModalInfo] = useState(false);
   const [showReferralWithdrawalModalHistory, setShowReferralWithdrawalModalHistory] = useState(false);
   const [referralWithdrawalModalHistory, setReferralWithdrawalModalHistory] = useState([]);
+  const [showReferralWithdrawalModalModal, setShowReferralWithdrawalModalModal] = useState(false);
+  const [referralWithdrawalModalModalAmount, setReferralWithdrawalModalModalAmount] = useState('');
+  const [referralWithdrawalModalModalError, setReferralWithdrawalModalModalError] = useState('');
+  const [showReferralWithdrawalModalModalSuccess, setShowReferralWithdrawalModalModalSuccess] = useState(false);
+  const [showReferralWithdrawalModalModalError, setShowReferralWithdrawalModalModalError] = useState(false);
+  const [showReferralWithdrawalModalModalInfo, setShowReferralWithdrawalModalModalInfo] = useState(false);
+  const [showReferralWithdrawalModalModalHistory, setShowReferralWithdrawalModalModalHistory] = useState(false);
+  const [referralWithdrawalModalModalHistory, setReferralWithdrawalModalModalHistory] = useState([]);
   const [deeds, setDeeds] = useState([]);
   const [showSqmModal, setShowSqmModal] = useState(false);
   
@@ -363,58 +367,11 @@ export default function InvestorDashboard() {
   
   // Placeholder functions - these would be implemented with the full component logic
   const fetchUserInvestments = async () => {
-    try {
-      // Get detailed plot ownership data
-      const plotOwnership = await firebaseService.getUserPlotOwnership();
-      setUserInvestments(plotOwnership);
-      
-      // Update analytics based on plot ownership
-      if (plotOwnership.length > 0) {
-        const totalSqm = plotOwnership.reduce((sum, plot) => sum + (plot.sqm_owned || 0), 0);
-        const totalValue = plotOwnership.reduce((sum, plot) => sum + (plot.amount_paid || 0), 0);
-        
-        setAnalytics(prev => ({
-          ...prev,
-          totalLandOwned: totalSqm,
-          portfolioValue: totalValue,
-          activeLandUnits: plotOwnership.length
-        }));
-      }
-      
-      console.log('✅ User investments loaded:', plotOwnership);
-    } catch (error) {
-      console.error('❌ Error fetching user investments:', error);
-      setUserInvestments([]);
-    }
+    // Implementation would go here
   };
   
   const fetchAnalytics = async () => {
-    try {
-      // Get portfolio data
-      const portfolio = await firebaseService.getUserPortfolio();
-      
-      if (portfolio.plots && portfolio.plots.length > 0) {
-        const totalSqm = portfolio.total_sqm;
-        const totalValue = portfolio.total_investment_amount;
-        
-        setAnalytics(prev => ({
-          ...prev,
-          totalLandOwned: totalSqm,
-          portfolioValue: totalValue,
-          activeLandUnits: portfolio.plot_count,
-          landDistribution: {
-            residential: totalSqm > 0 ? 100 : 0,
-            commercial: 0,
-            agricultural: 0,
-            mixed: 0
-          }
-        }));
-        
-        console.log('✅ Analytics updated from portfolio:', { totalSqm, totalValue });
-      }
-    } catch (error) {
-      console.error('❌ Error fetching analytics:', error);
-    }
+    // Implementation would go here
   };
   
   const loadUserBadgesAndAchievements = () => {
@@ -422,13 +379,7 @@ export default function InvestorDashboard() {
   };
   
   const fetchProfile = async () => {
-    try {
-      const userProfile = await firebaseService.getCurrentUserProfile();
-      setProfile(userProfile);
-      console.log('✅ User profile loaded:', userProfile);
-    } catch (error) {
-      console.error('❌ Error fetching profile:', error);
-    }
+    // Implementation would go here
   };
   
   // Placeholder return - this would contain the full component JSX
@@ -451,105 +402,22 @@ export default function InvestorDashboard() {
         )}
         
         {!isLoading && !error && (
-          <>
-            {/* Portfolio Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Land Owned</h3>
-                <p className="text-3xl font-bold text-indigo-600">{analytics.totalLandOwned} sqm</p>
-              </div>
-              
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">Portfolio Value</h3>
-                <p className="text-3xl font-bold text-green-600">₦{analytics.portfolioValue?.toLocaleString() || 0}</p>
-              </div>
-              
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">Active Plots</h3>
-                <p className="text-3xl font-bold text-blue-600">{analytics.activeLandUnits || 0}</p>
-              </div>
-              
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">Growth Rate</h3>
-                <p className="text-3xl font-bold text-purple-600">+{analytics.growthRate || 0}%</p>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Land Owned</h3>
+              <p className="text-3xl font-bold text-indigo-600">{analytics.totalLandOwned} sqm</p>
             </div>
-
-            {/* Plot Ownership Details */}
-            {userInvestments && userInvestments.length > 0 && (
-              <div className="mt-8">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Your Land Investments</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {userInvestments.map((plot, index) => (
-                    <div key={plot.id || index} className="bg-white p-6 rounded-lg shadow border-l-4 border-indigo-500">
-                      <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900">{plot.project_title}</h3>
-                        <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
-                          {plot.status || 'Active'}
-                        </span>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">SQM Owned:</span>
-                          <span className="font-semibold text-gray-900">{plot.sqm_owned} sqm</span>
-                        </div>
-                        
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Amount Paid:</span>
-                          <span className="font-semibold text-green-600">₦{plot.amount_paid?.toLocaleString() || 0}</span>
-                        </div>
-                        
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Plot Type:</span>
-                          <span className="font-semibold text-gray-900">{plot.plot_type || 'Residential'}</span>
-                        </div>
-                        
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Location:</span>
-                          <span className="font-semibold text-gray-900">{plot.location || 'Ogun State'}</span>
-                        </div>
-                        
-                        {plot.referral_bonus && (
-                          <div className="mt-3 p-2 bg-yellow-100 rounded">
-                            <span className="text-yellow-800 text-sm font-medium">🎁 Referral Bonus Applied</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* No Investments Message */}
-            {(!userInvestments || userInvestments.length === 0) && (
-              <div className="mt-8 text-center">
-                <div className="bg-white p-8 rounded-lg shadow">
-                  <div className="text-gray-400 mb-4">
-                    <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Land Investments Yet</h3>
-                  <p className="text-gray-600 mb-4">Start your land ownership journey by exploring available plots.</p>
-                  <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors">
-                    Browse Available Plots
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Recent Activity */}
-            <div className="mt-8">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Activity</h2>
-              <div className="bg-white rounded-lg shadow">
-                <div className="p-6">
-                  <p className="text-gray-600">Your investment activity will appear here.</p>
-                </div>
-              </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">Portfolio Value</h3>
+              <p className="text-3xl font-bold text-green-600">₦{analytics.portfolioValue?.toLocaleString() || 0}</p>
             </div>
-          </>
+            
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">Growth Rate</h3>
+              <p className="text-3xl font-bold text-blue-600">+{analytics.growthRate || 0}%</p>
+            </div>
+          </div>
         )}
       </div>
     </div>

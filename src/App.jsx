@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './contexts/AuthContext'
 import LandingPage from './routes/LandingPage'
 import Login from './routes/auth/Login'
+import ResetPassword from './routes/auth/ResetPassword'
 import InvestorSignup from './routes/signup/investor'
 import DeveloperSignup from './routes/signup/developer'
 import InvestorDashboard from './routes/dashboard/investor'
@@ -27,7 +28,7 @@ import InviteEarn from './pages/InviteEarn'
 import BlogIndex from './routes/blog/index'
 import LandInvestmentNigeria from './routes/blog/land-investment-nigeria'
 import CoOwnershipNigeria from './routes/blog/co-ownership-nigeria'
-import MigrationDashboard from './components/MigrationDashboard'
+
 import Contact from './routes/Contact'
 
 const ProtectedRoute = ({ children, requiredUserType }) => {
@@ -129,6 +130,11 @@ const App = () => {
             <Route path="/login" element={
               <PageTransition>
                 <Login />
+              </PageTransition>
+            } />
+            <Route path="/reset-password" element={
+              <PageTransition>
+                <ResetPassword />
               </PageTransition>
             } />
             <Route path="/verify" element={
@@ -252,7 +258,7 @@ const App = () => {
             } />
             <Route path="/migration" element={
               <PageTransition>
-                <MigrationDashboard />
+        
               </PageTransition>
             } />
           </Routes>

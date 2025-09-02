@@ -61,29 +61,20 @@ const InviteEarn = () => {
       let userProfile = null;
       
       try {
-        // Try to get profile from user_profiles collection
-        const userProfilesRef = collection(db, 'user_profiles');
-        const profileQuery = query(userProfilesRef, where('email', '==', user.email));
-        const profileSnapshot = await getDocs(profileQuery);
+        // FIXED: Use only 'users' collection - no more mixing data sources
+        const usersRef = collection(db, 'users');
+        const userQuery = query(usersRef, where('email', '==', user.email));
+        const userSnapshot = await getDocs(userQuery);
         
-        if (!profileSnapshot.empty) {
-          userProfile = profileSnapshot.docs[0].data();
-          console.log('User profile found:', userProfile);
-        } else {
-          // Try alternative: get by user_id
-          const altProfileQuery = query(userProfilesRef, where('user_id', '==', user.uid));
-          const altProfileSnapshot = await getDocs(altProfileQuery);
-          
-          if (!altProfileSnapshot.empty) {
-            userProfile = altProfileSnapshot.docs[0].data();
-            console.log('Alternative profile query successful:', userProfile);
-          }
+        if (!userSnapshot.empty) {
+          userProfile = userSnapshot.docs[0].data();
+          console.log('User data found:', userProfile);
         }
       } catch (profileError) {
-        console.error('Profile fetch error:', profileError);
+        console.error('User data fetch error:', profileError);
       }
 
-      // Set basic stats with profile data
+      // Set basic stats with user data - FIXED: Use correct field names from 'users' collection
       const basicStats = {
         user_id: user.uid,
         referral_code: userProfile?.referral_code || generateReferralCode(user.uid),
@@ -131,7 +122,7 @@ const InviteEarn = () => {
     } catch (error) {
       console.error('Error fetching referral data:', error);
       console.error('Error details:', {
-        message: error.message,
+        message: 'Failed to process request. Please try again.',
         status: error.response?.status,
         data: error.response?.data
       });
@@ -146,7 +137,7 @@ const InviteEarn = () => {
       } else if (error.response?.status >= 500) {
         errorMessage = 'Server error, please try again later';
       } else if (error.message) {
-        errorMessage = error.message;
+        errorMessage = 'Failed to process request. Please try again.';
       }
       
       setError(errorMessage);

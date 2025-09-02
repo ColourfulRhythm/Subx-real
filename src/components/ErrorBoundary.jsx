@@ -36,19 +36,18 @@ class ErrorBoundary extends React.Component {
 
   logErrorToService = async (error, errorInfo) => {
     try {
-      // Log to Supabase if available
-      const { supabase } = await import('../supabase');
+      // Log to Firebase if available
+      const { db } = await import('../firebase');
+      const { collection, addDoc } = await import('firebase/firestore');
       
-      await supabase
-        .from('error_logs')
-        .insert({
-          error_message: error.message,
-          error_stack: error.stack,
-          error_info: errorInfo,
-          user_agent: navigator.userAgent,
-          url: window.location.href,
-          timestamp: new Date().toISOString()
-        });
+      await addDoc(collection(db, 'error_logs'), {
+        error_message: error.message,
+        error_stack: error.stack,
+        error_info: errorInfo,
+        user_agent: navigator.userAgent,
+        url: window.location.href,
+        timestamp: new Date().toISOString()
+      });
     } catch (logError) {
       console.warn('Failed to log error to service:', logError);
     }

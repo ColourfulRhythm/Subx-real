@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import * as yup from 'yup';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import { auth, db } from '../../firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { addDoc, collection } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { addDoc, collection, query, where, getDocs, doc, updateDoc, increment } from 'firebase/firestore';
 import Navbar from '../../components/Navbar';
 
 const schema = yup.object().shape({
@@ -31,123 +33,116 @@ export default function InvestorSignup() {
     setIsLoading(true)
     setError('')
     try {
-      // First check if user already exists
-      const { data: existingUser, error: checkError } = await supabase.auth.admin.listUsers()
+      // First check if user already exists in Firebase
+      const usersRef = collection(db, 'users');
+      const userQuery = query(usersRef, where('email', '==', data.email));
+      const userSnapshot = await getDocs(userQuery);
       
-      if (checkError) {
-        console.error('Error checking existing users:', checkError)
-      } else {
-        const userExists = existingUser.users.some(user => user.email === data.email)
-        if (userExists) {
-          setError('An account with this email already exists. Please try logging in instead.')
-          setIsLoading(false)
-          return
-        }
-      }
-
-      // Create user with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            full_name: data.name,
-            user_type: 'investor'
-          },
-          emailRedirectTo: `${window.location.origin}/verify`
-        }
-      })
-
-      if (authError) {
-        if (authError.message.includes('already registered')) {
-          setError('An account with this email already exists. Please try logging in instead.')
-        } else {
-          setError(authError.message)
-        }
+      if (!userSnapshot.empty) {
+        setError('An account with this email already exists. Please try logging in instead.')
+        setIsLoading(false)
         return
       }
 
-      if (authData.user) {
-        // Create user profile in our users table
-        const { error: profileError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            full_name: data.name
-          })
+      // Create user with Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const user = userCredential.user;
 
-        if (profileError) {
-          console.warn('Profile creation warning:', profileError)
-        }
+      // Update user profile with display name
+      await updateProfile(user, {
+        displayName: data.name
+      });
 
-        // Create user_profiles record to trigger referral code generation
-        try {
-          const { error: userProfileError } = await supabase
-            .from('user_profiles')
-            .insert({
-              id: authData.user.id,
-              full_name: data.name,
-              email: data.email,
-              phone: data.phone || null,
-              created_at: new Date().toISOString()
-            })
+      // Create user profile in Firestore
+      await addDoc(collection(db, 'users'), {
+        id: user.uid,
+        full_name: data.name,
+        email: data.email,
+        user_type: 'investor',
+        created_at: new Date(),
+        updated_at: new Date()
+      });
 
-          if (userProfileError) {
-            console.warn('User profile creation warning:', userProfileError)
-          } else {
-            console.log('User profile created successfully, referral code should be generated')
-          }
-        } catch (profileError) {
-          console.warn('Failed to create user profile:', profileError)
-        }
-
-        // Set referral code if provided
-        if (data.referral_code) {
-          try {
-            // Find the user who owns this referral code
-            const { data: referrerData, error: referrerError } = await supabase
-              .from('user_profiles')
-              .select('id')
-              .eq('referral_code', data.referral_code)
-              .single();
-            
-            if (referrerData && !referrerError) {
-              // Update the new user's profile to link them to the referrer
-              const { error: updateError } = await supabase
-                .from('user_profiles')
-                .update({ referred_by: referrerData.id })
-                .eq('id', authData.user.id);
-              
-              if (updateError) {
-                console.warn('Failed to set referral relationship:', updateError);
-              }
-            }
-          } catch (referralError) {
-            console.warn('Referral code setting warning:', referralError);
-          }
-        }
-
-        // Store user info in localStorage (but not authenticated yet)
-        localStorage.setItem('userType', 'investor')
-        localStorage.setItem('userId', authData.user.id)
-        localStorage.setItem('userEmail', authData.user.email)
-        localStorage.setItem('userName', data.name)
-
-        // Show verification message
-        alert('Account created successfully! Please check your email and verify your account before logging in.')
+      // Create user_profiles record to trigger referral code generation
+      try {
+        await addDoc(collection(db, 'user_profiles'), {
+          id: user.uid,
+          full_name: data.name,
+          email: data.email,
+          phone: data.phone || null,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
         
-        // Increment user count for landing page counter
-        if (window.incrementSubxUserCount) {
-          window.incrementSubxUserCount();
-        }
-        
-        // Navigate to login page
-        navigate('/login')
+        console.log('User profile created successfully, referral code should be generated');
+      } catch (profileError) {
+        console.warn('User profile creation warning:', profileError);
       }
+
+      // Handle referral code if provided
+      if (data.referral_code) {
+        try {
+          // Find referrer by referral code
+          const referralsRef = collection(db, 'referrals');
+          const referralQuery = query(referralsRef, where('referral_code', '==', data.referral_code));
+          const referralSnapshot = await getDocs(referralQuery);
+
+          if (!referralSnapshot.empty) {
+            const referrerData = referralSnapshot.docs[0].data();
+            
+            // Create referral record
+            await addDoc(collection(db, 'referrals'), {
+              referrer_id: referrerData.user_id,
+              referred_user_id: user.uid,
+              referral_code: data.referral_code,
+              status: 'pending',
+              created_at: new Date(),
+              updated_at: new Date()
+            });
+
+            // Update referrer's referral count
+            const referrerRef = doc(db, 'users', referrerData.user_id);
+            await updateDoc(referrerRef, {
+              referral_count: increment(1),
+              updated_at: new Date()
+            });
+          }
+        } catch (referralError) {
+          console.warn('Referral processing warning:', referralError);
+        }
+      }
+
+      // Store user info in localStorage (but not authenticated yet)
+      localStorage.setItem('userType', 'investor')
+      localStorage.setItem('userId', user.uid)
+      localStorage.setItem('userEmail', user.email)
+      localStorage.setItem('userName', data.name)
+
+      // Show verification message
+      alert('Account created successfully! Please check your email and verify your account before logging in.')
+      
+      // Increment user count for landing page counter
+      if (window.incrementSubxUserCount) {
+        window.incrementSubxUserCount();
+      }
+      
+      // Navigate to login page
+      navigate('/login')
     } catch (error) {
-      setError('Failed to create account: ' + error.message)
+      console.error('Signup error:', error);
+      let errorMessage = 'Failed to create account. Please try again.';
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'An account with this email already exists. Please try logging in instead.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Please choose a stronger password.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address. Please check your email format.';
+      }
+      
+      setError(errorMessage);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
@@ -163,7 +158,7 @@ export default function InvestorSignup() {
     localStorage.setItem('userEmail', userEmail)
     localStorage.setItem('userName', localStorage.getItem('tempUserName') || 'User')
     
-          // Store Supabase ID for proper user data isolation
+          // Store Firebase UID for proper user data isolation
     if (currentUser?.uid) {
       localStorage.setItem('userId', currentUser.uid)
     }

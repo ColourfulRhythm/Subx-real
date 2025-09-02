@@ -408,7 +408,7 @@ export default function DeveloperDashboard() {
       }
     } catch (error) {
       console.error('Error saving profile:', error);
-      setError(error.message || 'Failed to save profile');
+              setError('Failed to save profile. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -605,7 +605,7 @@ export default function DeveloperDashboard() {
       }
     } catch (error) {
       console.error('Error adding project:', error);
-      setError(error.message || 'Failed to add project');
+              setError('Failed to add project. Please try again.');
       handleToast('error', 'Failed to add project');
     } finally {
       setIsLoading(false);
