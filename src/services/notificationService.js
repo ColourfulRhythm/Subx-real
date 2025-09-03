@@ -46,7 +46,7 @@ export const sendTelegramNotification = async (message) => {
   }
 };
 
-// Send email notification (using a simple webhook or email service)
+// Send email notification using backend SMTP service
 export const sendEmailNotification = async (subject, message) => {
   if (!NOTIFICATION_CONFIG.email.enabled) {
     console.log('Email notifications disabled');
@@ -54,17 +54,14 @@ export const sendEmailNotification = async (subject, message) => {
   }
 
   try {
-    // Using a simple webhook approach - you can replace this with your preferred email service
     const emailData = {
       to: NOTIFICATION_CONFIG.email.recipient,
       subject: subject,
-      message: message,
-      timestamp: new Date().toISOString()
+      message: message
     };
 
-    // For now, we'll use a simple fetch to a webhook endpoint
-    // You can replace this with SendGrid, Mailgun, or any other email service
-    const response = await fetch('/api/send-email', {
+    // Use the backend email API with SMTP
+    const response = await fetch('/api/email/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -172,9 +169,29 @@ export const notifyNewSignup = async (userData) => {
   try {
     const { telegramMessage, emailSubject, emailMessage } = formatSignupNotification(userData);
     
-    // Send both notifications
+    // Send Telegram notification
     const telegramSent = await sendTelegramNotification(telegramMessage);
-    const emailSent = await sendEmailNotification(emailSubject, emailMessage);
+    
+    // Send Email notification using backend API
+    let emailSent = false;
+    try {
+      const response = await fetch('/api/email/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userData })
+      });
+      
+      if (response.ok) {
+        emailSent = true;
+        console.log('✅ Signup email sent via backend API');
+      } else {
+        console.error('❌ Failed to send signup email via backend API');
+      }
+    } catch (error) {
+      console.error('❌ Signup email API error:', error);
+    }
     
     console.log('Signup notifications sent successfully');
     return { telegramSent, emailSent };
@@ -189,9 +206,29 @@ export const notifyNewPurchase = async (purchaseData) => {
   try {
     const { telegramMessage, emailSubject, emailMessage } = formatPurchaseNotification(purchaseData);
     
-    // Send both notifications
+    // Send Telegram notification
     const telegramSent = await sendTelegramNotification(telegramMessage);
-    const emailSent = await sendEmailNotification(emailSubject, emailMessage);
+    
+    // Send Email notification using backend API
+    let emailSent = false;
+    try {
+      const response = await fetch('/api/email/purchase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ purchaseData })
+      });
+      
+      if (response.ok) {
+        emailSent = true;
+        console.log('✅ Purchase email sent via backend API');
+      } else {
+        console.error('❌ Failed to send purchase email via backend API');
+      }
+    } catch (error) {
+      console.error('❌ Purchase email API error:', error);
+    }
     
     console.log('💰 Purchase notifications sent:', { telegramSent, emailSent });
     return { telegramSent, emailSent };

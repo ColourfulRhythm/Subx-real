@@ -21,6 +21,7 @@ import axios from 'axios';
 import { documentsRouter } from './routes/documents.js';
 import { forumRouter } from './routes/forum.js';
 import { referralRouter } from './routes/referral.js';
+import emailRouter from './routes/email.js';
 import { Investor } from './models/Investor.js';
 import { Connection } from './models/Connection.js';
 import nodemailer from 'nodemailer';
@@ -203,6 +204,7 @@ app.use('/api/activities', activitiesRouter);
 app.use('/api/documents', documentsRouter);
 app.use('/api/forum', forumRouter);
 app.use('/api/referral', referralRouter);
+app.use('/api/email', emailRouter);
 
 // Configure multer for image uploads
 const storage = multer.diskStorage({
