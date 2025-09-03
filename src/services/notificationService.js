@@ -172,10 +172,10 @@ export const notifyNewSignup = async (userData) => {
     // Send Telegram notification
     const telegramSent = await sendTelegramNotification(telegramMessage);
     
-    // Send Email notification using backend API
+    // Send Email notification using Firebase Functions
     let emailSent = false;
     try {
-      const response = await fetch('/api/email/signup', {
+      const response = await fetch('https://us-central1-subx-825e9.cloudfunctions.net/sendSignupEmail', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,12 +185,12 @@ export const notifyNewSignup = async (userData) => {
       
       if (response.ok) {
         emailSent = true;
-        console.log('✅ Signup email sent via backend API');
+        console.log('✅ Signup email sent via Firebase Functions');
       } else {
-        console.error('❌ Failed to send signup email via backend API');
+        console.error('❌ Failed to send signup email via Firebase Functions');
       }
     } catch (error) {
-      console.error('❌ Signup email API error:', error);
+      console.error('❌ Signup email Firebase Functions error:', error);
     }
     
     console.log('Signup notifications sent successfully');
@@ -209,10 +209,10 @@ export const notifyNewPurchase = async (purchaseData) => {
     // Send Telegram notification
     const telegramSent = await sendTelegramNotification(telegramMessage);
     
-    // Send Email notification using backend API
+    // Send Email notification using Firebase Functions
     let emailSent = false;
     try {
-      const response = await fetch('/api/email/purchase', {
+      const response = await fetch('https://us-central1-subx-825e9.cloudfunctions.net/sendPurchaseEmail', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -222,12 +222,12 @@ export const notifyNewPurchase = async (purchaseData) => {
       
       if (response.ok) {
         emailSent = true;
-        console.log('✅ Purchase email sent via backend API');
+        console.log('✅ Purchase email sent via Firebase Functions');
       } else {
-        console.error('❌ Failed to send purchase email via backend API');
+        console.error('❌ Failed to send purchase email via Firebase Functions');
       }
     } catch (error) {
-      console.error('❌ Purchase email API error:', error);
+      console.error('❌ Purchase email Firebase Functions error:', error);
     }
     
     console.log('💰 Purchase notifications sent:', { telegramSent, emailSent });
