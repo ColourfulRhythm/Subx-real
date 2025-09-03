@@ -19,7 +19,10 @@ const schema = yup.object().shape({
   phone: yup.string().required('Phone number is required'),
   password: yup.string().when('$signupMethod', {
     is: 'email',
-    then: (schema) => schema.min(6, 'Password must be at least 6 characters').required('Password is required'),
+    then: (schema) => schema
+      .min(6, 'Password must be at least 6 characters')
+      .matches(/[^a-zA-Z0-9]/, 'Password must contain at least one special character (!@#$%^&*)')
+      .required('Password is required'),
     otherwise: (schema) => schema.optional(),
   }),
   confirmPassword: yup.string().when('$signupMethod', {
@@ -86,11 +89,7 @@ export default function DeveloperSignup() {
             updated_at: new Date()
           });
 
-          if (userProfileError) {
-            console.warn('User profile creation warning:', userProfileError)
-          } else {
-            console.log('User profile created successfully, referral code should be generated')
-          }
+          console.log('User profile created successfully, referral code should be generated')
         } catch (profileError) {
           console.warn('Failed to create user profile:', profileError)
         }
@@ -389,6 +388,9 @@ export default function DeveloperSignup() {
                   {errors.password.message}
                 </motion.p>
               )}
+              <p className="text-xs text-gray-500 mt-1">
+                Password must be at least 6 characters and contain at least one special character (!@#$%^&*)
+              </p>
             </motion.div>
 
             <motion.div

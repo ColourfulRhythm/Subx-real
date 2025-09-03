@@ -4,6 +4,8 @@ service cloud.firestore {
     // Users can only access their own data
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Allow creating user documents during signup - user can create their own document
+      allow create: if request.auth != null && request.auth.uid == userId;
     }
     
     // Users can read/write their own investments
@@ -36,6 +38,22 @@ service cloud.firestore {
     match /referral_withdrawals/{withdrawalId} {
       allow read, write: if request.auth != null && 
         (resource == null || request.auth.uid == resource.data.user_id);
+    }
+    
+    // User profiles collection
+    match /user_profiles/{profileId} {
+      allow read, write: if request.auth != null && 
+        (resource == null || request.auth.uid == resource.data.id);
+      // Allow creating user profiles during signup - user can create their own profile
+      allow create: if request.auth != null && request.auth.uid == profileId;
+    }
+    
+    // Property documents collection
+    match /property_documents/{documentId} {
+      allow read, write: if request.auth != null && 
+        (resource == null || request.auth.uid == resource.data.user_id);
+      // Allow creating documents during purchase
+      allow create: if request.auth != null;
     }
     
     // Projects are publicly readable

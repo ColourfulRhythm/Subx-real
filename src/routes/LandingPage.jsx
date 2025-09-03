@@ -49,23 +49,26 @@ export default function LandingPage() {
   const [spotsLeft, setSpotsLeft] = useState(10000);
 
   useEffect(() => {
-    // Fetch real user count from backend
+    // Fetch real user count from Firebase
     const fetchUserCount = async () => {
       try {
-        // Use the correct backend URL
-        const response = await fetch('https://subxbackend-production.up.railway.app/api/users/count');
-        const data = await response.json();
-        if (data.count !== undefined) {
-          setSpotsLeft(Math.max(0, 10000 - data.count));
-          // Store in localStorage for fallback
-          localStorage.setItem('totalUsers', data.count.toString());
-        } else {
-          // Fallback to localStorage
-          const totalUsers = parseInt(localStorage.getItem('totalUsers') || '0');
-          setSpotsLeft(Math.max(0, 10000 - totalUsers));
-        }
+        // Import Firebase functions
+        const { collection, getDocs } = await import('firebase/firestore');
+        const { db } = await import('../firebase');
+        
+        // Get user count from Firebase users collection
+        const usersRef = collection(db, 'users');
+        const usersSnapshot = await getDocs(usersRef);
+        const totalUsers = usersSnapshot.size;
+        
+        console.log('📊 Total users in Firebase:', totalUsers);
+        setSpotsLeft(Math.max(0, 10000 - totalUsers));
+        
+        // Store in localStorage for fallback
+        localStorage.setItem('totalUsers', totalUsers.toString());
+        
       } catch (error) {
-        console.error('Error fetching user count:', error);
+        console.error('Error fetching user count from Firebase:', error);
         // Fallback to localStorage
         const totalUsers = parseInt(localStorage.getItem('totalUsers') || '0');
         setSpotsLeft(Math.max(0, 10000 - totalUsers));

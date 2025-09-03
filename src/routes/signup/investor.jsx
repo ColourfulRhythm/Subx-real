@@ -5,14 +5,18 @@ import * as yup from 'yup';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { auth, db } from '../../firebase';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { addDoc, collection, query, where, getDocs, doc, updateDoc, increment } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from 'firebase/auth';
+import { addDoc, collection, query, where, getDocs, doc, updateDoc, increment, setDoc } from 'firebase/firestore';
 import Navbar from '../../components/Navbar';
+import { notifyNewSignup, createDataBackup, validateDataIntegrity } from '../../services/notificationService';
 
 const schema = yup.object().shape({
   name: yup.string().required('Name is required').min(2, 'Name must be at least 2 characters'),
   email: yup.string().email('Invalid email').required('Email is required'),
-  password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
+  password: yup.string()
+    .min(6, 'Password must be at least 6 characters')
+    .matches(/[^a-zA-Z0-9]/, 'Password must contain at least one special character (!@#$%^&*)')
+    .required('Password is required'),
   referral_code: yup.string().optional(),
   terms: yup.bool().oneOf([true], 'You must agree to the terms'),
 })
@@ -33,16 +37,7 @@ export default function InvestorSignup() {
     setIsLoading(true)
     setError('')
     try {
-      // First check if user already exists in Firebase
-      const usersRef = collection(db, 'users');
-      const userQuery = query(usersRef, where('email', '==', data.email));
-      const userSnapshot = await getDocs(userQuery);
-      
-      if (!userSnapshot.empty) {
-        setError('An account with this email already exists. Please try logging in instead.')
-        setIsLoading(false)
-        return
-      }
+      // Skip user existence check - Firebase Auth handles duplicates
 
       // Create user with Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
@@ -53,28 +48,49 @@ export default function InvestorSignup() {
         displayName: data.name
       });
 
+      // Send email verification
+      await sendEmailVerification(user);
+
+      // Wait for auth state to be properly set
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Verify auth state
+      if (!auth.currentUser) {
+        throw new Error('User authentication not properly established');
+      }
+
+      // Generate referral code for new user
+      const referralCode = 'SUBX-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+
       // Create user profile in Firestore
-      await addDoc(collection(db, 'users'), {
-        id: user.uid,
+      const currentUser = auth.currentUser;
+      
+      if (!currentUser) {
+        throw new Error('No authenticated user found');
+      }
+      
+      await setDoc(doc(db, 'users', currentUser.uid), {
+        id: currentUser.uid,
         full_name: data.name,
+        name: data.name,
         email: data.email,
         user_type: 'investor',
+        referral_code: referralCode,
+        referral_count: 0,
         created_at: new Date(),
         updated_at: new Date()
       });
 
       // Create user_profiles record to trigger referral code generation
       try {
-        await addDoc(collection(db, 'user_profiles'), {
-          id: user.uid,
+        await setDoc(doc(db, 'user_profiles', currentUser.uid), {
+          id: currentUser.uid,
           full_name: data.name,
           email: data.email,
           phone: data.phone || null,
           created_at: new Date(),
           updated_at: new Date()
         });
-        
-        console.log('User profile created successfully, referral code should be generated');
       } catch (profileError) {
         console.warn('User profile creation warning:', profileError);
       }
@@ -82,9 +98,9 @@ export default function InvestorSignup() {
       // Handle referral code if provided
       if (data.referral_code) {
         try {
-          // Find referrer by referral code
-          const referralsRef = collection(db, 'referrals');
-          const referralQuery = query(referralsRef, where('referral_code', '==', data.referral_code));
+          // Find referrer by referral code in users collection
+          const usersRef = collection(db, 'users');
+          const referralQuery = query(usersRef, where('referral_code', '==', data.referral_code));
           const referralSnapshot = await getDocs(referralQuery);
 
           if (!referralSnapshot.empty) {
@@ -92,8 +108,8 @@ export default function InvestorSignup() {
             
             // Create referral record
             await addDoc(collection(db, 'referrals'), {
-              referrer_id: referrerData.user_id,
-              referred_user_id: user.uid,
+              referrer_id: referrerData.id,
+              referred_user_id: currentUser.uid,
               referral_code: data.referral_code,
               status: 'pending',
               created_at: new Date(),
@@ -101,7 +117,7 @@ export default function InvestorSignup() {
             });
 
             // Update referrer's referral count
-            const referrerRef = doc(db, 'users', referrerData.user_id);
+            const referrerRef = doc(db, 'users', referrerData.id);
             await updateDoc(referrerRef, {
               referral_count: increment(1),
               updated_at: new Date()
@@ -114,9 +130,36 @@ export default function InvestorSignup() {
 
       // Store user info in localStorage (but not authenticated yet)
       localStorage.setItem('userType', 'investor')
-      localStorage.setItem('userId', user.uid)
-      localStorage.setItem('userEmail', user.email)
+      localStorage.setItem('userId', currentUser.uid)
+      localStorage.setItem('userEmail', currentUser.email)
       localStorage.setItem('userName', data.name)
+
+      // Create user data for notifications and backup
+      const userData = {
+        name: data.name,
+        email: data.email,
+        userType: 'investor',
+        referralCode: referralCode,
+        uid: currentUser.uid,
+        signupTime: new Date().toISOString()
+      };
+
+      // Validate data integrity
+      const validation = validateDataIntegrity(userData);
+      if (!validation.valid) {
+        console.warn('Data validation warning:', validation.error);
+      }
+
+      // Create data backup
+      await createDataBackup(userData, 'users');
+
+      // Send signup notifications
+      try {
+        await notifyNewSignup(userData);
+        console.log('✅ Signup notifications sent successfully');
+      } catch (notificationError) {
+        console.warn('⚠️ Failed to send signup notifications:', notificationError);
+      }
 
       // Show verification message
       alert('Account created successfully! Please check your email and verify your account before logging in.')
@@ -321,6 +364,9 @@ export default function InvestorSignup() {
                 </button>
               </div>
               {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
+              <p className="text-xs text-gray-500 mt-1">
+                Password must be at least 6 characters and contain at least one special character (!@#$%^&*)
+              </p>
             </div>
 
             {/* Referral Code field - optional */}

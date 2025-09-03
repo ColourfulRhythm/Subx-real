@@ -14,6 +14,7 @@ import {
   getPlotBranding,
   generateDocumentContent
 } from '../../utils/plotNamingConsistency';
+import { createComprehensiveBackup, validateDataIntegrity, scheduleAutomaticBackups } from '../../services/dataPreservationService';
 
 // FIXED: Removed backend API calls - now using Firebase only
 // No more 500 errors from backend server
@@ -23,40 +24,38 @@ const getRealDataFallback = async (userEmail) => {
   console.log('🔍 getRealDataFallback called with email:', userEmail);
   const realData = {
     'kingflamebeats@gmail.com': [
-      { plot_id: 'plot_77', project_title: 'Plot 77', sqm_owned: 1, amount_paid: 5000, status: 'Active' }
+      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 1, amount_paid: 5000, status: 'Active' }
     ],
     'godundergod100@gmail.com': [
-      { plot_id: 'plot_77', project_title: 'Plot 77', sqm_owned: 1, amount_paid: 5000, status: 'Active' }
+      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 1, amount_paid: 5000, status: 'Active' }
     ],
     'michelleunachukwu@gmail.com': [
-      { plot_id: 'plot_77', project_title: 'Plot 77', sqm_owned: 1, amount_paid: 5000, status: 'Active' },
-      { plot_id: 'plot_77', project_title: 'Plot 77', sqm_owned: 50, amount_paid: 250000, status: 'Active', referral_bonus: true }
+      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 1, amount_paid: 5000, status: 'Active' },
+      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 50, amount_paid: 250000, status: 'Active', referral_bonus: true }
     ],
     'gloriaunachukwu@gmail.com': [
-      { plot_id: 'plot_77', project_title: 'Plot 77', sqm_owned: 50, amount_paid: 250000, status: 'Active' }
+      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 50, amount_paid: 250000, status: 'Active' }
     ],
     'benjaminchisom1@gmail.com': [
-      { plot_id: 'plot_77', project_title: 'Plot 77', sqm_owned: 12, amount_paid: 60000, status: 'Active' },
-      { plot_id: 'plot_78', project_title: 'Plot 78', sqm_owned: 2, amount_paid: 10000, status: 'Active' }
+      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 12, amount_paid: 60000, status: 'Active' },
+      { plot_id: 2, project_title: 'Plot 78', sqm_owned: 2, amount_paid: 10000, status: 'Active' }
     ],
     'chrixonuoha@gmail.com': [
-      { plot_id: 'plot_77', project_title: 'Plot 77', sqm_owned: 7, amount_paid: 35000, status: 'Active' }
+      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 7, amount_paid: 35000, status: 'Active' }
     ],
     'kingkwaoyama@gmail.com': [
-      { plot_id: 'plot_77', project_title: 'Plot 77', sqm_owned: 35, amount_paid: 175000, status: 'Active' }
+      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 35, amount_paid: 175000, status: 'Active' }
     ],
     'mary.stella82@yahoo.com': [
-      { plot_id: 'plot_77', project_title: 'Plot 77', sqm_owned: 7, amount_paid: 35000, status: 'Active' }
+      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 7, amount_paid: 35000, status: 'Active' }
     ]
   };
 
   const userData = realData[userEmail.toLowerCase()];
-  console.log('🔍 Looking for user data with key:', userEmail.toLowerCase());
-  console.log('🔍 Available keys in realData:', Object.keys(realData));
-  console.log('🔍 Found userData:', userData);
+  console.log('Looking for user data...');
   
   if (userData) {
-    console.log('✅ Real data fallback found for user:', userEmail, userData);
+    console.log('Real data fallback found');
     const mappedData = userData.map(plot => ({
       ...plot,
       id: `real_${plot.plot_id}_${userEmail}`,
@@ -72,7 +71,7 @@ const getRealDataFallback = async (userEmail) => {
     return mappedData;
   }
 
-  console.log('⚠️ No real data fallback found for user:', userEmail);
+      console.log('No real data fallback found');
   return [];
 };
 
@@ -327,6 +326,14 @@ export default function UserDashboard() {
   // Test useEffect to see if component is rendering
   useEffect(() => {
     console.log('🧪 TEST: Component mounted, useEffect is working');
+    
+    // Initialize data preservation system
+    try {
+      scheduleAutomaticBackups();
+      console.log('✅ Data preservation system initialized');
+    } catch (error) {
+      console.warn('⚠️ Failed to initialize data preservation system:', error);
+    }
   }, []);
 
   // Watch for authentication state changes and fetch user data
@@ -362,11 +369,15 @@ export default function UserDashboard() {
       
       console.log('📊 Portfolio calculation:', { totalSqm, portfolioValue, userProperties });
       
+      // Generate recent activity from user properties
+      const recentActivity = generateRecentActivity(userProperties);
+      
       setUserData(prev => ({
         ...prev,
         totalLandOwned: `${totalSqm} sqm`,
         portfolioValue: `₦${portfolioValue.toLocaleString()}`,
-        totalInvestments: userProperties.length
+        totalInvestments: userProperties.length,
+        recentActivity: recentActivity
       }));
     }
   }, [userProperties]);
@@ -460,15 +471,30 @@ export default function UserDashboard() {
         const userData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         console.log('👤 Users data:', userData);
 
-        // Create co-owners with real data - FIXED: Use correct field names from 'users' collection
+        // Create co-owners with real data - FIXED: Use real name mapping for consistent names
+        const realNameMap = {
+          'kingflamebeats@gmail.com': 'Kingflame Beats',
+          'godundergod100@gmail.com': 'God Under God',
+          'michelleunachukwu@gmail.com': 'Michelle Unachukwu',
+          'gloriaunachukwu@gmail.com': 'Gloria Ogochukwu Unachukwu',
+          'benjaminchisom1@gmail.com': 'Benjamin Chisom',
+          'chrixonuoha@gmail.com': 'Christopher Onuoha',
+          'kingkwaoyama@gmail.com': 'Kingkwa Enang Oyama',
+          'mary.stella82@yahoo.com': 'Iwuozor Chika'
+        };
+        
         const coOwners = ownershipData.map(ownership => {
           const userProfile = userData.find(profile => profile.id === ownership.user_id);
           const sqmOwned = ownership.sqm_owned || 0;
+          const userEmail = userProfile?.email || 'No email';
+          
+          // Use real name mapping if available, otherwise fall back to database name
+          const displayName = realNameMap[userEmail] || userProfile?.name || userEmail;
           
           return {
             id: ownership.user_id,
-            name: userProfile?.name || userProfile?.email || 'Unknown User',
-            email: userProfile?.email || 'No email',
+            name: displayName,
+            email: userEmail,
             sqm: sqmOwned,
             sqmOwned: sqmOwned,
             amountInvested: ownership.amount_paid || 0,
@@ -477,11 +503,14 @@ export default function UserDashboard() {
           };
         });
 
-        // Calculate percentages
-        const totalSqm = coOwners.reduce((sum, owner) => sum + owner.sqm, 0);
+        // Calculate percentages based on total plot size (500 sqm)
+        const totalPlotSize = 500; // Each plot is 500 sqm total
         coOwners.forEach(owner => {
-          owner.percentage = totalSqm > 0 ? parseFloat(((owner.sqm / totalSqm) * 100).toFixed(1)) : 0;
+          owner.percentage = totalPlotSize > 0 ? parseFloat(((owner.sqm / totalPlotSize) * 100).toFixed(1)) : 0;
         });
+        
+        // Sort co-owners by SQM owned (highest first)
+        coOwners.sort((a, b) => b.sqm - a.sqm);
 
         const totalInvestment = coOwners.reduce((sum, owner) => sum + owner.amountInvested, 0);
 
@@ -517,65 +546,62 @@ export default function UserDashboard() {
     }
   };
 
-  const handleViewDocuments = (property) => {
-    // Generate real documents based on the property data with correct plot information
-    const plotId = property.plot_id || property.id;
-    const sqmOwned = property.sqm || property.sqmOwned || 0;
-    const plotName = getPlotDisplayName(plotId);
-    
-    const realDocuments = [
-      {
-        name: 'Ownership Receipt',
-        type: 'receipt',
-        url: '#',
-        signed: true,
-        description: `Receipt for ${sqmOwned} sqm purchase in ${plotName}`,
-        date: property.dateInvested || new Date().toISOString(),
-        sqmOwned: sqmOwned,
-        plotName: plotName
-      },
-      {
-        name: 'Deed of Assignment',
-        type: 'deed',
-        url: '#',
-        signed: false,
-        description: 'Legal document transferring land ownership rights',
-        date: new Date().toISOString(),
-        sqmOwned: sqmOwned,
-        plotName: plotName
-      },
-      {
-        name: 'Co-ownership Certificate',
-        type: 'certificate',
-        url: '#',
-        signed: true,
-        description: `Certificate confirming ownership of ${sqmOwned} sqm`,
-        date: property.dateInvested || new Date().toISOString(),
-        sqmOwned: sqmOwned,
-        plotName: plotName
-      },
-      {
-        name: 'Land Survey Report',
-        type: 'survey',
-        url: '#',
-        signed: true,
-        description: 'Official survey of the purchased land area',
-        date: new Date().toISOString(),
-        sqmOwned: sqmOwned,
-        plotName: plotName
+  const handleViewDocuments = async (property) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        toast.error('Please log in to view documents');
+        return;
       }
-    ];
-    
-    // Generate proper document content using the utility
-    const enhancedDocuments = realDocuments.map(doc => 
-      generateDocumentContent(doc, property, userData)
-    );
-    
-    setSelectedProperty({
-      ...property,
-      documents: enhancedDocuments
-    });
-    setShowDocumentsModal(true);
+
+      // Fetch real documents from Firebase for this specific property
+      const documentsRef = collection(db, 'property_documents');
+      const propertyId = property.id || property.plot_id;
+      
+      if (!propertyId) {
+        console.error('❌ No property ID found for documents:', property);
+        toast.error('Property ID not found');
+        return;
+      }
+      
+      const userDocumentsQuery = query(
+        documentsRef, 
+        where('user_email', '==', user.email),
+        where('property_id', '==', propertyId)
+      );
+      const userDocumentsSnapshot = await getDocs(userDocumentsQuery);
+      
+      const realDocuments = [];
+      userDocumentsSnapshot.forEach((doc) => {
+        const docData = doc.data();
+        realDocuments.push({
+          id: doc.id,
+          name: docData.title,
+          type: docData.document_type,
+          content: docData.content,
+          signed: docData.status === 'signed',
+          description: `${docData.title} for ${docData.sqm_owned} sqm in ${docData.plot_name}`,
+          date: docData.created_at?.toDate?.() || new Date(),
+          sqmOwned: docData.sqm_owned,
+          plotName: docData.plot_name,
+          amountPaid: docData.amount_paid,
+          ownershipPercentage: docData.ownership_percentage,
+          paymentReference: docData.payment_reference
+        });
+      });
+
+      // Sort documents by type (receipt first, then certificate, then deed)
+      const documentOrder = { 'receipt': 1, 'certificate': 2, 'deed': 3 };
+      realDocuments.sort((a, b) => (documentOrder[a.type] || 4) - (documentOrder[b.type] || 4));
+      
+      setSelectedProperty({ ...property, documents: realDocuments });
+      setShowDocumentsModal(true);
+      
+      console.log('✅ Loaded real documents for property:', property.id, realDocuments);
+    } catch (error) {
+      console.error('❌ Error loading documents:', error);
+      toast.error('Failed to load documents');
+    }
   };
 
   const handleSignDeed = (document) => {
@@ -772,6 +798,31 @@ export default function UserDashboard() {
           : project
       )
     );
+  };
+
+  // Function to generate recent activity from user properties and investments
+  const generateRecentActivity = (properties) => {
+    if (!properties || properties.length === 0) return [];
+    
+    const activities = properties.map((property, index) => ({
+      id: `activity_${property.id || index}`,
+      type: 'purchase',
+      title: `Purchased ${property.sqmOwned || property.sqm || 0} sqm in ${getPlotDisplayName(property.plot_id || property.id)}`,
+      description: `Investment of ₦${(property.amountInvested || property.amount_paid || 0).toLocaleString()}`,
+      date: property.purchase_date || property.created_at || new Date(),
+      status: 'completed',
+      amount: property.amountInvested || property.amount_paid || 0,
+      sqm: property.sqmOwned || property.sqm || 0,
+      plot_id: property.plot_id || property.id,
+      documents: property.documents || [
+        { name: 'Group Purchase Agreement', type: 'pdf', url: '#', signed: true },
+        { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
+        { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: false }
+      ]
+    }));
+    
+    // Sort by date (most recent first)
+    return activities.sort((a, b) => new Date(b.date) - new Date(a.date));
   };
 
   // Forum functions
@@ -1042,21 +1093,18 @@ export default function UserDashboard() {
         return;
       }
 
-      console.log('🔍 Fetching user data for:', user.email);
+      console.log('Fetching user data...');
       
       // FIXED: Use only 'users' collection directly - no more mixing data sources
-      console.log('🔍 Fetching user data from users collection with UID:', user.uid);
+      console.log('Fetching user data from users collection...');
       const usersRef = collection(db, 'users');
       const userQuery = query(usersRef, where('id', '==', user.uid));
       const userSnapshot = await getDocs(userQuery);
       const userProfile = userSnapshot.empty ? null : userSnapshot.docs[0].data();
-      console.log('🔍 Direct users collection query result:', userProfile);
+      console.log('User profile found:', !!userProfile);
       
       if (userProfile) {
-        console.log('✅ Found user profile:', userProfile);
-        console.log('📅 created_at value:', userProfile.created_at);
-        console.log('📅 created_at type:', typeof userProfile.created_at);
-        console.log('📅 created_at has toDate:', userProfile.created_at && typeof userProfile.created_at.toDate === 'function');
+        console.log('User profile found successfully');
         
         // Update user data with profile information
         const memberSinceValue = userProfile.created_at ? 
@@ -1067,14 +1115,31 @@ export default function UserDashboard() {
         
         console.log('📅 Calculated memberSince value:', memberSinceValue);
         
+        // Use real name mapping if available, but prioritize database name if user has set one
+        const realNameMap = {
+          'kingflamebeats@gmail.com': 'Kingflame Beats',
+          'godundergod100@gmail.com': 'God Under God',
+          'michelleunachukwu@gmail.com': 'Michelle Unachukwu',
+          'gloriaunachukwu@gmail.com': 'Gloria Ogochukwu Unachukwu',
+          'benjaminchisom1@gmail.com': 'Benjamin Chisom',
+          'chrixonuoha@gmail.com': 'Christopher Onuoha',
+          'kingkwaoyama@gmail.com': 'Kingkwa Enang Oyama',
+          'mary.stella82@yahoo.com': 'Iwuozor Chika'
+        };
+        
+        // FIXED: Prioritize user-set name from database, fall back to real name mapping
+        const displayName = (userProfile.name && userProfile.name.trim() !== '' && !userProfile.name.includes('@'))
+          ? userProfile.name 
+          : (realNameMap[user.email] || userProfile.name || user.email);
+        
         const updatedUserData = {
           ...userData,
-          name: userProfile.name || user.email,
+          name: displayName,
           email: userProfile.email || user.email,
           avatar: userProfile.avatar || userProfile.profile_image || '',
           phone: userProfile.phone || 'Not provided',
           address: userProfile.address || 'Not provided',
-          dateOfBirth: userProfile.date_of_birth || 'Not provided',
+          dateOfBirth: userProfile.date_of_birth || '1990-01-01',
           occupation: userProfile.occupation || 'Not provided',
           memberSince: memberSinceValue
         };
@@ -1088,12 +1153,39 @@ export default function UserDashboard() {
       // FIXED: Create user document directly in 'users' collection - no more mixing data sources
       console.log('⚠️ No user document found, creating default user document');
       const newUsersRef = collection(db, 'users');
+      // Apply real name mapping when creating new user document
+      const realNameMap = {
+        'kingflamebeats@gmail.com': 'Kingflame Beats',
+        'godundergod100@gmail.com': 'God Under God',
+        'michelleunachukwu@gmail.com': 'Michelle Unachukwu',
+        'gloriaunachukwu@gmail.com': 'Gloria Ogochukwu Unachukwu',
+        'benjaminchisom1@gmail.com': 'Benjamin Chisom',
+        'chrixonuoha@gmail.com': 'Christopher Onuoha',
+        'kingkwaoyama@gmail.com': 'Kingkwa Enang Oyama',
+        'mary.stella82@yahoo.com': 'Iwuozor Chika'
+      };
+      
+      const displayName = realNameMap[user.email] || user.displayName || user.email;
+      
+      // Check if user already has a referral code to preserve it
+      const existingUserQuery = query(collection(db, 'users'), where('email', '==', user.email));
+      const existingUserSnapshot = await getDocs(existingUserQuery);
+      let referralCode = 'SUBX-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+      
+      if (!existingUserSnapshot.empty) {
+        const existingUser = existingUserSnapshot.docs[0].data();
+        if (existingUser.referral_code) {
+          referralCode = existingUser.referral_code; // Preserve existing referral code
+          console.log('✅ Preserving existing referral code:', referralCode);
+        }
+      }
+      
       await addDoc(newUsersRef, {
         id: user.uid,
-        name: user.displayName || user.email,
+        name: displayName,
         email: user.email,
         phone: '',
-        referral_code: 'SUBX-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
+        referral_code: referralCode,
         created_at: new Date(),
         updated_at: new Date()
       });
@@ -1125,7 +1217,7 @@ export default function UserDashboard() {
          avatar: user.photoURL || '',
          phone: userData.phone || 'Not provided',
          address: userData.address || 'Not provided',
-         dateOfBirth: userData.date_of_birth || 'Not provided',
+                   dateOfBirth: userData.date_of_birth || '1990-01-01',
          occupation: userData.occupation || 'Not provided',
          memberSince: 'Recently'
        };
@@ -1138,14 +1230,28 @@ export default function UserDashboard() {
       // Fallback to basic data
       const user = auth.currentUser;
       if (user) {
+        // Use real name mapping if available
+        const realNameMap = {
+          'kingflamebeats@gmail.com': 'Kingflame Beats',
+          'godundergod100@gmail.com': 'God Under God',
+          'michelleunachukwu@gmail.com': 'Michelle Unachukwu',
+          'gloriaunachukwu@gmail.com': 'Gloria Ogochukwu Unachukwu',
+          'benjaminchisom1@gmail.com': 'Benjamin Chisom',
+          'chrixonuoha@gmail.com': 'Christopher Onuoha',
+          'kingkwaoyama@gmail.com': 'Kingkwa Enang Oyama',
+          'mary.stella82@yahoo.com': 'Iwuozor Chika'
+        };
+        
+        const displayName = realNameMap[user.email] || user.displayName || user.email;
+        
         setUserData(prev => ({
           ...prev,
-          name: user.displayName || user.email,
+          name: displayName,
           email: user.email,
           avatar: user.photoURL || '',
           phone: 'Not provided',
           address: 'Not provided',
-          dateOfBirth: 'Not provided',
+          dateOfBirth: '1990-01-01',
           occupation: 'Not provided',
           memberSince: 'Recently'
         }));
@@ -1158,10 +1264,27 @@ export default function UserDashboard() {
       const user = auth.currentUser;
       if (!user) throw new Error('No authenticated user');
 
+      // Use the name provided by the user, or fall back to real name mapping if no name provided
+      const realNameMap = {
+        'kingflamebeats@gmail.com': 'Kingflame Beats',
+        'godundergod100@gmail.com': 'God Under God',
+        'michelleunachukwu@gmail.com': 'Michelle Unachukwu',
+        'gloriaunachukwu@gmail.com': 'Gloria Ogochukwu Unachukwu',
+        'benjaminchisom1@gmail.com': 'Benjamin Chisom',
+        'chrixonuoha@gmail.com': 'Christopher Onuoha',
+        'kingkwaoyama@gmail.com': 'Kingkwa Enang Oyama',
+        'mary.stella82@yahoo.com': 'Iwuozor Chika'
+      };
+      
+      // FIXED: Allow users to set their own names, only use real name mapping as fallback
+      const displayName = profileData.name && profileData.name.trim() !== '' 
+        ? profileData.name 
+        : (realNameMap[user.email] || userData.name || user.email);
+      
       // Update local state immediately for better UX
       const updatedUserData = {
         ...userData,
-        name: profileData.name || userData.name,
+        name: displayName,
         email: profileData.email || userData.email,
         phone: profileData.phone || userData.phone,
         address: profileData.address || userData.address,
@@ -1181,7 +1304,7 @@ export default function UserDashboard() {
       // Use Firebase profile service to update profile
       // FIXED: Update user document directly in 'users' collection - no more mixing data sources
       const updateData = {
-        name: profileData.name || null,
+        name: displayName, // Use the real name mapping
         email: profileData.email || null,
         phone: profileData.phone || null,
         address: profileData.address || null,
@@ -1199,15 +1322,16 @@ export default function UserDashboard() {
         const userDocRef = doc(db, 'users', userSnapshot.docs[0].id);
         await updateDoc(userDocRef, updateData);
         console.log('✅ Profile updated in Firebase successfully');
+        
+        // Refresh user data from Firebase to ensure consistency
+        await fetchUserData();
+        
         toast.success('Profile updated successfully!');
         setIsEditingProfile(false);
       } else {
         console.error('User document not found in Firebase');
         toast.error('User profile not found');
       }
-      
-      toast.success('Profile updated successfully!');
-      setIsEditingProfile(false);
     } catch (error) {
       console.error('Failed to update profile:', error);
       toast.error('Failed to update profile');
@@ -1406,17 +1530,41 @@ export default function UserDashboard() {
         console.warn('⚠️ Amount mismatch detected:', { expected: expectedAmount, actual: investmentData.amount });
       }
       
-      // Generate receipt with enhanced content
+      // Generate receipt with enhanced content and dynamic data
       const receiptData = {
         property_id: propertyId,
         user_id: user.uid,
         user_email: user.email,
         document_type: 'receipt',
         title: 'Payment Receipt',
-        content: `Payment Receipt for ${investmentData.projectTitle} - ${investmentData.sqm} sqm at ₦5,000 per sqm. Total Amount: ₦${investmentData.amount.toLocaleString()}. Receipt generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}.`,
+        content: `PAYMENT RECEIPT
+
+Receipt No: SUBX-${Math.floor(Math.random() * 1000000)}
+Date: ${new Date().toLocaleDateString()}
+Time: ${new Date().toLocaleTimeString()}
+
+PAYMENT DETAILS:
+• Property: ${investmentData.projectTitle}
+• Location: 2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode LGA, Ogun State
+• Square Meters: ${investmentData.sqm} sqm
+• Price per SQM: ₦5,000
+• Amount Paid: ₦${investmentData.amount.toLocaleString()}
+• Payment Method: Paystack
+• Payment Reference: ${investmentData.paymentReference}
+• Status: Completed
+
+BUYER:
+• Name: ${userData.name || user.email}
+• Email: ${user.email}
+
+This receipt confirms successful payment for the above property.`,
         sqm_owned: investmentData.sqm,
         amount_paid: investmentData.amount,
         payment_date: new Date(),
+        payment_reference: investmentData.paymentReference,
+        plot_name: investmentData.projectTitle,
+        location: '2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode LGA, Ogun State',
+        price_per_sqm: 5000,
         status: 'generated',
         created_at: new Date(),
         updated_at: new Date()
@@ -1428,11 +1576,86 @@ export default function UserDashboard() {
         user_id: user.uid,
         user_email: user.email,
         document_type: 'certificate',
-        title: 'Ownership Certificate',
-        content: `This certifies that ${userData.name || user.email} owns ${investmentData.sqm} sqm in ${investmentData.projectTitle} located at ${investmentData.location}. Certificate issued on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}. This is a legally binding document of ownership.`,
+        title: 'Co-ownership Certificate',
+        content: `CERTIFICATE OF CO-OWNERSHIP
+
+Certificate No: SUBX-CERT-${Math.floor(Math.random() * 1000000)}
+Date Issued: ${new Date().toLocaleDateString()}
+
+This certifies that:
+
+${userData.name || user.email}
+Email: ${user.email}
+
+Is a verified co-owner of:
+
+• Property: ${investmentData.projectTitle}
+• Location: 2 Seasons Estate, Gbako Village, Ogun State
+• Square Meters: ${investmentData.sqm} sqm
+• Ownership Percentage: ${((investmentData.sqm / 500) * 100).toFixed(2)}%
+• Total Plot Size: 500 sqm
+• Purchase Date: ${new Date().toLocaleDateString()}
+• Amount Invested: ₦${investmentData.amount.toLocaleString()}
+
+This certificate confirms legal co-ownership status and is legally binding under Nigerian law.
+
+Issued by: Subx Real Estate Platform
+Focal Point Property Development and Management Services Ltd.`,
         sqm_owned: investmentData.sqm,
         amount_paid: investmentData.amount,
+        ownership_percentage: ((investmentData.sqm / 500) * 100).toFixed(2),
+        plot_name: investmentData.projectTitle,
+        location: '2 Seasons Estate, Gbako Village, Ogun State',
         issue_date: new Date(),
+        status: 'generated',
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+
+      // Generate Deed of Assignment with enhanced content
+      const deedData = {
+        property_id: propertyId,
+        user_id: user.uid,
+        user_email: user.email,
+        document_type: 'deed',
+        title: 'Deed of Assignment',
+        content: `DEED OF ASSIGNMENT
+
+Deed No: SUBX-DEED-${Math.floor(Math.random() * 1000000)}
+Date: ${new Date().toLocaleDateString()}
+
+This Deed of Assignment is made between:
+
+ASSIGNOR: Focal Point Property Development and Management Services Ltd.
+ASSIGNEE: ${userData.name || user.email}
+
+For the assignment of land rights in 2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode LGA, Ogun state.
+
+PROPERTY DETAILS:
+• Location: 2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode LGA, Ogun state
+• Plot Number: ${investmentData.projectTitle}
+• Square Meters: ${investmentData.sqm} sqm
+• Assignment Value: ₦${investmentData.amount.toLocaleString()}
+• Total Plot Size: 500 sqm
+• Ownership Percentage: ${((investmentData.sqm / 500) * 100).toFixed(2)}%
+
+TERMS AND CONDITIONS:
+1. The Assignor hereby transfers land ownership rights to the Assignee
+2. The Assignee acknowledges receipt of the property rights and agrees to all terms
+3. This deed is legally binding and enforceable under Nigerian law
+4. The Assignee is entitled to their proportional share of the property
+5. All rights and obligations are clearly defined and legally protected
+
+SIGNATURE SECTION:
+Assignor: Focal Point Property Development and Management Services Ltd.
+Assignee: ${userData.name || user.email}
+Date: ${new Date().toLocaleDateString()}`,
+        sqm_owned: investmentData.sqm,
+        amount_paid: investmentData.amount,
+        ownership_percentage: ((investmentData.sqm / 500) * 100).toFixed(2),
+        plot_name: investmentData.projectTitle,
+        location: '2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode LGA, Ogun state',
+        assignment_date: new Date(),
         status: 'generated',
         created_at: new Date(),
         updated_at: new Date()
@@ -1440,19 +1663,25 @@ export default function UserDashboard() {
 
       // DATA PROTECTION: Save documents with transaction-like approach
       const documentsRef = collection(db, 'property_documents');
-      const [receiptDoc, certificateDoc] = await Promise.all([
+      const [receiptDoc, certificateDoc, deedDoc] = await Promise.all([
         addDoc(documentsRef, receiptData),
-        addDoc(documentsRef, certificateData)
+        addDoc(documentsRef, certificateData),
+        addDoc(documentsRef, deedData)
       ]);
 
       // DATA PROTECTION: Verify documents were created
-      if (!receiptDoc.id || !certificateDoc.id) {
+      if (!receiptDoc.id || !certificateDoc.id || !deedDoc.id) {
         throw new Error('Document creation failed - data integrity compromised');
       }
 
       console.log('✅ Property documents generated successfully with data protection');
       toast.success('Documents generated successfully!');
-      return { success: true, receiptId: receiptDoc.id, certificateId: certificateDoc.id };
+      return { 
+        success: true, 
+        receiptId: receiptDoc.id, 
+        certificateId: certificateDoc.id,
+        deedId: deedDoc.id
+      };
     } catch (error) {
       console.error('❌ Failed to generate documents:', error);
       toast.error('Failed to generate documents - data protection failed');
@@ -1781,108 +2010,17 @@ export default function UserDashboard() {
         return;
       }
 
-      // Initialize Paystack payment
-      const amount = selectedSqm * 5000 * 100; // Convert to kobo
-      const email = userData.email || user.email;
-      const name = userData.name || user.displayName || 'User';
-      const reference = 'SUBX-' + Math.floor(Math.random() * 1000000000);
-      
-      console.log('Payment details:', { amount, email, name, reference, selectedSqm });
-      
-      if (!window.PaystackPop) {
-        console.error('PaystackPop not available');
-        toast.error('Payment gateway not loaded. Please refresh the page and try again.');
+      // Check if selected SQM exceeds available SQM
+      if (selectedSqm > selectedProject.availableSqm) {
+        toast.error(`Cannot purchase ${selectedSqm} sqm. Only ${selectedProject.availableSqm} sqm available.`);
         return;
       }
 
-      console.log('Setting up Paystack handler...');
+      // PAYMENT PAUSED - Show message instead of processing payment
+      toast.info('Payment system is currently being updated. A new payment method will be restored soon. Please check back later.');
+      setShowOwnershipModal(false);
+      return;
       
-            try {
-        const handler = window.PaystackPop.setup({
-          key: paystackKey,
-          email: email,
-          amount: amount,
-          currency: 'NGN',
-          ref: reference,
-          label: name,
-          callback: async function(response) {
-            // Handle payment success
-            console.log('Payment successful:', response);
-            
-            // Create investment record
-            const investmentData = {
-              investorId: user.email || user.uid,
-              projectTitle: getPlotDisplayName(selectedProject.plot_id || selectedProject.id),
-              projectId: selectedProject.id,
-              sqm: selectedSqm,
-              amount: selectedSqm * 5000,
-              location: getPlotLocation(selectedProject.plot_id || selectedProject.id),
-              description: selectedProject.description,
-              paymentReference: response.reference,
-              status: 'completed',
-              documents: [
-                { name: 'Group Purchase Agreement', type: 'pdf', url: '#', signed: true },
-                { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
-                { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: false }
-              ]
-            };
-            
-            // FIXED: Save investment to Firebase instead of backend API
-            try {
-              // Save investment to Firebase
-              const investmentsRef = collection(db, 'investments');
-              await addDoc(investmentsRef, {
-                ...investmentData,
-                created_at: new Date(),
-                updated_at: new Date()
-              });
-              
-              console.log('Investment saved to Firebase successfully');
-              
-              // FIXED: Process referral reward automatically
-              await processReferralReward(investmentData);
-              
-              // FIXED: Send purchase notifications (Telegram + Email)
-              await sendPurchaseNotification(investmentData);
-              
-              // FIXED: Generate property documents automatically
-              await generatePropertyDocuments(selectedProject.id, investmentData);
-              
-              // Refresh user data and projects
-              await Promise.all([
-                fetchUserPropertiesNUCLEAR(),
-                fetchProjects()
-              ]);
-              
-              // Update available SQM in frontend
-              updateAvailableSqm(selectedProject.id, selectedSqm);
-              
-              // Update plots collection with new available SQM
-              await updatePlotsAvailableSqmAfterPurchase(selectedProject.id, selectedSqm);
-              
-              // Show success modal with document options
-              setPaymentData(investmentData);
-              setShowOwnershipModal(false);
-              setShowPaymentSuccess(true);
-              toast.success('Payment successful! Documents generated and notifications sent.');
-            } catch (error) {
-              console.error('Failed to save investment to Firebase:', error);
-              toast.error('Payment successful but failed to save investment. Please contact support.');
-            }
-          },
-          onClose: function() {
-            toast.error('Payment cancelled');
-          }
-        });
-      
-      console.log('Opening Paystack iframe...');
-      handler.openIframe();
-      
-    } catch (paystackError) {
-      console.error('Paystack setup error:', paystackError);
-      toast.error('Failed to setup payment. Please try again.');
-    }
-    
     } catch (error) {
       console.error('Payment initialization error:', error);
       toast.error('Failed to initialize payment. Please try again.');
@@ -2079,7 +2217,11 @@ export default function UserDashboard() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm text-gray-500">{activity.date}</p>
+                          <p className="text-sm text-gray-500">
+                            {typeof activity.date === 'string' ? activity.date : 
+                             activity.date instanceof Date ? activity.date.toLocaleDateString() : 
+                             'Recently'}
+                          </p>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             activity.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                           }`}>
@@ -2345,7 +2487,13 @@ export default function UserDashboard() {
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Purchase Date</p>
-                          <p className="font-medium text-gray-900">{new Date(property.dateInvested).toLocaleDateString()}</p>
+                          <p className="font-medium text-gray-900">
+                            {property.dateInvested ? 
+                              (typeof property.dateInvested === 'string' ? 
+                                new Date(property.dateInvested).toLocaleDateString() : 
+                                property.dateInvested.toLocaleDateString()) : 
+                              'Recently'}
+                          </p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Status</p>
@@ -2427,6 +2575,52 @@ export default function UserDashboard() {
                 <h2 className="text-2xl font-bold text-gray-900">My Documents</h2>
               </div>
 
+              {/* Land Portfolio Summary */}
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl shadow-lg border border-indigo-200 p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Land Portfolio Summary</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-white rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-indigo-600">{userData.totalInvestments || 0}</p>
+                    <p className="text-sm text-gray-600">Total Properties</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-green-600">{userData.totalLandOwned || '0 sqm'}</p>
+                    <p className="text-sm text-gray-600">Total Land Owned</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-purple-600">{userData.portfolioValue || '₦0'}</p>
+                    <p className="text-sm text-gray-600">Portfolio Value</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-orange-600">0.0%</p>
+                    <p className="text-sm text-gray-600">Growth Rate</p>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-900 mb-3">Your Land Investments:</h4>
+                  <div className="space-y-3">
+                    {userProperties && userProperties.length > 0 ? (
+                      userProperties.map((property, index) => (
+                        <div key={property.id || index} className="border border-gray-200 rounded-lg p-3">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h5 className="font-medium text-gray-900">{getPlotDisplayName(property.plot_id || property.id)}</h5>
+                              <p className="text-sm text-gray-600">{property.sqmOwned || property.sqm || 0} sqm in {getPlotDisplayName(property.plot_id || property.id)}</p>
+                              <p className="text-sm text-gray-600">Amount Paid: ₦{(property.amountInvested || property.amount_paid || 0).toLocaleString()}</p>
+                              <p className="text-sm text-gray-600">Status: Active</p>
+                              <p className="text-sm text-gray-600">Location: Ogun State</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No investments yet</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-white rounded-xl shadow-lg border border-gray-200">
                 <div className="p-6">
                   {(userData.recentActivity && userData.recentActivity.filter(activity => activity.status === 'owned').length > 0) || 
@@ -2475,7 +2669,7 @@ export default function UserDashboard() {
                                 </div>
                                 <div className="flex space-x-2">
                                     <button 
-                                      onClick={() => handleViewDocument(document)}
+                                      onClick={() => handleViewDocuments(property)}
                                       className="flex-1 px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
                                     >
                                     View
@@ -2527,7 +2721,7 @@ export default function UserDashboard() {
                                 </div>
                                 <div className="flex space-x-2">
                                   <button 
-                                    onClick={() => handleViewDocument(document)}
+                                    onClick={() => handleViewDocuments(property)}
                                     className="flex-1 px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
                                   >
                                     View
@@ -2688,7 +2882,7 @@ export default function UserDashboard() {
                           <div>
                             <p className="text-sm text-gray-500">Member Since</p>
                             <p className="font-medium text-gray-900">
-                              {userData.memberSince || 'Recently'}
+                              {typeof userData.memberSince === 'string' ? userData.memberSince : 'Recently'}
                             </p>
                           </div>
                         </div>
@@ -2947,13 +3141,13 @@ export default function UserDashboard() {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Square Meters (1 - 500)
+                    Select Square Meters (1 - {selectedProject.availableSqm || 500})
                   </label>
                   <div className="flex items-center space-x-4">
                     <input
                       type="range"
                       min="1"
-                      max="500"
+                      max={selectedProject.availableSqm || 500}
                       value={selectedSqm}
                       onChange={(e) => handleSqmChange(parseInt(e.target.value))}
                       className="flex-1"
@@ -2961,20 +3155,22 @@ export default function UserDashboard() {
                     <input
                       type="number"
                       min="1"
-                      max="500"
+                      max={selectedProject.availableSqm || 500}
                       value={selectedSqm}
                       onChange={(e) => {
                         const value = parseInt(e.target.value);
-                        if (value && value >= 1 && value <= 500) {
+                        const maxSqm = selectedProject.availableSqm || 500;
+                        if (value && value >= 1 && value <= maxSqm) {
                           handleSqmChange(value);
                         }
                       }}
                       onBlur={(e) => {
                         const value = parseInt(e.target.value);
+                        const maxSqm = selectedProject.availableSqm || 500;
                         if (!value || value < 1) {
                           handleSqmChange(1);
-                        } else if (value > 500) {
-                          handleSqmChange(500);
+                        } else if (value > maxSqm) {
+                          handleSqmChange(maxSqm);
                         }
                       }}
                       className="w-20 px-2 py-1 text-center border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
