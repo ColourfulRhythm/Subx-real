@@ -8,6 +8,16 @@
       "hosting": {
         "main": [
           "subx-825e9"
+        ],
+        "subxhq": [
+          "subxhq-com"
+        ]
+      }
+    },
+    "subxhq-8bd9e": {
+      "hosting": {
+        "main": [
+          "subxhq-8bd9e"
         ]
       }
     }
