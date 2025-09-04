@@ -24,30 +24,30 @@ const getRealDataFallback = async (userEmail) => {
   console.log('🔍 getRealDataFallback called with email:', userEmail);
   const realData = {
     'kingflamebeats@gmail.com': [
-      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 1, amount_paid: 5000, status: 'Active' }
+      { plot_id: 1, project_title: 'Plot 77', sqmOwned: 1, amountPaid: 5000, status: 'Active' }
     ],
     'godundergod100@gmail.com': [
-      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 1, amount_paid: 5000, status: 'Active' }
+      { plot_id: 1, project_title: 'Plot 77', sqmOwned: 1, amountPaid: 5000, status: 'Active' }
     ],
     'michelleunachukwu@gmail.com': [
-      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 1, amount_paid: 5000, status: 'Active' },
-      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 50, amount_paid: 250000, status: 'Active', referral_bonus: true }
+      { plot_id: 1, project_title: 'Plot 77', sqmOwned: 1, amountPaid: 5000, status: 'Active' },
+      { plot_id: 1, project_title: 'Plot 77', sqmOwned: 50, amountPaid: 250000, status: 'Active', referral_bonus: true }
     ],
     'gloriaunachukwu@gmail.com': [
-      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 50, amount_paid: 250000, status: 'Active' }
+      { plot_id: 1, project_title: 'Plot 77', sqmOwned: 50, amountPaid: 250000, status: 'Active' }
     ],
     'benjaminchisom1@gmail.com': [
-      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 12, amount_paid: 60000, status: 'Active' },
-      { plot_id: 2, project_title: 'Plot 78', sqm_owned: 2, amount_paid: 10000, status: 'Active' }
+      { plot_id: 1, project_title: 'Plot 77', sqmOwned: 12, amountPaid: 60000, status: 'Active' },
+      { plot_id: 2, project_title: 'Plot 78', sqmOwned: 2, amountPaid: 10000, status: 'Active' }
     ],
     'chrixonuoha@gmail.com': [
-      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 7, amount_paid: 35000, status: 'Active' }
+      { plot_id: 1, project_title: 'Plot 77', sqmOwned: 7, amountPaid: 35000, status: 'Active' }
     ],
     'kingkwaoyama@gmail.com': [
-      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 35, amount_paid: 175000, status: 'Active' }
+      { plot_id: 1, project_title: 'Plot 77', sqmOwned: 35, amountPaid: 175000, status: 'Active' }
     ],
     'mary.stella82@yahoo.com': [
-      { plot_id: 1, project_title: 'Plot 77', sqm_owned: 7, amount_paid: 35000, status: 'Active' }
+      { plot_id: 1, project_title: 'Plot 77', sqmOwned: 7, amountPaid: 35000, status: 'Active' }
     ]
   };
 
