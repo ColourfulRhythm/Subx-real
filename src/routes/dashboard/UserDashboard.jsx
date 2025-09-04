@@ -344,6 +344,8 @@ export default function UserDashboard() {
       } else {
         console.log('🔐 Auth state changed - no user');
         setUserProperties([]);
+        // Redirect to login when user is not authenticated
+        navigate('/login');
       }
     });
 
