@@ -23,6 +23,7 @@ import Terms from './routes/legal/Terms'
 import CookiePolicy from './routes/legal/CookiePolicy'
 import About from './routes/About'
 import VerificationSuccess from './routes/auth/VerificationSuccess'
+import VerifyEmail from './routes/auth/VerifyEmail'
 import ToastProvider from './components/ToastProvider'
 import InviteEarn from './pages/InviteEarn'
 import BlogIndex from './routes/blog/index'
@@ -140,6 +141,11 @@ const App = () => {
             <Route path="/verify" element={
               <PageTransition>
                 <VerificationSuccess />
+              </PageTransition>
+            } />
+            <Route path="/verify-email" element={
+              <PageTransition>
+                <VerifyEmail />
               </PageTransition>
             } />
             <Route path="/signup" element={
