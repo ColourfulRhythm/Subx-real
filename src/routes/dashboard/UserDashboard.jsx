@@ -382,7 +382,14 @@ export default function UserDashboard() {
     }
   }, [userProperties]);
 
-
+  // Helper function to safely format dates
+  const formatDate = (date) => {
+    if (!date) return 'Recently';
+    if (typeof date === 'string') return new Date(date).toLocaleDateString();
+    if (date instanceof Date) return date.toLocaleDateString();
+    if (date.toDate && typeof date.toDate === 'function') return date.toDate().toLocaleDateString();
+    return 'Recently';
+  };
 
   const handleLogout = async () => {
     try {
@@ -2575,31 +2582,8 @@ Date: ${new Date().toLocaleDateString()}`,
                 <h2 className="text-2xl font-bold text-gray-900">My Documents</h2>
               </div>
 
-              {/* Land Portfolio Summary */}
-              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl shadow-lg border border-indigo-200 p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Land Portfolio Summary</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-white rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-indigo-600">{userData.totalInvestments || 0}</p>
-                    <p className="text-sm text-gray-600">Total Properties</p>
-                  </div>
-                  <div className="bg-white rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-green-600">{userData.totalLandOwned || '0 sqm'}</p>
-                    <p className="text-sm text-gray-600">Total Land Owned</p>
-                  </div>
-                  <div className="bg-white rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-purple-600">{userData.portfolioValue || '₦0'}</p>
-                    <p className="text-sm text-gray-600">Portfolio Value</p>
-                  </div>
-                  <div className="bg-white rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-orange-600">0.0%</p>
-                    <p className="text-sm text-gray-600">Growth Rate</p>
-                  </div>
-                </div>
-                
-                <div className="bg-white rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 mb-3">Your Land Investments:</h4>
-                  <div className="space-y-3">
+              {/* Property Documents */}
+              <div className="space-y-4">
                     {userProperties && userProperties.length > 0 ? (
                       userProperties.map((property, index) => (
                         <div key={property.id || index} className="border border-gray-200 rounded-lg p-3">
@@ -2888,29 +2872,6 @@ Date: ${new Date().toLocaleDateString()}`,
                         </div>
                       </div>
                       
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-4">Land Portfolio Summary</h4>
-                        <div className="space-y-3">
-                          <div>
-                            <p className="text-sm text-gray-500">Total Properties</p>
-                            <p className="font-medium text-gray-900">{userData.totalInvestments}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Total Land Owned</p>
-                            <p className="font-medium text-gray-900">{userData.totalLandOwned}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Portfolio Value</p>
-                            <p className="font-medium text-gray-900">{userData.portfolioValue}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Growth Rate</p>
-                            <p className="font-medium text-gray-900">
-                              {userData.totalInvestments > 0 ? '+0.0%' : '0.0%'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   ) : (
                     <form onSubmit={(e) => {
@@ -3454,7 +3415,7 @@ Date: ${new Date().toLocaleDateString()}`,
                       {selectedDocument.name === 'Ownership Receipt' && (
                         <>
                           <strong>PAYMENT RECEIPT</strong><br/><br/>
-                          <strong>Date:</strong> {new Date().toLocaleDateString()}<br/>
+                          <strong>Date:</strong> {formatDate(new Date())}<br/>
                           <strong>Receipt No:</strong> SUBX-{Math.floor(Math.random() * 1000000)}<br/><br/>
                           <strong>PAYMENT DETAILS:</strong><br/>
                           • Property: {selectedProperty?.plotName || selectedProperty?.projectTitle || getPlotDisplayName(selectedProperty?.plot_id)}<br/>
@@ -3471,7 +3432,7 @@ Date: ${new Date().toLocaleDateString()}`,
                       {selectedDocument.name === 'Deed of Assignment' && (
                         <>
                       <strong>DEED OF ASSIGNMENT</strong><br/><br/>
-                          This Deed of Assignment is made on {new Date().toLocaleDateString()} between:<br/><br/>
+                          This Deed of Assignment is made on {formatDate(new Date())} between:<br/><br/>
                       <strong>ASSIGNOR:</strong> Focal Point Property Development and Management Services Ltd.<br/>
                       <strong>ASSIGNEE:</strong> {userData.name}<br/><br/>
                           For the assignment of land rights in 2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state.<br/><br/>
@@ -3493,7 +3454,7 @@ Date: ${new Date().toLocaleDateString()}`,
                         <>
                           <strong>CO-OWNERSHIP CERTIFICATE</strong><br/><br/>
                           <strong>Certificate No:</strong> COC-{Math.floor(Math.random() * 1000000)}<br/>
-                          <strong>Date Issued:</strong> {new Date().toLocaleDateString()}<br/><br/>
+                          <strong>Date Issued:</strong> {formatDate(new Date())}<br/><br/>
                           <strong>This certifies that:</strong><br/>
                           <strong>{userData.name}</strong><br/>
                           <strong>Email:</strong> {userData.email}<br/><br/>
@@ -3511,13 +3472,13 @@ Date: ${new Date().toLocaleDateString()}`,
                         <>
                           <strong>LAND SURVEY REPORT</strong><br/><br/>
                           <strong>Report No:</strong> LSR-{Math.floor(Math.random() * 1000000)}<br/>
-                          <strong>Date:</strong> {new Date().toLocaleDateString()}<br/><br/>
+                          <strong>Date:</strong> {formatDate(new Date())}<br/><br/>
                           <strong>PROPERTY SURVEY DETAILS:</strong><br/>
                           • Property: {selectedProperty?.plotName || getPlotDisplayName(selectedProperty?.plot_id)}<br/>
                           • Location: 2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun State<br/>
                           • Total Plot Size: 500 sqm<br/>
                           • Owner's Portion: {selectedDocument?.sqmOwned || selectedProperty?.sqm || '[SQM]'} sqm<br/>
-                          • Survey Date: {new Date().toLocaleDateString()}<br/><br/>
+                          • Survey Date: {formatDate(new Date())}<br/><br/>
                           <strong>SURVEY FINDINGS:</strong><br/>
                           • Land is properly demarcated and surveyed<br/>
                           • All boundaries are clearly defined<br/>
