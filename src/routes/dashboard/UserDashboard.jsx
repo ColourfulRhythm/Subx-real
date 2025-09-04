@@ -73,9 +73,9 @@ const getRealDataFallback = async (userEmail) => {
       created_at: new Date(),
       // Map field names to match what the UI expects
       name: plot.project_title || `Plot ${plot.plot_id}`,
-      amountPaid: plot.amount_paid || 0,
+      amountPaid: plot.amountPaid || 0,  // FIXED: Use correct field name
       totalSqm: 500, // Standard plot size
-      sqmOwned: plot.sqm_owned || 0
+      sqmOwned: plot.sqmOwned || 0       // FIXED: Use correct field name
     }));
     console.log('✅ Mapped fallback data:', mappedData);
     return mappedData;
