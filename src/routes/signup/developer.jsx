@@ -5,7 +5,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { motion } from 'framer-motion';
 import { auth, db } from '../../firebase';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from 'firebase/auth';
 import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
 import Navbar from '../../components/Navbar';
 
@@ -67,32 +67,13 @@ export default function DeveloperSignup() {
         displayName: data.name
       });
 
-      // Send email verification using our custom function
+      // Send Firebase email verification
       try {
-        const verificationLink = `https://subxhq.com/verify-email?uid=${user.uid}&token=${user.uid}`;
-        const response = await fetch('https://us-central1-subx-825e9.cloudfunctions.net/sendEmailVerification', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: data.email,
-            name: data.name,
-            verificationLink: verificationLink
-          })
-        });
-        
-        if (response.ok) {
-          console.log('✅ Custom email verification sent successfully');
-        } else {
-          console.warn('⚠️ Custom email verification failed, using Firebase default');
-          // Fallback to Firebase default
-          await sendEmailVerification(user);
-        }
-      } catch (emailError) {
-        console.warn('⚠️ Custom email verification error:', emailError);
-        // Fallback to Firebase default
         await sendEmailVerification(user);
+        console.log('✅ Firebase email verification sent successfully');
+      } catch (emailError) {
+        console.error('❌ Email verification error:', emailError);
+        throw new Error('Failed to send verification email. Please try again.');
       }
 
       if (user) {

@@ -123,7 +123,14 @@ export function AuthProvider({ children }) {
     try {
       console.log('Attempting login for:', email);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('✅ Login successful for:', userCredential.user.email);
+      const user = userCredential.user;
+      
+      // Check if email is verified
+      if (!user.emailVerified) {
+        throw new Error('Please verify your email before logging in. Check your inbox for the verification link.');
+      }
+      
+      console.log('✅ Login successful for:', user.email);
       return userCredential;
     } catch (error) {
       console.error('❌ Login failed:', error.code, error.message);

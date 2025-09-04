@@ -94,7 +94,7 @@ export default function CookiePolicy() {
                 <p className="text-gray-600 mb-4">
                   If you have any questions about our Cookie Policy, please contact us at:
                   <br />
-                  Email: privacy@subx.com
+                  Email: subx@focalpointdev.com
                   <br />
                   Address: 123 Real Estate Street, Lagos, Nigeria
                 </p>

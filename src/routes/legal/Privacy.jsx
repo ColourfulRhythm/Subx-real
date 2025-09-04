@@ -89,7 +89,7 @@ export default function Privacy() {
                 <p className="text-gray-600 mb-4">
                   If you have any questions about this Privacy Policy, please contact us at:
                   <br />
-                  Email: privacy@subx.com
+                  Email: subx@focalpointdev.com
                 </p>
               </section>
             </div>

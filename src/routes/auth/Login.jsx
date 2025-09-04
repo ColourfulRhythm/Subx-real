@@ -33,6 +33,13 @@ export default function Login() {
       const user = userCredential.user
 
       if (user) {
+        // Check if email is verified
+        if (!user.emailVerified) {
+          setError('Please verify your email before logging in. Check your inbox for the verification link.')
+          setIsLoading(false)
+          return
+        }
+
         // Store user info in localStorage for backward compatibility
         localStorage.setItem('isAuthenticated', 'true')
         localStorage.setItem('userType', 'investor') // Default to investor

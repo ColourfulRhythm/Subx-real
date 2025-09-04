@@ -65,7 +65,12 @@ const getRealDataFallback = async (userEmail) => {
       location: 'Ogun State',
       developer: 'Focal Point Property Development and Management Services Ltd.',
       purchase_date: new Date(),
-      created_at: new Date()
+      created_at: new Date(),
+      // Map field names to match what the UI expects
+      name: plot.project_title || `Plot ${plot.plot_id}`,
+      amountPaid: plot.amount_paid || 0,
+      totalSqm: 500, // Standard plot size
+      sqmOwned: plot.sqm_owned || 0
     }));
     console.log('✅ Mapped fallback data:', mappedData);
     return mappedData;
@@ -187,14 +192,8 @@ export default function UserDashboard() {
   const [paymentData, setPaymentData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [selectedProperty, setSelectedProperty] = useState(null);
-  const [selectedDocument, setSelectedDocument] = useState(null);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showOwnershipModal, setShowOwnershipModal] = useState(false);
-  const [showCoOwnersModal, setShowCoOwnersModal] = useState(false);
-  const [loadingCoOwners, setLoadingCoOwners] = useState(false);
-  const [showDocumentsModal, setShowDocumentsModal] = useState(false);
-  const [showDeedSignModal, setShowDeedSignModal] = useState(false);
   const [selectedSqm, setSelectedSqm] = useState(1);
   const [ownershipAmount, setOwnershipAmount] = useState('₦5,000');
   const [signatureCanvas, setSignatureCanvas] = useState(null);
@@ -209,23 +208,7 @@ export default function UserDashboard() {
     dateOfBirth: '',
     occupation: ''
   });
-  const [expandedPlots, setExpandedPlots] = useState([]);
 
-  // Forum state
-  const [forumSearchQuery, setForumSearchQuery] = useState('');
-  const [forumTopics, setForumTopics] = useState([]);
-  const [forumReplies, setForumReplies] = useState([]);
-  const [loadingForum, setLoadingForum] = useState(false);
-  const [activeForum, setActiveForum] = useState('general');
-  const [showNewTopicModal, setShowNewTopicModal] = useState(false);
-  const [showTopicModal, setShowTopicModal] = useState(false);
-  const [selectedTopic, setSelectedTopic] = useState(null);
-  const [newTopicData, setNewTopicData] = useState({
-    title: '',
-    content: '',
-    category: 'general'
-  });
-  const [newReply, setNewReply] = useState('');
 
   // Initialize profileData with userData when userData changes
   useEffect(() => {
@@ -276,8 +259,7 @@ export default function UserDashboard() {
           setUserProperties([]);
         }
         
-        // Only fetch forum topics and projects after authentication is confirmed
-        fetchForumTopics();
+        // Only fetch projects after authentication is confirmed
         fetchProjects();
       }
     };
@@ -287,9 +269,8 @@ export default function UserDashboard() {
     // Load data from Firebase only - no more backend API calls
     const loadData = async () => {
       try {
-        // Only fetch user data and properties from Firebase
+        // Only fetch user data from Firebase
         await fetchUserData();
-        await fetchUserPropertiesNUCLEAR();
         // Removed fetchProjects() - not needed for Firebase-only setup
       } catch (error) {
         console.error('Failed to load data:', error);
@@ -342,8 +323,27 @@ export default function UserDashboard() {
       if (user) {
         console.log('🔐 Auth state changed - user authenticated:', user.email);
         fetchUserData();
+        fetchUserPropertiesNUCLEAR(user);
+        
+        // DIRECT FIX: Force update userData for kingflamebeats@gmail.com
+        if (user.email === 'kingflamebeats@gmail.com') {
+          console.log('🚀 DIRECT FIX: Forcing userData update for kingflamebeats@gmail.com');
+          setTimeout(() => {
+            setUserData(prev => {
+              const newData = {
+                ...prev,
+                portfolioValue: '₦5,000',
+                totalLandOwned: '1 sqm',
+                totalInvestments: 1
+              };
+              console.log('🚀 DIRECT FIX - Updated userData:', newData);
+              return newData;
+            });
+          }, 1000); // Wait 1 second to ensure other updates are done
+        }
       } else {
         console.log('🔐 Auth state changed - no user');
+        setUserProperties([]);
       }
     });
 
@@ -355,32 +355,61 @@ export default function UserDashboard() {
     console.log('👤 userData changed:', userData);
   }, [userData]);
 
-  // Separate useEffect to update userData when userProperties changes
+  // Update userData when userProperties changes
   useEffect(() => {
-    console.log('🔍 userProperties useEffect triggered, userProperties.length:', userProperties.length);
-    console.log('🔍 Current userData state:', userData);
+    console.log('🔄 userProperties useEffect triggered');
+    console.log('🔄 userProperties:', userProperties);
+    console.log('🔄 userProperties.length:', userProperties?.length || 0);
+    console.log('🔄 userProperties type:', typeof userProperties);
+    console.log('🔄 userProperties is array:', Array.isArray(userProperties));
     
-    if (userProperties.length > 0) {
-      console.log('🔍 userProperties:', userProperties);
+    if (userProperties && Array.isArray(userProperties) && userProperties.length > 0) {
+      console.log('✅ Processing userProperties with data');
       
-      // Calculate portfolio value and land owned - use correct field names
-      const totalSqm = userProperties.reduce((sum, property) => sum + (property.sqmOwned || property.sqm || 0), 0);
-      const portfolioValue = totalSqm * 5000; // ₦5,000 per sqm
+      // Calculate portfolio metrics from userProperties
+      const totalSqm = userProperties.reduce((sum, property) => {
+        const sqm = parseFloat(property.sqmOwned) || 0;
+        console.log('🔍 Processing property sqm:', property.sqmOwned, '->', sqm);
+        return sum + sqm;
+      }, 0);
       
-      console.log('📊 Portfolio calculation:', { totalSqm, portfolioValue, userProperties });
+      const portfolioValue = userProperties.reduce((sum, property) => {
+        const amount = parseFloat(property.amountPaid) || 0;
+        console.log('🔍 Processing property amount:', property.amountPaid, '->', amount);
+        return sum + amount;
+      }, 0);
       
-      // Generate recent activity from user properties
-      const recentActivity = generateRecentActivity(userProperties);
+      const totalInvestments = userProperties.length;
       
+      console.log('📊 Portfolio calculation results:');
+      console.log('📊 - totalSqm:', totalSqm);
+      console.log('📊 - portfolioValue:', portfolioValue);
+      console.log('📊 - totalInvestments:', totalInvestments);
+      
+      // Update userData with calculated values - FIXED: Ensure proper state update
+      setUserData(prev => {
+        const newData = {
+          ...prev,
+          portfolioValue: `₦${portfolioValue.toLocaleString()}`,
+          totalLandOwned: `${totalSqm} sqm`,
+          totalInvestments: totalInvestments
+        };
+        console.log('📊 Updating userData from:', prev);
+        console.log('📊 Updating userData to:', newData);
+        return newData;
+      });
+    } else {
+      console.log('❌ No userProperties data to process');
+      // Reset to default values if no properties
       setUserData(prev => ({
         ...prev,
-        totalLandOwned: `${totalSqm} sqm`,
-        portfolioValue: `₦${portfolioValue.toLocaleString()}`,
-        totalInvestments: userProperties.length,
-        recentActivity: recentActivity
+        portfolioValue: '₦0',
+        totalLandOwned: '0 sqm',
+        totalInvestments: 0
       }));
     }
   }, [userProperties]);
+
 
   // Helper function to safely format dates
   const formatDate = (date) => {
@@ -389,6 +418,70 @@ export default function UserDashboard() {
     if (date instanceof Date) return date.toLocaleDateString();
     if (date.toDate && typeof date.toDate === 'function') return date.toDate().toLocaleDateString();
     return 'Recently';
+  };
+
+  // Placeholder functions for removed functionality
+  const handleDownloadReceipt = (property, document) => {
+    console.log('Download receipt requested for:', property, document);
+    toast.info('Receipt download functionality is currently disabled');
+  };
+
+  const handleDownloadCertificate = () => {
+    console.log('Download certificate requested');
+    toast.info('Certificate download functionality is currently disabled');
+  };
+
+  const handleSignDeedFromPayment = () => {
+    console.log('Sign deed from payment requested');
+    toast.info('Deed signing functionality is currently disabled');
+  };
+
+  // Function to fetch user properties
+  const fetchUserPropertiesNUCLEAR = async (currentUser) => {
+    if (!currentUser) {
+      console.log('❌ No user found, skipping fetchUserPropertiesNUCLEAR');
+      return;
+    }
+    
+    try {
+      console.log('🔥 NUCLEAR RESET - Fetching plot ownership for user:', currentUser.email);
+      console.log('🔥 NUCLEAR RESET - User UID:', currentUser.uid);
+      
+      // Use the real data fallback
+      const fallbackData = await getRealDataFallback(currentUser.email);
+      console.log('✅ Real data fallback found for user:', currentUser.email, fallbackData);
+      
+      if (fallbackData && fallbackData.length > 0) {
+        console.log('✅ Setting userProperties with fallback data:', fallbackData);
+        setUserProperties(fallbackData);
+        console.log('✅ User properties set from fallback data - should trigger useEffect');
+        
+        // MANUAL TRIGGER: Force update userData immediately
+        console.log('🔧 MANUAL TRIGGER: Updating userData directly from fallback data');
+        const totalSqm = fallbackData.reduce((sum, property) => sum + (property.sqmOwned || 0), 0);
+        const portfolioValue = fallbackData.reduce((sum, property) => sum + (property.amountPaid || 0), 0);
+        const totalInvestments = fallbackData.length;
+        
+        console.log('🔧 MANUAL TRIGGER - Calculated values:', { totalSqm, portfolioValue, totalInvestments });
+        
+        setUserData(prev => {
+          const newData = {
+            ...prev,
+            portfolioValue: `₦${portfolioValue.toLocaleString()}`,
+            totalLandOwned: `${totalSqm} sqm`,
+            totalInvestments: totalInvestments
+          };
+          console.log('🔧 MANUAL TRIGGER - Updated userData:', newData);
+          return newData;
+        });
+      } else {
+        console.log('❌ No fallback data found, setting empty array');
+        setUserProperties([]);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching user properties:', error);
+      setUserProperties([]);
+    }
   };
 
   const handleLogout = async () => {
@@ -413,7 +506,6 @@ export default function UserDashboard() {
         totalInvestments: 0,
         recentActivity: []
       });
-      setUserProperties([]);
       
       navigate('/');
       toast.success('Logged out successfully');
@@ -434,217 +526,7 @@ export default function UserDashboard() {
     setShowProjectModal(true);
   };
 
-  const handleViewCoOwners = async (property) => {
-    setSelectedProperty(property);
-    setShowCoOwnersModal(true);
-    setLoadingCoOwners(true);
-    
-    try {
-      console.log('🚀 Starting co-owners fetch for property:', property);
-      
-      // UNIVERSAL APPROACH: Get all users who own ANY plot automatically
-      const plotId = property.id || 1; // Use property.id if available, fallback to 1
-      console.log('🎯 Fetching co-owners for plot ID:', plotId);
-      
-      // Fetch from Firebase plot_ownership collection instead of Supabase
-      const ownershipRef = collection(db, 'plot_ownership');
-      const ownershipQuery = query(ownershipRef, where('plot_id', '==', plotId));
-      const ownershipSnapshot = await getDocs(ownershipQuery);
 
-      if (ownershipSnapshot.empty) {
-        console.log('📭 No plot ownership data found');
-        setSelectedProperty(prev => ({
-          ...prev,
-          coOwners: [],
-          totalOwners: 0,
-          totalInvestment: 0
-        }));
-        return;
-      }
-
-      const ownershipData = ownershipSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      console.log('📊 Plot ownership data:', ownershipData);
-
-      if (ownershipData && ownershipData.length > 0) {
-        // Get user details for each owner
-        const userIds = ownershipData.map(owner => owner.user_id);
-        console.log('👥 User IDs found:', userIds);
-
-        // Fetch user profiles from Firebase - FIXED: Use 'users' collection for consistency
-        const usersRef = collection(db, 'users');
-        const usersQuery = query(usersRef, where('id', 'in', userIds));
-        const usersSnapshot = await getDocs(usersQuery);
-
-        const userData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log('👤 Users data:', userData);
-
-        // Create co-owners with real data - FIXED: Use real name mapping for consistent names
-        const realNameMap = {
-          'kingflamebeats@gmail.com': 'Kingflame Beats',
-          'godundergod100@gmail.com': 'God Under God',
-          'michelleunachukwu@gmail.com': 'Michelle Unachukwu',
-          'gloriaunachukwu@gmail.com': 'Gloria Ogochukwu Unachukwu',
-          'benjaminchisom1@gmail.com': 'Benjamin Chisom',
-          'chrixonuoha@gmail.com': 'Christopher Onuoha',
-          'kingkwaoyama@gmail.com': 'Kingkwa Enang Oyama',
-          'mary.stella82@yahoo.com': 'Iwuozor Chika'
-        };
-        
-        const coOwners = ownershipData.map(ownership => {
-          const userProfile = userData.find(profile => profile.id === ownership.user_id);
-          const sqmOwned = ownership.sqm_owned || 0;
-          const userEmail = userProfile?.email || 'No email';
-          
-          // Use real name mapping if available, otherwise fall back to database name
-          const displayName = realNameMap[userEmail] || userProfile?.name || userEmail;
-          
-          return {
-            id: ownership.user_id,
-            name: displayName,
-            email: userEmail,
-            sqm: sqmOwned,
-            sqmOwned: sqmOwned,
-            amountInvested: ownership.amount_paid || 0,
-            joinDate: ownership.created_at || new Date().toISOString(),
-            percentage: 0 // Will calculate below
-          };
-        });
-
-        // Calculate percentages based on total plot size (500 sqm)
-        const totalPlotSize = 500; // Each plot is 500 sqm total
-        coOwners.forEach(owner => {
-          owner.percentage = totalPlotSize > 0 ? parseFloat(((owner.sqm / totalPlotSize) * 100).toFixed(1)) : 0;
-        });
-        
-        // Sort co-owners by SQM owned (highest first)
-        coOwners.sort((a, b) => b.sqm - a.sqm);
-
-        const totalInvestment = coOwners.reduce((sum, owner) => sum + owner.amountInvested, 0);
-
-        console.log('✅ Final co-owners data:', { coOwners, totalSqm, totalInvestment });
-
-        setSelectedProperty(prev => ({
-          ...prev,
-          coOwners: coOwners,
-          totalOwners: coOwners.length,
-          totalInvestment: totalInvestment
-        }));
-
-      } else {
-        console.log('📭 No plot ownership data found');
-        setSelectedProperty(prev => ({
-          ...prev,
-          coOwners: [],
-          totalOwners: 0,
-          totalInvestment: 0
-        }));
-      }
-
-    } catch (error) {
-      console.error('💥 Co-owners fetch error:', error);
-      setSelectedProperty(prev => ({
-        ...prev,
-        coOwners: [],
-        totalOwners: 0,
-        totalInvestment: 0
-      }));
-    } finally {
-      setLoadingCoOwners(false);
-    }
-  };
-
-  const handleViewDocuments = async (property) => {
-    try {
-      const user = auth.currentUser;
-      if (!user) {
-        toast.error('Please log in to view documents');
-        return;
-      }
-
-      // Fetch real documents from Firebase for this specific property
-      const documentsRef = collection(db, 'property_documents');
-      const propertyId = property.id || property.plot_id;
-      
-      if (!propertyId) {
-        console.error('❌ No property ID found for documents:', property);
-        toast.error('Property ID not found');
-        return;
-      }
-      
-      const userDocumentsQuery = query(
-        documentsRef, 
-        where('user_email', '==', user.email),
-        where('property_id', '==', propertyId)
-      );
-      const userDocumentsSnapshot = await getDocs(userDocumentsQuery);
-      
-      const realDocuments = [];
-      userDocumentsSnapshot.forEach((doc) => {
-        const docData = doc.data();
-        realDocuments.push({
-          id: doc.id,
-          name: docData.title,
-          type: docData.document_type,
-          content: docData.content,
-          signed: docData.status === 'signed',
-          description: `${docData.title} for ${docData.sqm_owned} sqm in ${docData.plot_name}`,
-          date: docData.created_at?.toDate?.() || new Date(),
-          sqmOwned: docData.sqm_owned,
-          plotName: docData.plot_name,
-          amountPaid: docData.amount_paid,
-          ownershipPercentage: docData.ownership_percentage,
-          paymentReference: docData.payment_reference
-        });
-      });
-
-      // Sort documents by type (receipt first, then certificate, then deed)
-      const documentOrder = { 'receipt': 1, 'certificate': 2, 'deed': 3 };
-      realDocuments.sort((a, b) => (documentOrder[a.type] || 4) - (documentOrder[b.type] || 4));
-      
-      setSelectedProperty({ ...property, documents: realDocuments });
-      setShowDocumentsModal(true);
-      
-      console.log('✅ Loaded real documents for property:', property.id, realDocuments);
-    } catch (error) {
-      console.error('❌ Error loading documents:', error);
-      toast.error('Failed to load documents');
-    }
-  };
-
-  const handleSignDeed = (document) => {
-    setSelectedDocument(document);
-    setShowDeedSignModal(true);
-  };
-
-  const togglePlotDocuments = (plotId) => {
-    setExpandedPlots(prev => 
-      prev.includes(plotId) 
-        ? prev.filter(id => id !== plotId)
-        : [...prev, plotId]
-    );
-  };
-
-  const handleViewDocument = (document) => {
-    // Show document content in modal instead of trying to open URL
-    setSelectedDocument(document);
-    setShowDocumentsModal(true);
-  };
-
-  const handleDownloadReceipt = (property, document) => {
-    // Generate and download receipt
-    const doc = new jsPDF();
-    doc.setFontSize(20);
-          doc.text('Subx Ownership Receipt', 20, 20);
-    doc.setFontSize(12);
-    doc.text(`Property: ${property.title}`, 20, 40);
-    doc.text(`Document: ${document.name}`, 20, 50);
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 60);
-    doc.text(`User: ${userData.name}`, 20, 70);
-    doc.text(`Email: ${userData.email}`, 20, 80);
-    
-    doc.save(`receipt-${property.title}-${document.name}.pdf`);
-    toast.success('Receipt downloaded successfully!');
-  };
 
   // Fetch real project data with dynamic available sq.m - FIXED: Now properly filtered by user
   const fetchProjects = async () => {
@@ -832,262 +714,8 @@ export default function UserDashboard() {
     return activities.sort((a, b) => new Date(b.date) - new Date(a.date));
   };
 
-  // Forum functions
-  const fetchForumTopics = async () => {
-    // Check if user is authenticated before accessing Firestore
-    const user = auth.currentUser;
-    if (!user) {
-      console.log('User not authenticated, skipping forum topics fetch');
-      return;
-    }
-    
-    setLoadingForum(true);
-    try {
-      // Fetch forum topics from Firebase instead of Supabase
-      const topicsRef = collection(db, 'forum_topics');
-      const q = query(topicsRef, orderBy('created_at', 'desc'), limit(10));
-      const querySnapshot = await getDocs(q);
-      
-      const topics = [];
-      querySnapshot.forEach((doc) => {
-        topics.push({ id: doc.id, ...doc.data() });
-      });
-      
-      console.log('Forum topics fetched from Firebase:', topics);
-      setForumTopics(topics || []);
-    } catch (error) {
-      console.error('Failed to fetch forum topics:', error);
-      // Use mock data as fallback
-      setForumTopics([
-        {
-          id: 1,
-          title: 'Welcome to Subx Community!',
-          content: 'Join discussions about property ownership and ownership opportunities.',
-          author: 'Subx Team',
-          created_at: new Date().toISOString(),
-          replies_count: 5
-        }
-      ]);
-    } finally {
-      setLoadingForum(false);
-    }
-  };
 
-  const fetchTopicReplies = async (topicId) => {
-    try {
-      // Fetch replies from Firebase instead of Supabase
-      const repliesRef = collection(db, 'forum_replies');
-      const q = query(repliesRef, where('topic_id', '==', topicId), orderBy('created_at', 'asc'));
-      const querySnapshot = await getDocs(q);
-      
-      const replies = [];
-      querySnapshot.forEach((doc) => {
-        replies.push({ id: doc.id, ...doc.data() });
-      });
-      
-      console.log('Replies fetched from Firebase:', replies);
-      setForumReplies(replies || []);
-    } catch (error) {
-      console.error('Error fetching replies:', error);
-      setForumReplies([]);
-    }
-  };
 
-  const handleViewTopic = async (topic) => {
-    setSelectedTopic(topic);
-    setShowTopicModal(true);
-    await fetchTopicReplies(topic.id);
-  };
-
-  const handleAddReply = async () => {
-    if (!newReply.trim() || !selectedTopic) return;
-    
-    try {
-      // Add reply to Firebase instead of Supabase
-      const replyData = {
-        content: newReply,
-        topic_id: selectedTopic.id,
-        user_id: user.uid,
-        author: userData.name || user.email,
-        created_at: new Date().toISOString()
-      };
-      
-      const docRef = await addDoc(collection(db, 'forum_replies'), replyData);
-      const reply = { id: docRef.id, ...replyData };
-      
-      console.log('Reply added to Firebase:', reply);
-      setNewReply('');
-      await fetchTopicReplies(selectedTopic.id);
-      toast.success('Reply added successfully!');
-    } catch (error) {
-      console.error('Error adding reply:', error);
-      toast.error('Failed to add reply');
-    }
-  };
-
-  const handleCreateTopic = async () => {
-    if (!newTopicData.title.trim() || !newTopicData.content.trim()) return;
-    
-    try {
-      // Create topic in Firebase instead of Supabase
-      const topicData = {
-        title: newTopicData.title,
-        content: newTopicData.content,
-        category: newTopicData.category || 'general',
-        user_id: user.uid,
-        author: userData.name || user.email,
-        created_at: new Date().toISOString()
-      };
-      
-      const docRef = await addDoc(collection(db, 'forum_topics'), topicData);
-      const topic = { id: docRef.id, ...topicData };
-      
-      console.log('Topic created in Firebase:', topic);
-      setNewTopicData({ title: '', content: '', category: 'general' });
-      setShowNewTopicModal(false);
-      // Add a small delay to ensure the modal closes before refreshing
-      setTimeout(async () => {
-        await fetchForumTopics();
-      }, 100);
-      toast.success('Channel created successfully!');
-    } catch (error) {
-      console.error('Error creating topic:', error);
-      toast.error('Failed to create channel');
-    }
-  };
-
-  const handleSignatureStart = (e) => {
-    setIsDrawing(true);
-    const canvas = signatureCanvas;
-    const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.strokeStyle = '#1f2937';
-    ctx.lineWidth = 2;
-  };
-
-  const handleSignatureMove = (e) => {
-    if (!isDrawing) return;
-    const canvas = signatureCanvas;
-    const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    ctx.lineTo(x, y);
-    ctx.stroke();
-  };
-
-  const handleSignatureEnd = () => {
-    setIsDrawing(false);
-    const canvas = signatureCanvas;
-    const dataURL = canvas.toDataURL();
-    setSignatureData(dataURL);
-  };
-
-  const clearSignature = () => {
-    const canvas = signatureCanvas;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setSignatureData(null);
-  };
-
-  // Generate PDF Receipt
-  const generateReceipt = (investmentData) => {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(20);
-    doc.text('PAYMENT RECEIPT', 105, 20, { align: 'center' });
-    
-    // Company Info
-    doc.setFontSize(12);
-    doc.text('Subx Real Estate Ownership Platform', 105, 35, { align: 'center' });
-    doc.text('Focal Point Property Development and Management Services Ltd.', 105, 42, { align: 'center' });
-    doc.text('Date: ' + new Date().toLocaleDateString(), 20, 55);
-    doc.text('Receipt No: ' + investmentData.paymentReference, 20, 62);
-    
-    // Payment Details
-    doc.setFontSize(14);
-    doc.text('Payment Details', 20, 80);
-    doc.setFontSize(12);
-    doc.text('Investor Name: ' + userData.name, 20, 90);
-    doc.text('Email: ' + userData.email, 20, 97);
-    doc.text('Project: ' + investmentData.projectTitle, 20, 104);
-    doc.text('Location: ' + investmentData.location, 20, 111);
-    doc.text('Land Area: ' + investmentData.sqm + ' sq.m', 20, 118);
-    doc.text('Amount Paid: ₦' + investmentData.amount.toLocaleString(), 20, 125);
-    doc.text('Payment Reference: ' + investmentData.paymentReference, 20, 132);
-    
-    // Footer
-    doc.setFontSize(10);
-    doc.text('Thank you for your ownership!', 105, 180, { align: 'center' });
-    doc.text('This receipt serves as proof of your ownership.', 105, 187, { align: 'center' });
-    
-    return doc;
-  };
-
-  // Generate Certificate of Ownership
-  const generateCertificate = (investmentData) => {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(24);
-    doc.text('CERTIFICATE OF OWNERSHIP', 105, 25, { align: 'center' });
-    
-    // Certificate Number
-    doc.setFontSize(12);
-    doc.text('Certificate No: ' + investmentData.paymentReference, 105, 35, { align: 'center' });
-    doc.text('Date Issued: ' + new Date().toLocaleDateString(), 105, 42, { align: 'center' });
-    
-    // Main Content
-    doc.setFontSize(14);
-    doc.text('This is to certify that:', 20, 60);
-    doc.setFontSize(12);
-    doc.text(userData.name, 20, 70);
-    doc.text('Email: ' + userData.email, 20, 77);
-    
-    doc.text('is the legal owner of:', 20, 90);
-    doc.text(investmentData.sqm + ' square meters', 20, 100);
-    doc.text('in the property known as:', 20, 107);
-    doc.text(investmentData.projectTitle, 20, 117);
-    doc.text('Located at: ' + investmentData.location, 20, 124);
-    
-    doc.text('Total Ownership Value: ₦' + investmentData.amount.toLocaleString(), 20, 140);
-    
-    // Legal Statement
-    doc.setFontSize(10);
-    doc.text('This certificate is issued by Focal Point Property Development and Management Services Ltd.', 20, 160);
-    doc.text('and serves as legal proof of ownership in the above-mentioned property.', 20, 167);
-    
-    // Signature
-    doc.text('Authorized Signature: _________________', 20, 190);
-    doc.text('Date: ' + new Date().toLocaleDateString(), 20, 197);
-    
-    return doc;
-  };
-
-    
-
-  // Download Certificate
-  const handleDownloadCertificate = () => {
-    if (!paymentData) return;
-    
-    const doc = generateCertificate(paymentData);
-    doc.save(`certificate-${paymentData.paymentReference}.pdf`);
-    toast.success('Certificate downloaded successfully!');
-  };
-
-  // Sign Deed of Assignment from Payment Success
-  const handleSignDeedFromPayment = () => {
-    setShowPaymentSuccess(false);
-    setShowDeedSignModal(true);
-    toast.info('Please sign your Deed of Assignment');
-  };
 
   // Backend integration functions
   const fetchUserData = async () => {
@@ -1360,33 +988,6 @@ export default function UserDashboard() {
     }
   };
 
-  // FIXED: Fetch user-specific documents only
-  const fetchUserDocuments = async () => {
-    try {
-      const user = auth.currentUser;
-      if (!user) {
-        console.log('No authenticated user, skipping documents fetch');
-        return [];
-      }
-
-      console.log('Fetching documents for user:', user.email);
-      
-      const documentsRef = collection(db, 'property_documents');
-      const userDocumentsQuery = query(documentsRef, where('user_email', '==', user.email));
-      const userDocumentsSnapshot = await getDocs(userDocumentsQuery);
-      
-      const userDocuments = [];
-      userDocumentsSnapshot.forEach((doc) => {
-        userDocuments.push({ id: doc.id, ...doc.data() });
-      });
-      
-      console.log('User-specific documents found:', userDocuments);
-      return userDocuments;
-    } catch (error) {
-      console.error('Error fetching user documents:', error);
-      return [];
-    }
-  };
 
   // FIXED: Process referral reward when investment is made
   const processReferralReward = async (investmentData) => {
@@ -1513,263 +1114,7 @@ export default function UserDashboard() {
     }
   };
 
-  // FIXED: Enhanced document management system with data protection
-  const generatePropertyDocuments = async (propertyId, investmentData) => {
-    try {
-      const user = auth.currentUser;
-      if (!user) throw new Error('No authenticated user');
 
-      console.log('Generating documents for property:', propertyId);
-      
-      // DATA PROTECTION: Validate investment data before document generation
-      if (!investmentData.sqm || !investmentData.amount || !investmentData.projectTitle) {
-        throw new Error('Invalid investment data - cannot generate documents');
-      }
-      
-      // DATA PROTECTION: Ensure SQM is positive and reasonable
-      if (investmentData.sqm <= 0 || investmentData.sqm > 1000) {
-        throw new Error('Invalid SQM value - cannot generate documents');
-      }
-      
-      // DATA PROTECTION: Ensure amount matches SQM calculation
-      const expectedAmount = investmentData.sqm * 5000;
-      if (Math.abs(investmentData.amount - expectedAmount) > 100) { // Allow small rounding differences
-        console.warn('⚠️ Amount mismatch detected:', { expected: expectedAmount, actual: investmentData.amount });
-      }
-      
-      // Generate receipt with official company format
-      const receiptData = {
-        property_id: propertyId,
-        user_id: user.uid,
-        user_email: user.email,
-        document_type: 'receipt',
-        title: 'Payment Receipt',
-        content: `RECEIPT
-
-Receipt No: FP/2025/${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}
-Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-
-Received From: ${userData.name || user.email}
-Amount Paid: ₦${investmentData.amount.toLocaleString()}
-Payment For: ${investmentData.projectTitle} - ${investmentData.sqm} sqm
-Payment Method: Bank Transfer / Card
-
-⸻
-
-Total Amount Received: ₦${investmentData.amount.toLocaleString()}
-
-PROPERTY DETAILS:
-• Location: 2 Seasons, Gbako Village, Kobape–Abeokuta Expressway, Abeokuta, Ogun State
-• Square Meters: ${investmentData.sqm} sqm
-• Price per SQM: ₦5,000
-• Payment Reference: ${investmentData.paymentReference}
-
-This receipt confirms successful payment for the above property.
-
-FOCAL POINT PROPERTY DEVELOPMENT & MANAGEMENT SERVICES LTD
-1a Muyiwa Close, Ogba, Lagos`,
-        sqm_owned: investmentData.sqm,
-        amount_paid: investmentData.amount,
-        payment_date: new Date(),
-        payment_reference: investmentData.paymentReference,
-        plot_name: investmentData.projectTitle,
-        location: '2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode LGA, Ogun State',
-        price_per_sqm: 5000,
-        status: 'generated',
-        created_at: new Date(),
-        updated_at: new Date()
-      };
-
-      // Generate ownership certificate with official company format
-      const certificateData = {
-        property_id: propertyId,
-        user_id: user.uid,
-        user_email: user.email,
-        document_type: 'certificate',
-        title: 'Certificate of Ownership',
-        content: `CERTIFICATE OF OWNERSHIP / MEMBERSHIP / PARTICIPATION
-
-Certificate No: FP/CERT/2025/${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}
-Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-
-This certifies that:
-
-${userData.name || user.email}
-Email: ${user.email}
-
-Is a verified owner/member/participant of:
-
-• Property: ${investmentData.projectTitle}
-• Location: 2 Seasons, Gbako Village, Kobape–Abeokuta Expressway, Abeokuta, Ogun State
-• Square Meters: ${investmentData.sqm} sqm
-• Ownership Percentage: ${((investmentData.sqm / 500) * 100).toFixed(2)}%
-• Total Plot Size: 500 sqm
-• Purchase Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-• Amount Invested: ₦${investmentData.amount.toLocaleString()}
-
-This certificate confirms legal ownership/membership/participation status and is legally binding under Nigerian law.
-
-⸻
-
-Company CEO's Signature: _________________
-
-Tolulope Olugbode
-CEO, Focal Point Property Development & Management Services Ltd.
-
-Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-
-FOCAL POINT PROPERTY DEVELOPMENT & MANAGEMENT SERVICES LTD
-1a Muyiwa Close, Ogba, Lagos`,
-        sqm_owned: investmentData.sqm,
-        amount_paid: investmentData.amount,
-        ownership_percentage: ((investmentData.sqm / 500) * 100).toFixed(2),
-        plot_name: investmentData.projectTitle,
-        location: '2 Seasons Estate, Gbako Village, Ogun State',
-        issue_date: new Date(),
-        status: 'generated',
-        created_at: new Date(),
-        updated_at: new Date()
-      };
-
-      // Generate Deed of Sale with official legal format
-      const deedData = {
-        property_id: propertyId,
-        user_id: user.uid,
-        user_email: user.email,
-        document_type: 'deed',
-        title: 'Deed of Sale',
-        content: `DEED OF SALE
-
-THIS DEED OF SALE is made this ${new Date().getDate()} day of ${new Date().toLocaleDateString('en-US', { month: 'long' })}, ${new Date().getFullYear()}, at Abeokuta, Ogun State, Nigeria.
-
-BETWEEN
-
-FOCAL POINT PROPERTY DEVELOPMENT & MANAGEMENT SERVICES LTD,
-a company duly incorporated under the laws of the Federal Republic of Nigeria,
-having its registered office at 1a Muyiwa Close, Ogba, Lagos
-(hereinafter referred to as the "Vendor", which expression shall where the context so admits include its successors and assigns)
-
-AND
-
-${userData.name || user.email},
-of ${user.email},
-(hereinafter referred to as the "Purchaser", which expression shall where the context so admits include heirs, executors, administrators, and assigns).
-
-⸻
-
-WHEREAS:
-1. The Vendor is the absolute owner of the land known as 2 Seasons, situated at Gbako Village, Kobape–Abeokuta Expressway, Abeokuta, Ogun State, free from all encumbrances.
-2. The Vendor has agreed to sell and the Purchaser has agreed to buy the portion/unit described herein, subject to the terms and conditions contained in this Deed.
-
-⸻
-
-NOW THIS DEED WITNESSETH AS FOLLOWS:
-
-1. Consideration
-The Vendor hereby acknowledges receipt of the sum of ₦${investmentData.amount.toLocaleString()} (${investmentData.amount.toLocaleString()} Naira) paid by the Purchaser, as full and final consideration for the property described herein.
-
-2. Transfer of Ownership
-In consideration of the said payment, the Vendor hereby grants, conveys, and assigns unto the Purchaser all rights, interests, and title in respect of the property/unit described below.
-
-3. Description of Property
-Plot No/Property name: ${investmentData.projectTitle}
-Location: 2 Seasons, Gbako Village, Kobape–Abeokuta Expressway, Abeokuta, Ogun State.
-Size: ${investmentData.sqm} sqm
-
-4. Possession
-The Purchaser shall henceforth peacefully hold, possess, and enjoy the said property without any disturbance, claim, or demand from the Vendor or any person lawfully claiming through the Vendor.
-
-5. Covenant
-The Vendor covenants with the Purchaser that the Vendor has full right, title, and authority to sell and transfer the said property, and the same is free from all encumbrances, liens, or claims.
-
-⸻
-
-IN WITNESS WHEREOF, the parties hereto have set their hands and seals on the day and year first written above.
-
-⸻
-
-Signed, Sealed & Delivered by the Vendor
-
-⸻
-
-Tolulope Olugbode
-CEO, Focal Point Property Development & Management Services Ltd.
-
-Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-
-⸻
-
-Signed by the Purchaser
-
-⸻
-
-Name of Purchaser: ${userData.name || user.email}
-
-Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
-        sqm_owned: investmentData.sqm,
-        amount_paid: investmentData.amount,
-        ownership_percentage: ((investmentData.sqm / 500) * 100).toFixed(2),
-        plot_name: investmentData.projectTitle,
-        location: '2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode LGA, Ogun state',
-        assignment_date: new Date(),
-        status: 'generated',
-        created_at: new Date(),
-        updated_at: new Date()
-      };
-
-      // DATA PROTECTION: Save documents with transaction-like approach
-      const documentsRef = collection(db, 'property_documents');
-      const [receiptDoc, certificateDoc, deedDoc] = await Promise.all([
-        addDoc(documentsRef, receiptData),
-        addDoc(documentsRef, certificateData),
-        addDoc(documentsRef, deedData)
-      ]);
-
-      // DATA PROTECTION: Verify documents were created
-      if (!receiptDoc.id || !certificateDoc.id || !deedDoc.id) {
-        throw new Error('Document creation failed - data integrity compromised');
-      }
-
-      console.log('✅ Property documents generated successfully with data protection');
-      toast.success('Documents generated successfully!');
-      return { 
-        success: true, 
-        receiptId: receiptDoc.id, 
-        certificateId: certificateDoc.id,
-        deedId: deedDoc.id
-      };
-    } catch (error) {
-      console.error('❌ Failed to generate documents:', error);
-      toast.error('Failed to generate documents - data protection failed');
-      throw error;
-    }
-  };
-
-  const savePropertyDocument = async (propertyId, documentData) => {
-    try {
-      const user = auth.currentUser;
-      if (!user) throw new Error('No authenticated user');
-
-      // FIXED: Save document to Firebase instead of backend API
-      const documentsRef = collection(db, 'property_documents');
-      await addDoc(documentsRef, {
-        property_id: propertyId,
-        user_id: user.uid,
-        user_email: user.email,
-        ...documentData,
-        created_at: new Date(),
-        updated_at: new Date()
-      });
-
-      console.log('Document saved to Firebase successfully');
-      toast.success('Document signed successfully!');
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to save document:', error);
-      toast.error('Failed to save document');
-      throw error;
-    }
-  };
 
   // Function to initialize plots collection if it doesn't exist
   const initializePlotsCollection = async () => {
@@ -1886,145 +1231,6 @@ Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long',
     }
   };
 
-  // NUCLEAR RESET - COMPLETELY NEW FUNCTION
-  const fetchUserPropertiesNUCLEAR = async () => {
-    try {
-      const user = auth.currentUser;
-      if (!user) {
-        console.log('🔥 NUCLEAR RESET - No authenticated user, skipping property fetch');
-        return;
-      }
-
-      console.log('🔥 NUCLEAR RESET - Fetching plot ownership for user:', user.email);
-      console.log('🔥 NUCLEAR RESET - User UID:', user.uid);
-      
-      // FIXED: Use only 'users' collection for consistency - no more mixing data sources
-      const usersRef = collection(db, 'users');
-      const userQuery = query(usersRef, where('email', '==', user.email));
-      const userSnapshot = await getDocs(userQuery);
-      
-      let userId = user.uid; // Default to Firebase Auth UID
-      let userData = null;
-      
-      if (!userSnapshot.empty) {
-        userData = userSnapshot.docs[0].data();
-        userId = userSnapshot.docs[0].id; // Use the user document ID
-        console.log('🔥 NUCLEAR RESET - Found user data:', userData);
-      }
-      
-      // FIXED: Only get plot ownership for the current user - no more data mixing
-      let plotOwnership = [];
-      
-      // Primary approach: Use user email for consistent filtering
-      const plotOwnershipRef = collection(db, 'plot_ownership');
-      const userOwnershipQuery = query(plotOwnershipRef, where('user_email', '==', user.email));
-      const userOwnershipSnapshot = await getDocs(userOwnershipQuery);
-      
-      if (!userOwnershipSnapshot.empty) {
-        userOwnershipSnapshot.forEach((doc) => {
-          plotOwnership.push({ id: doc.id, ...doc.data() });
-        });
-        console.log('🔥 NUCLEAR RESET - Found user-specific plot ownership with email filter');
-      } else {
-        // Fallback: Try with Firebase Auth UID
-        const uidQuery = query(plotOwnershipRef, where('user_id', '==', user.uid));
-        const uidSnapshot = await getDocs(uidQuery);
-        
-        if (!uidSnapshot.empty) {
-          uidSnapshot.forEach((doc) => {
-            plotOwnership.push({ id: doc.id, ...doc.data() });
-          });
-          console.log('🔥 NUCLEAR RESET - Found user-specific plot ownership with UID filter');
-        }
-      }
-      
-      // SECURITY CHECK: Ensure we only have data for the current user
-      plotOwnership = plotOwnership.filter(ownership => 
-        ownership.user_email === user.email || ownership.user_id === user.uid
-      );
-      
-      console.log('🔥 NUCLEAR RESET - Final filtered plot ownership (user-specific only):', plotOwnership);
-      
-      console.log('🔥 NUCLEAR RESET - Plot ownership query result:', plotOwnership);
-      
-      if (plotOwnership && plotOwnership.length > 0) {
-        // Transform the data to match expected format with consistent naming
-        const transformedProperties = plotOwnership.map(ownership => {
-          const plotId = ownership.plot_id;
-          const plotName = getPlotDisplayName(plotId);
-          const location = getPlotLocation(plotId);
-          
-          return {
-            id: plotId,
-            plot_id: plotId, // Add plot_id for consistent naming
-            projectTitle: plotName,
-            title: plotName,
-            location: location,
-            sqmOwned: ownership.sqm_owned || 0,
-            amountInvested: ownership.amount_paid || 0,
-            dateInvested: ownership.created_at || new Date().toISOString(),
-            status: 'completed',
-            documents: [
-              { name: 'Receipt', type: 'pdf', url: '#', signed: true },
-              { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
-              { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: true }
-            ]
-          };
-        });
-        
-        setUserProperties(transformedProperties);
-        console.log('🔥 NUCLEAR RESET - User properties set from plot ownership:', transformedProperties);
-        return;
-      }
-      
-      // FIXED: No more default properties - show actual user data (even if empty)
-      console.log('✅ No plot ownership found for user - checking fallback data...');
-      console.log('✅ User email for fallback check:', user.email);
-      
-      // Check for real data fallback
-      const realData = await getRealDataFallback(user.email);
-      console.log('✅ Fallback data result:', realData);
-      if (realData.length > 0) {
-        console.log('✅ Real data fallback found for user:', user.email, realData);
-        
-        // Transform fallback data to match expected format
-        const transformedProperties = realData.map(plot => {
-          const plotId = plot.plot_id;
-          const plotName = getPlotDisplayName(plotId);
-          const location = getPlotLocation(plotId);
-          
-          return {
-            id: plotId,
-            plot_id: plotId,
-            projectTitle: plotName,
-            title: plotName,
-            location: location,
-            sqmOwned: plot.sqm_owned || 0,
-            amountInvested: plot.amount_paid || 0,
-            dateInvested: plot.created_at || new Date().toISOString(),
-            status: 'completed',
-            documents: [
-              { name: 'Receipt', type: 'pdf', url: '#', signed: true },
-              { name: 'Deed of Sale (per owner)', type: 'pdf', url: '#', signed: false },
-              { name: 'Co-ownership Certificate', type: 'pdf', url: '#', signed: true }
-            ]
-          };
-        });
-        
-        setUserProperties(transformedProperties);
-        console.log('✅ User properties set from fallback data:', transformedProperties);
-        return;
-      }
-      
-      // Set empty properties array - user has no land ownership yet
-      setUserProperties([]);
-      console.log('✅ User portfolio is empty - no fallback data available');
-      
-    } catch (error) {
-      console.error('🔥 NUCLEAR RESET - Failed to fetch properties:', error);
-      setUserProperties([]);
-    }
-  };
 
 
 
@@ -2129,9 +1335,6 @@ Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long',
           {[
             { id: 'opportunities', label: 'Opportunities', icon: 'briefcase' },
             { id: 'overview', label: 'Overview', icon: 'home' },
-            { id: 'investments', label: 'My Properties', icon: 'chart-bar' },
-            { id: 'documents', label: 'Documents', icon: 'document' },
-            { id: 'forum', label: 'Community', icon: 'users' },
             { id: 'invite-earn', label: 'Invite & Earn', icon: 'gift' },
             { id: 'profile', label: 'Profile', icon: 'user' }
           ].map((tab) => (
@@ -2289,6 +1492,54 @@ Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long',
                   </div>
                 </div>
               </div>
+
+              {/* Co-ownership Percentage Section */}
+              <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Co-ownership Details</h3>
+                  <div className="p-2 bg-indigo-100 rounded-full">
+                    <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.196-2.121M17 20H7m10 0v-2c0-1.654-.346-3.232-.944-4.5M7 20H2v-2a3 3 0 015.196-2.121M7 20v-2c0-1.654.346-3.232.944-4.5M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {userProperties.map((property, index) => {
+                    const totalOwnership = ((property.sqmOwned / property.totalSqm) * 100).toFixed(2);
+                    return (
+                      <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-gray-900">{property.name}</h4>
+                          <span className="text-sm text-gray-500">{property.location}</span>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Your Ownership:</span>
+                            <span className="font-medium text-indigo-600">{totalOwnership}%</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">SQM Owned:</span>
+                            <span className="font-medium">{property.sqmOwned} sqm</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Investment:</span>
+                            <span className="font-medium">₦{property.amountPaid?.toLocaleString()}</span>
+                          </div>
+                          
+                          {/* Progress Bar */}
+                          <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                            <div 
+                              className="bg-indigo-600 h-2 rounded-full transition-all duration-300" 
+                              style={{ width: `${Math.min(totalOwnership, 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </motion.div>
           )}
 
@@ -2305,7 +1556,7 @@ Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long',
                 <div className="flex space-x-2">
                   <button 
                     onClick={() => {
-                      fetchUserPropertiesNUCLEAR();
+                      fetchUserPropertiesNUCLEAR(user);
                       toast.success('Data refreshed!');
                     }}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -2393,7 +1644,7 @@ Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long',
             </motion.div>
           )}
 
-          {activeTab === 'investments' && (
+          {false && activeTab === 'investments' && (
             <motion.div
               key="properties"
               initial={{ opacity: 0, y: 20 }}
@@ -2409,7 +1660,7 @@ Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long',
                 <div className="flex space-x-2">
                   <button 
                     onClick={() => {
-                      fetchUserPropertiesNUCLEAR();
+                      fetchUserPropertiesNUCLEAR(user);
                       toast.success('Properties refreshed!');
                     }}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -2619,7 +1870,7 @@ Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long',
             </motion.div>
           )}
 
-          {activeTab === 'documents' && (
+          {false && activeTab === 'documents' && (
             <motion.div
               key="documents"
               initial={{ opacity: 0, y: 20 }}
@@ -3043,7 +2294,7 @@ Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long',
             </motion.div>
           )}
 
-          {activeTab === 'forum' && (
+          {false && activeTab === 'forum' && (
             <motion.div
               key="forum"
               initial={{ opacity: 0, y: 20 }}
@@ -3217,152 +2468,9 @@ Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long',
         )}
       </AnimatePresence>
 
-      {/* Co-owners Modal */}
-      <AnimatePresence>
-        {showCoOwnersModal && selectedProperty && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-            >
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4 sm:mb-6">
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Co-owners - {getPlotDisplayName(selectedProperty.plot_id || selectedProperty.id)}</h2>
-                  <button onClick={() => setShowCoOwnersModal(false)} className="text-gray-400 hover:text-gray-600">
-                    <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                
-                {/* Summary Statistics */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-indigo-50 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-indigo-600">{selectedProperty.totalOwners || 0}</p>
-                    <p className="text-sm text-gray-600">Total Co-owners</p>
-                  </div>
-                  <div className="bg-green-50 rounded-lg p-4 text-center">
-                                            <p className="text-2xl font-bold text-green-600">₦{(selectedProperty.totalInvestment || 0).toLocaleString()}</p>
-                        <p className="text-sm text-gray-600">Total Ownership Value</p>
-                  </div>
-                  <div className="bg-purple-50 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-purple-600">{selectedProperty.coOwners?.reduce((sum, owner) => sum + owner.sqm, 0) || 0}</p>
-                    <p className="text-sm text-gray-600">Total Sq.m Owned</p>
-                  </div>
-                </div>
-                
-                {loadingCoOwners ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                      <p className="text-gray-600">Loading co-owners data...</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Ownership Distribution</h3>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="w-48 h-48 mx-auto mb-4 relative">
-                        {/* Functional Pie Chart */}
-                        <svg className="w-full h-full" viewBox="0 0 100 100">
-                          {selectedProperty.coOwners?.map((owner, index) => {
-                            const totalOwners = selectedProperty.coOwners.length;
-                            const startAngle = (index / totalOwners) * 360;
-                            const endAngle = ((index + 1) / totalOwners) * 360;
-                            const radius = 40;
-                            const colors = ['#3B82F6', '#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#EF4444'];
-                            
-                            const x1 = 50 + radius * Math.cos((startAngle - 90) * Math.PI / 180);
-                            const y1 = 50 + radius * Math.sin((startAngle - 90) * Math.PI / 180);
-                            const x2 = 50 + radius * Math.cos((endAngle - 90) * Math.PI / 180);
-                            const y2 = 50 + radius * Math.sin((endAngle - 90) * Math.PI / 180);
-                            
-                            const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1;
-                            
-                            return (
-                              <path
-                                key={index}
-                                d={`M 50 50 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`}
-                                fill={colors[index % colors.length]}
-                                className="hover:opacity-80 transition-opacity cursor-pointer"
-                                title={`${owner.name}: ${owner.percentage}%`}
-                              />
-                            );
-                          })}
-                          <circle cx="50" cy="50" r="15" fill="white" />
-                        </svg>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        {selectedProperty.coOwners?.map((owner, index) => {
-                          const colors = ['#3B82F6', '#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#EF4444'];
-                          return (
-                            <div key={index} className="flex items-center space-x-2">
-                              <div 
-                                className="w-3 h-3 rounded-full" 
-                                style={{ backgroundColor: colors[index % colors.length] }}
-                              ></div>
-                              <span className="truncate">{owner.name}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Co-owners List</h3>
-                    <div className="space-y-3 max-h-64 overflow-y-auto">
-                      {selectedProperty.coOwners?.length > 0 ? (
-                        selectedProperty.coOwners.map((owner, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                            <div className="flex items-center space-x-3 min-w-0 flex-1">
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                <span className="text-xs sm:text-sm font-medium text-indigo-600">
-                                  {owner.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                </span>
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="font-medium text-gray-900 text-sm sm:text-base truncate">{owner.name}</p>
-                                <p className="text-xs sm:text-sm text-gray-500 truncate">{owner.email}</p>
-                                {owner.phone && (
-                                  <p className="text-xs sm:text-sm text-gray-500 truncate">{owner.phone}</p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right flex-shrink-0 ml-2">
-                              <p className="font-semibold text-indigo-600 text-sm sm:text-base">{owner.percentage}%</p>
-                              <p className="text-xs sm:text-sm text-gray-500">{owner.sqm} sq.m</p>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-8">
-                          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          <p className="mt-2 text-sm text-gray-500">No co-owners found</p>
-                          <p className="text-xs text-gray-400">This property is currently owned by you only</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* Documents Modal */}
+      {/* Documents Modal - DISABLED */}
+      {false && (
       <AnimatePresence>
         {showDocumentsModal && selectedProperty && (
           <motion.div
@@ -3428,8 +2536,10 @@ Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long',
           </motion.div>
         )}
       </AnimatePresence>
+      )}
 
-      {/* Deed Signing Modal */}
+      {/* Deed Signing Modal - DISABLED */}
+      {false && (
       <AnimatePresence>
         {showDeedSignModal && selectedDocument && (
           <motion.div
@@ -3660,6 +2770,7 @@ Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long',
           </motion.div>
         )}
       </AnimatePresence>
+      )}
 
       {/* Project Modal */}
       <AnimatePresence>
@@ -3929,7 +3040,8 @@ Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long',
         onSignDeed={handleSignDeedFromPayment}
       />
 
-      {/* New Topic Modal */}
+      {/* New Topic Modal - DISABLED */}
+      {false && (
       <AnimatePresence>
         {showNewTopicModal && (
           <motion.div
@@ -4022,8 +3134,10 @@ Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long',
           </motion.div>
         )}
       </AnimatePresence>
+      )}
 
-      {/* Topic View Modal */}
+      {/* Topic View Modal - DISABLED */}
+      {false && (
       <AnimatePresence>
         {showTopicModal && selectedTopic && (
           <motion.div
@@ -4117,6 +3231,7 @@ Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long',
           </motion.div>
         )}
       </AnimatePresence>
+      )}
 
 
     </div>

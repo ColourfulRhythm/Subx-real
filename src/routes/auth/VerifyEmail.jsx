@@ -24,18 +24,39 @@ export default function VerifyEmail() {
           return;
         }
 
-        // For now, we'll just mark as verified since we're using a simple token
-        // In a production system, you'd validate the token properly
-        setVerificationStatus('success');
-        setIsVerifying(false);
-        
-        // Show success message
-        toast.success('Email verified successfully! You can now log in.');
-        
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          navigate('/login');
-        }, 3000);
+        // Verify the action code with Firebase
+        try {
+          await checkActionCode(auth, token);
+          await applyActionCode(auth, token);
+          
+          // Update user verification status in Firestore
+          const { doc, updateDoc } = await import('firebase/firestore');
+          const { db } = await import('../../firebase');
+          
+          const userRef = doc(db, 'users', uid);
+          await updateDoc(userRef, {
+            is_verified: true,
+            email_verified: true,
+            updated_at: new Date()
+          });
+          
+          setVerificationStatus('success');
+          setIsVerifying(false);
+          
+          // Show success message
+          toast.success('Email verified successfully! You can now log in.');
+          
+          // Redirect to login after 3 seconds
+          setTimeout(() => {
+            navigate('/login');
+          }, 3000);
+          
+        } catch (firebaseError) {
+          console.error('Firebase verification error:', firebaseError);
+          setError('Invalid or expired verification link. Please request a new verification email.');
+          setVerificationStatus('error');
+          setIsVerifying(false);
+        }
 
       } catch (error) {
         console.error('Email verification error:', error);

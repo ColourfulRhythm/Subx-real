@@ -48,7 +48,7 @@ export default function ResetPassword() {
       
       // Redirect to login after 3 seconds
       setTimeout(() => {
-        navigate('/login');
+        window.location.href = 'https://www.subxhq.com/login';
       }, 3000);
       
     } catch (error) {
@@ -86,7 +86,7 @@ export default function ResetPassword() {
                   This password reset link is invalid or has expired.
                 </p>
                 <button
-                  onClick={() => navigate('/login')}
+                  onClick={() => window.location.href = 'https://www.subxhq.com/login'}
                   className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors"
                 >
                   Return to Login
@@ -205,7 +205,7 @@ export default function ResetPassword() {
 
             <div className="mt-6 text-center">
               <button
-                onClick={() => navigate('/login')}
+                onClick={() => window.location.href = 'https://www.subxhq.com/login'}
                 className="text-indigo-600 hover:text-indigo-500 text-sm font-medium"
               >
                 Back to Login
