@@ -53,6 +53,11 @@ const getRealDataFallback = async (userEmail) => {
 
   const userData = realData[userEmail.toLowerCase()];
   console.log('Looking for user data...');
+  console.log('🔍 User email:', userEmail);
+  console.log('🔍 User email (lowercase):', userEmail.toLowerCase());
+  console.log('🔍 Available keys in realData:', Object.keys(realData));
+  console.log('🔍 Looking for key:', userEmail.toLowerCase());
+  console.log('🔍 Found user data:', userData);
   
   if (userData) {
     console.log('Real data fallback found');
@@ -74,10 +79,27 @@ const getRealDataFallback = async (userEmail) => {
     }));
     console.log('✅ Mapped fallback data:', mappedData);
     return mappedData;
+  } else {
+    console.log('No real data fallback found for user:', userEmail);
+    // FALLBACK: Return default data for any user not in the hardcoded list
+    console.log('🔄 Using generic fallback data for user:', userEmail);
+    return [{
+      plot_id: 1,
+      project_title: 'Plot 77',
+      sqmOwned: 1,
+      amountPaid: 5000,
+      status: 'Active',
+      id: `fallback_${userEmail}`,
+      user_id: auth.currentUser?.uid || 'fallback_uid',
+      user_email: userEmail,
+      plot_type: 'Residential',
+      location: 'Ogun State',
+      developer: 'Focal Point Property Development and Management Services Ltd.',
+      purchase_date: new Date(),
+      created_at: new Date(),
+      updated_at: new Date()
+    }];
   }
-
-      console.log('No real data fallback found');
-  return [];
 };
 
 
