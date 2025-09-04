@@ -2601,8 +2601,6 @@ Date: ${new Date().toLocaleDateString()}`,
                     ) : (
                       <p className="text-gray-500 text-center py-4">No investments yet</p>
                     )}
-                  </div>
-                </div>
               </div>
 
               <div className="bg-white rounded-xl shadow-lg border border-gray-200">

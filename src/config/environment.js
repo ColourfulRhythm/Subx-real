@@ -9,7 +9,7 @@ export const config = {
     projectId: 'subx-825e9',
     authDomain: 'subx-825e9.firebaseapp.com',
     siteUrl: window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' 
-      ? window.location.origin 
+      ? 'https://subxhq.com'
       : 'https://subxhq.com'
   },
   

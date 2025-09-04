@@ -10,7 +10,10 @@
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "deploy": "./deploy.sh",
+    "deploy:firebase": "npm run build && firebase deploy --project subx-825e9",
+    "predeploy": "npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
