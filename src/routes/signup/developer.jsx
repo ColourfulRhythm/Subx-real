@@ -67,6 +67,34 @@ export default function DeveloperSignup() {
         displayName: data.name
       });
 
+      // Send email verification using our custom function
+      try {
+        const verificationLink = `https://subxhq.com/verify-email?uid=${user.uid}&token=${user.uid}`;
+        const response = await fetch('https://us-central1-subx-825e9.cloudfunctions.net/sendEmailVerification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: data.email,
+            name: data.name,
+            verificationLink: verificationLink
+          })
+        });
+        
+        if (response.ok) {
+          console.log('✅ Custom email verification sent successfully');
+        } else {
+          console.warn('⚠️ Custom email verification failed, using Firebase default');
+          // Fallback to Firebase default
+          await sendEmailVerification(user);
+        }
+      } catch (emailError) {
+        console.warn('⚠️ Custom email verification error:', emailError);
+        // Fallback to Firebase default
+        await sendEmailVerification(user);
+      }
+
       if (user) {
         // Create user profile in Firestore
         await setDoc(doc(db, 'users', user.uid), {

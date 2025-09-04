@@ -147,6 +147,95 @@ Please check the admin dashboard for more details.
   }
 });
 
+// Send email verification
+export const sendEmailVerification = onRequest(async (request, response) => {
+  try {
+    const { email, name, verificationLink } = request.body;
+    
+    if (!email || !verificationLink) {
+      response.status(400).json({ 
+        success: false, 
+        error: 'Email and verification link are required' 
+      });
+      return;
+    }
+
+    const subject = 'Verify Your Email - Subx Real Estate Platform';
+    const message = `
+Hello ${name || 'User'},
+
+Welcome to Subx Real Estate Platform!
+
+Please verify your email address by clicking the link below:
+
+${verificationLink}
+
+This link will expire in 24 hours.
+
+If you didn't create an account with us, please ignore this email.
+
+Best regards,
+The Subx Team
+Focal Point Property Development & Management Services Ltd
+    `.trim();
+
+    const htmlMessage = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <h1 style="color: #2563eb; margin: 0;">Subx Real Estate Platform</h1>
+  </div>
+  
+  <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+    <h2 style="color: #1e293b; margin-top: 0;">Welcome ${name || 'User'}!</h2>
+    <p style="color: #64748b; line-height: 1.6;">
+      Thank you for joining Subx Real Estate Platform. To complete your registration, please verify your email address.
+    </p>
+  </div>
+  
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="${verificationLink}" 
+       style="background: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+      Verify Email Address
+    </a>
+  </div>
+  
+  <div style="background: #fef2f2; padding: 15px; border-radius: 6px; margin: 20px 0;">
+    <p style="color: #dc2626; margin: 0; font-size: 14px;">
+      <strong>Important:</strong> This link will expire in 24 hours. If you didn't create an account with us, please ignore this email.
+    </p>
+  </div>
+  
+  <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 30px; text-align: center; color: #64748b; font-size: 14px;">
+    <p>Best regards,<br>The Subx Team</p>
+    <p>Focal Point Property Development & Management Services Ltd</p>
+  </div>
+</div>
+    `.trim();
+
+    const transporter = createTransporter();
+    const result = await transporter.sendMail({
+      from: '"Subx Platform" <subx@focalpointdev.com>',
+      to: email,
+      subject: subject,
+      text: message,
+      html: htmlMessage
+    });
+
+    logger.info('Email verification sent successfully:', result.messageId);
+    response.json({ 
+      success: true, 
+      message: 'Email verification sent successfully',
+      messageId: result.messageId 
+    });
+  } catch (error) {
+    logger.error('Failed to send email verification:', error);
+    response.status(500).json({ 
+      success: false, 
+      error: (error as Error).message 
+    });
+  }
+});
+
 // Send custom email
 export const sendEmail = onRequest(async (request, response) => {
   try {
