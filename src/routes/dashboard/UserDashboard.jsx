@@ -387,6 +387,7 @@ export default function UserDashboard() {
     console.log('🔄 userProperties.length:', userProperties?.length || 0);
     console.log('🔄 userProperties type:', typeof userProperties);
     console.log('🔄 userProperties is array:', Array.isArray(userProperties));
+    console.log('🔄 portfolioCalculated:', portfolioCalculated);
     
     if (userProperties && Array.isArray(userProperties) && userProperties.length > 0) {
       console.log('✅ Processing userProperties with data');
@@ -804,13 +805,8 @@ export default function UserDashboard() {
           address: userProfile.address || 'Not provided',
           dateOfBirth: userProfile.date_of_birth || '1990-01-01',
           occupation: userProfile.occupation || 'Not provided',
-          memberSince: memberSinceValue,
-          // Only set default portfolio values if portfolio hasn't been calculated yet
-          ...(portfolioCalculated ? {} : {
-            portfolioValue: '₦0',
-            totalLandOwned: '0 sqm',
-            totalInvestments: 0
-          })
+          memberSince: memberSinceValue
+          // CRITICAL: Do NOT overwrite portfolio values here - they are managed by userProperties useEffect
         };
         
         console.log('📝 Setting user data to:', updatedUserData);
