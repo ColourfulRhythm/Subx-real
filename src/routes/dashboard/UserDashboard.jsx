@@ -187,6 +187,7 @@ export default function UserDashboard() {
   });
   const [projects, setProjects] = useState([]);
   const [userProperties, setUserProperties] = useState([]);
+  const [portfolioCalculated, setPortfolioCalculated] = useState(false);
   const [activeTab, setActiveTab] = useState('opportunities');
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [paymentData, setPaymentData] = useState(null);
@@ -391,8 +392,8 @@ export default function UserDashboard() {
       // Update userData with calculated values - FIXED: Ensure proper state update
       setUserData(prev => {
         const newData = {
-          ...prev,
-          portfolioValue: `₦${portfolioValue.toLocaleString()}`,
+        ...prev,
+        portfolioValue: `₦${portfolioValue.toLocaleString()}`,
           totalLandOwned: `${totalSqm} sqm`,
           totalInvestments: totalInvestments
         };
@@ -400,6 +401,9 @@ export default function UserDashboard() {
         console.log('📊 Updating userData to:', newData);
         return newData;
       });
+      
+      // Mark portfolio as calculated to prevent overwrites
+      setPortfolioCalculated(true);
     } else {
       console.log('❌ No userProperties data to process');
       // Reset to default values if no properties
@@ -778,7 +782,13 @@ export default function UserDashboard() {
           address: userProfile.address || 'Not provided',
           dateOfBirth: userProfile.date_of_birth || '1990-01-01',
           occupation: userProfile.occupation || 'Not provided',
-          memberSince: memberSinceValue
+          memberSince: memberSinceValue,
+          // Only set default portfolio values if portfolio hasn't been calculated yet
+          ...(portfolioCalculated ? {} : {
+            portfolioValue: '₦0',
+            totalLandOwned: '0 sqm',
+            totalInvestments: 0
+          })
         };
         
         console.log('📝 Setting user data to:', updatedUserData);
