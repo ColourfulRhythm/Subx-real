@@ -1537,34 +1537,37 @@ export default function UserDashboard() {
         console.warn('⚠️ Amount mismatch detected:', { expected: expectedAmount, actual: investmentData.amount });
       }
       
-      // Generate receipt with enhanced content and dynamic data
+      // Generate receipt with official company format
       const receiptData = {
         property_id: propertyId,
         user_id: user.uid,
         user_email: user.email,
         document_type: 'receipt',
         title: 'Payment Receipt',
-        content: `PAYMENT RECEIPT
+        content: `RECEIPT
 
-Receipt No: SUBX-${Math.floor(Math.random() * 1000000)}
-Date: ${new Date().toLocaleDateString()}
-Time: ${new Date().toLocaleTimeString()}
+Receipt No: FP/2025/${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}
+Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
 
-PAYMENT DETAILS:
-• Property: ${investmentData.projectTitle}
-• Location: 2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode LGA, Ogun State
+Received From: ${userData.name || user.email}
+Amount Paid: ₦${investmentData.amount.toLocaleString()}
+Payment For: ${investmentData.projectTitle} - ${investmentData.sqm} sqm
+Payment Method: Bank Transfer / Card
+
+⸻
+
+Total Amount Received: ₦${investmentData.amount.toLocaleString()}
+
+PROPERTY DETAILS:
+• Location: 2 Seasons, Gbako Village, Kobape–Abeokuta Expressway, Abeokuta, Ogun State
 • Square Meters: ${investmentData.sqm} sqm
 • Price per SQM: ₦5,000
-• Amount Paid: ₦${investmentData.amount.toLocaleString()}
-• Payment Method: Paystack
 • Payment Reference: ${investmentData.paymentReference}
-• Status: Completed
 
-BUYER:
-• Name: ${userData.name || user.email}
-• Email: ${user.email}
+This receipt confirms successful payment for the above property.
 
-This receipt confirms successful payment for the above property.`,
+FOCAL POINT PROPERTY DEVELOPMENT & MANAGEMENT SERVICES LTD
+1a Muyiwa Close, Ogba, Lagos`,
         sqm_owned: investmentData.sqm,
         amount_paid: investmentData.amount,
         payment_date: new Date(),
@@ -1577,37 +1580,46 @@ This receipt confirms successful payment for the above property.`,
         updated_at: new Date()
       };
 
-      // Generate ownership certificate with enhanced content
+      // Generate ownership certificate with official company format
       const certificateData = {
         property_id: propertyId,
         user_id: user.uid,
         user_email: user.email,
         document_type: 'certificate',
-        title: 'Co-ownership Certificate',
-        content: `CERTIFICATE OF CO-OWNERSHIP
+        title: 'Certificate of Ownership',
+        content: `CERTIFICATE OF OWNERSHIP / MEMBERSHIP / PARTICIPATION
 
-Certificate No: SUBX-CERT-${Math.floor(Math.random() * 1000000)}
-Date Issued: ${new Date().toLocaleDateString()}
+Certificate No: FP/CERT/2025/${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}
+Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
 
 This certifies that:
 
 ${userData.name || user.email}
 Email: ${user.email}
 
-Is a verified co-owner of:
+Is a verified owner/member/participant of:
 
 • Property: ${investmentData.projectTitle}
-• Location: 2 Seasons Estate, Gbako Village, Ogun State
+• Location: 2 Seasons, Gbako Village, Kobape–Abeokuta Expressway, Abeokuta, Ogun State
 • Square Meters: ${investmentData.sqm} sqm
 • Ownership Percentage: ${((investmentData.sqm / 500) * 100).toFixed(2)}%
 • Total Plot Size: 500 sqm
-• Purchase Date: ${new Date().toLocaleDateString()}
+• Purchase Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
 • Amount Invested: ₦${investmentData.amount.toLocaleString()}
 
-This certificate confirms legal co-ownership status and is legally binding under Nigerian law.
+This certificate confirms legal ownership/membership/participation status and is legally binding under Nigerian law.
 
-Issued by: Subx Real Estate Platform
-Focal Point Property Development and Management Services Ltd.`,
+⸻
+
+Company CEO's Signature: _________________
+
+Tolulope Olugbode
+CEO, Focal Point Property Development & Management Services Ltd.
+
+Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+
+FOCAL POINT PROPERTY DEVELOPMENT & MANAGEMENT SERVICES LTD
+1a Muyiwa Close, Ogba, Lagos`,
         sqm_owned: investmentData.sqm,
         amount_paid: investmentData.amount,
         ownership_percentage: ((investmentData.sqm / 500) * 100).toFixed(2),
@@ -1619,44 +1631,81 @@ Focal Point Property Development and Management Services Ltd.`,
         updated_at: new Date()
       };
 
-      // Generate Deed of Assignment with enhanced content
+      // Generate Deed of Sale with official legal format
       const deedData = {
         property_id: propertyId,
         user_id: user.uid,
         user_email: user.email,
         document_type: 'deed',
-        title: 'Deed of Assignment',
-        content: `DEED OF ASSIGNMENT
+        title: 'Deed of Sale',
+        content: `DEED OF SALE
 
-Deed No: SUBX-DEED-${Math.floor(Math.random() * 1000000)}
-Date: ${new Date().toLocaleDateString()}
+THIS DEED OF SALE is made this ${new Date().getDate()} day of ${new Date().toLocaleDateString('en-US', { month: 'long' })}, ${new Date().getFullYear()}, at Abeokuta, Ogun State, Nigeria.
 
-This Deed of Assignment is made between:
+BETWEEN
 
-ASSIGNOR: Focal Point Property Development and Management Services Ltd.
-ASSIGNEE: ${userData.name || user.email}
+FOCAL POINT PROPERTY DEVELOPMENT & MANAGEMENT SERVICES LTD,
+a company duly incorporated under the laws of the Federal Republic of Nigeria,
+having its registered office at 1a Muyiwa Close, Ogba, Lagos
+(hereinafter referred to as the "Vendor", which expression shall where the context so admits include its successors and assigns)
 
-For the assignment of land rights in 2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode LGA, Ogun state.
+AND
 
-PROPERTY DETAILS:
-• Location: 2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode LGA, Ogun state
-• Plot Number: ${investmentData.projectTitle}
-• Square Meters: ${investmentData.sqm} sqm
-• Assignment Value: ₦${investmentData.amount.toLocaleString()}
-• Total Plot Size: 500 sqm
-• Ownership Percentage: ${((investmentData.sqm / 500) * 100).toFixed(2)}%
+${userData.name || user.email},
+of ${user.email},
+(hereinafter referred to as the "Purchaser", which expression shall where the context so admits include heirs, executors, administrators, and assigns).
 
-TERMS AND CONDITIONS:
-1. The Assignor hereby transfers land ownership rights to the Assignee
-2. The Assignee acknowledges receipt of the property rights and agrees to all terms
-3. This deed is legally binding and enforceable under Nigerian law
-4. The Assignee is entitled to their proportional share of the property
-5. All rights and obligations are clearly defined and legally protected
+⸻
 
-SIGNATURE SECTION:
-Assignor: Focal Point Property Development and Management Services Ltd.
-Assignee: ${userData.name || user.email}
-Date: ${new Date().toLocaleDateString()}`,
+WHEREAS:
+1. The Vendor is the absolute owner of the land known as 2 Seasons, situated at Gbako Village, Kobape–Abeokuta Expressway, Abeokuta, Ogun State, free from all encumbrances.
+2. The Vendor has agreed to sell and the Purchaser has agreed to buy the portion/unit described herein, subject to the terms and conditions contained in this Deed.
+
+⸻
+
+NOW THIS DEED WITNESSETH AS FOLLOWS:
+
+1. Consideration
+The Vendor hereby acknowledges receipt of the sum of ₦${investmentData.amount.toLocaleString()} (${investmentData.amount.toLocaleString()} Naira) paid by the Purchaser, as full and final consideration for the property described herein.
+
+2. Transfer of Ownership
+In consideration of the said payment, the Vendor hereby grants, conveys, and assigns unto the Purchaser all rights, interests, and title in respect of the property/unit described below.
+
+3. Description of Property
+Plot No/Property name: ${investmentData.projectTitle}
+Location: 2 Seasons, Gbako Village, Kobape–Abeokuta Expressway, Abeokuta, Ogun State.
+Size: ${investmentData.sqm} sqm
+
+4. Possession
+The Purchaser shall henceforth peacefully hold, possess, and enjoy the said property without any disturbance, claim, or demand from the Vendor or any person lawfully claiming through the Vendor.
+
+5. Covenant
+The Vendor covenants with the Purchaser that the Vendor has full right, title, and authority to sell and transfer the said property, and the same is free from all encumbrances, liens, or claims.
+
+⸻
+
+IN WITNESS WHEREOF, the parties hereto have set their hands and seals on the day and year first written above.
+
+⸻
+
+Signed, Sealed & Delivered by the Vendor
+
+⸻
+
+Tolulope Olugbode
+CEO, Focal Point Property Development & Management Services Ltd.
+
+Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+
+⸻
+
+Signed by the Purchaser
+
+⸻
+
+Name of Purchaser: ${userData.name || user.email}
+
+Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
         sqm_owned: investmentData.sqm,
         amount_paid: investmentData.amount,
         ownership_percentage: ((investmentData.sqm / 500) * 100).toFixed(2),
@@ -3410,60 +3459,78 @@ Date: ${new Date().toLocaleDateString()}`,
                   <p className="text-gray-600 mb-4">This is a preview of the {selectedDocument.name} document that you are about to sign.</p>
                   <div className="bg-white border border-gray-200 rounded-lg p-4 min-h-[200px]">
                     <p className="text-sm text-gray-600">
-                      {selectedDocument.name === 'Ownership Receipt' && (
+                      {selectedDocument.name === 'Payment Receipt' && (
                         <>
-                          <strong>PAYMENT RECEIPT</strong><br/><br/>
-                          <strong>Date:</strong> {formatDate(new Date())}<br/>
-                          <strong>Receipt No:</strong> SUBX-{Math.floor(Math.random() * 1000000)}<br/><br/>
-                          <strong>PAYMENT DETAILS:</strong><br/>
-                          • Property: {selectedProperty?.plotName || selectedProperty?.projectTitle || getPlotDisplayName(selectedProperty?.plot_id)}<br/>
-                          • Location: 2 Seasons, Gbako Village, Ogun State<br/>
+                          <strong>RECEIPT</strong><br/><br/>
+                          <strong>Receipt No:</strong> FP/2025/{String(Math.floor(Math.random() * 1000)).padStart(3, '0')}<br/>
+                          <strong>Date:</strong> {formatDate(new Date())}<br/><br/>
+                          <strong>Received From:</strong> {userData.name}<br/>
+                          <strong>Amount Paid:</strong> ₦{((selectedDocument?.sqmOwned || selectedProperty?.sqm || 0) * 5000).toLocaleString()}<br/>
+                          <strong>Payment For:</strong> {selectedProperty?.plotName || selectedProperty?.projectTitle || getPlotDisplayName(selectedProperty?.plot_id)} - {selectedDocument?.sqmOwned || selectedProperty?.sqm || '[SQM]'} sqm<br/>
+                          <strong>Payment Method:</strong> Bank Transfer / Card<br/><br/>
+                          <strong>⸻</strong><br/><br/>
+                          <strong>Total Amount Received:</strong> ₦{((selectedDocument?.sqmOwned || selectedProperty?.sqm || 0) * 5000).toLocaleString()}<br/><br/>
+                          <strong>PROPERTY DETAILS:</strong><br/>
+                          • Location: 2 Seasons, Gbako Village, Kobape–Abeokuta Expressway, Abeokuta, Ogun State<br/>
                           • Square Meters: {selectedDocument?.sqmOwned || selectedProperty?.sqm || '[SQM]'} sqm<br/>
-                          • Amount Paid: ₦{((selectedDocument?.sqmOwned || selectedProperty?.sqm || 0) * 5000).toLocaleString()}<br/>
-                          • Payment Method: Paystack<br/>
-                          • Status: Completed<br/><br/>
-                          <strong>BUYER:</strong> {userData.name}<br/>
-                          <strong>EMAIL:</strong> {userData.email}<br/><br/>
-                          <strong>This receipt confirms successful payment for the above property.</strong>
+                          • Price per SQM: ₦5,000<br/><br/>
+                          <strong>This receipt confirms successful payment for the above property.</strong><br/><br/>
+                          <strong>FOCAL POINT PROPERTY DEVELOPMENT & MANAGEMENT SERVICES LTD</strong><br/>
+                          <strong>1a Muyiwa Close, Ogba, Lagos</strong>
                         </>
                       )}
-                      {selectedDocument.name === 'Deed of Assignment' && (
+                      {selectedDocument.name === 'Deed of Sale' && (
                         <>
-                      <strong>DEED OF ASSIGNMENT</strong><br/><br/>
-                          This Deed of Assignment is made on {formatDate(new Date())} between:<br/><br/>
-                      <strong>ASSIGNOR:</strong> Focal Point Property Development and Management Services Ltd.<br/>
-                      <strong>ASSIGNEE:</strong> {userData.name}<br/><br/>
-                          For the assignment of land rights in 2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state.<br/><br/>
-                      <strong>PROPERTY DETAILS:</strong><br/>
-                      • Location: 2 Seasons Estate, Gbako Village, Via Kobape Obafemi-Owode Lga, Ogun state<br/>
-                          • Plot Number: {selectedProperty?.plotName || getPlotDisplayName(selectedProperty?.plot_id)}<br/>
-                      • Square Meters: {selectedDocument?.sqmOwned || selectedProperty?.sqm || '[SQM]'} sqm<br/>
-                      • Assignment Value: ₦{((selectedDocument?.sqmOwned || selectedProperty?.sqm || 0) * 5000).toLocaleString()}<br/><br/>
-                      <strong>TERMS AND CONDITIONS:</strong><br/>
-                      1. The Assignor hereby transfers land ownership rights to the Assignee<br/>
-                      2. The Assignee acknowledges receipt of the property rights and agrees to all terms<br/>
-                      3. This deed is legally binding and enforceable under Nigerian law<br/><br/>
-                      <strong>SIGNATURE SECTION:</strong><br/>
-                      Assignee Signature: _________________<br/>
-                      Date: _________________
+                          <strong>DEED OF SALE</strong><br/><br/>
+                          <strong>THIS DEED OF SALE</strong> is made this {new Date().getDate()} day of {new Date().toLocaleDateString('en-US', { month: 'long' })}, {new Date().getFullYear()}, at Abeokuta, Ogun State, Nigeria.<br/><br/>
+                          <strong>BETWEEN</strong><br/><br/>
+                          <strong>FOCAL POINT PROPERTY DEVELOPMENT & MANAGEMENT SERVICES LTD,</strong><br/>
+                          a company duly incorporated under the laws of the Federal Republic of Nigeria,<br/>
+                          having its registered office at 1a Muyiwa Close, Ogba, Lagos<br/>
+                          (hereinafter referred to as the "Vendor")<br/><br/>
+                          <strong>AND</strong><br/><br/>
+                          <strong>{userData.name},</strong><br/>
+                          of {userData.email},<br/>
+                          (hereinafter referred to as the "Purchaser").<br/><br/>
+                          <strong>⸻</strong><br/><br/>
+                          <strong>WHEREAS:</strong><br/>
+                          1. The Vendor is the absolute owner of the land known as 2 Seasons, situated at Gbako Village, Kobape–Abeokuta Expressway, Abeokuta, Ogun State, free from all encumbrances.<br/>
+                          2. The Vendor has agreed to sell and the Purchaser has agreed to buy the portion/unit described herein.<br/><br/>
+                          <strong>⸻</strong><br/><br/>
+                          <strong>NOW THIS DEED WITNESSETH AS FOLLOWS:</strong><br/><br/>
+                          <strong>1. Consideration</strong><br/>
+                          The Vendor hereby acknowledges receipt of the sum of ₦{((selectedDocument?.sqmOwned || selectedProperty?.sqm || 0) * 5000).toLocaleString()} paid by the Purchaser, as full and final consideration for the property described herein.<br/><br/>
+                          <strong>2. Description of Property</strong><br/>
+                          Plot No/Property name: {selectedProperty?.plotName || getPlotDisplayName(selectedProperty?.plot_id)}<br/>
+                          Location: 2 Seasons, Gbako Village, Kobape–Abeokuta Expressway, Abeokuta, Ogun State.<br/>
+                          Size: {selectedDocument?.sqmOwned || selectedProperty?.sqm || '[SQM]'} sqm<br/><br/>
+                          <strong>⸻</strong><br/><br/>
+                          <strong>Signed by the Purchaser</strong><br/><br/>
+                          <strong>Name of Purchaser:</strong> {userData.name}<br/>
+                          <strong>Date:</strong> {formatDate(new Date())}
                         </>
                       )}
-                      {selectedDocument.name === 'Co-ownership Certificate' && (
+                      {selectedDocument.name === 'Certificate of Ownership' && (
                         <>
-                          <strong>CO-OWNERSHIP CERTIFICATE</strong><br/><br/>
-                          <strong>Certificate No:</strong> COC-{Math.floor(Math.random() * 1000000)}<br/>
-                          <strong>Date Issued:</strong> {formatDate(new Date())}<br/><br/>
-                          <strong>This certifies that:</strong><br/>
+                          <strong>CERTIFICATE OF OWNERSHIP / MEMBERSHIP / PARTICIPATION</strong><br/><br/>
+                          <strong>Certificate No:</strong> FP/CERT/2025/{String(Math.floor(Math.random() * 1000)).padStart(3, '0')}<br/>
+                          <strong>Date:</strong> {formatDate(new Date())}<br/><br/>
+                          <strong>This certifies that:</strong><br/><br/>
                           <strong>{userData.name}</strong><br/>
                           <strong>Email:</strong> {userData.email}<br/><br/>
-                          <strong>Is a verified co-owner of:</strong><br/>
+                          <strong>Is a verified owner/member/participant of:</strong><br/>
                           • Property: {selectedProperty?.plotName || getPlotDisplayName(selectedProperty?.plot_id)}<br/>
-                          • Location: 2 Seasons Estate, Gbako Village, Ogun State<br/>
+                          • Location: 2 Seasons, Gbako Village, Kobape–Abeokuta Expressway, Abeokuta, Ogun State<br/>
                           • Square Meters: {selectedDocument?.sqmOwned || selectedProperty?.sqm || '[SQM]'} sqm<br/>
                           • Ownership Percentage: {selectedDocument?.ownershipPercentage || ((selectedDocument?.sqmOwned || selectedProperty?.sqm || 0) / 500 * 100).toFixed(2)}%<br/><br/>
-                          <strong>This certificate confirms legal co-ownership status.</strong><br/><br/>
-                          <strong>Issued by:</strong> Subx Real Estate Platform<br/>
-                          <strong>Date:</strong> {new Date().toLocaleDateString()}
+                          <strong>This certificate confirms legal ownership/membership/participation status and is legally binding under Nigerian law.</strong><br/><br/>
+                          <strong>⸻</strong><br/><br/>
+                          <strong>Company CEO's Signature:</strong> _________________<br/><br/>
+                          <strong>Tolulope Olugbode</strong><br/>
+                          <strong>CEO, Focal Point Property Development & Management Services Ltd.</strong><br/><br/>
+                          <strong>Date:</strong> {formatDate(new Date())}<br/><br/>
+                          <strong>FOCAL POINT PROPERTY DEVELOPMENT & MANAGEMENT SERVICES LTD</strong><br/>
+                          <strong>1a Muyiwa Close, Ogba, Lagos</strong>
                         </>
                       )}
                       {selectedDocument.name === 'Land Survey Report' && (
