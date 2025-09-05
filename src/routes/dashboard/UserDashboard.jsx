@@ -1230,6 +1230,71 @@ export default function UserDashboard() {
     }
   };
 
+  // Handle successful payment
+  const handlePaymentSuccess = async (response, project, sqm, amount, reference) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      console.log('Processing payment success:', response);
+
+      // Create investment data
+      const investmentData = {
+        user_id: user.uid,
+        user_email: user.email,
+        project_id: project.id,
+        project_title: project.title,
+        sqm: sqm,
+        amount: amount,
+        location: project.location,
+        payment_reference: reference,
+        status: 'active',
+        created_at: new Date(),
+        updated_at: new Date(),
+        documents: [
+          { name: 'Investment Certificate', type: 'pdf', signed: false },
+          { name: 'Deed of Sale', type: 'pdf', signed: false },
+          { name: 'Co-ownership Certificate', type: 'pdf', signed: false }
+        ]
+      };
+
+      // Save investment to Firestore
+      const investmentsRef = collection(db, 'investments');
+      const docRef = await addDoc(investmentsRef, investmentData);
+      
+      console.log('Investment saved with ID:', docRef.id);
+
+      // Update available SQM
+      updateAvailableSqm(project.id, sqm);
+      updatePlotsAvailableSqmAfterPurchase(project.id, sqm);
+
+      // Process referral reward
+      await processReferralReward({ ...investmentData, id: docRef.id });
+
+      // Send notifications
+      await sendPurchaseNotifications(investmentData);
+
+      // Update user properties
+      await fetchUserPropertiesNUCLEAR(user);
+
+      // Show success message
+      setPaymentData({
+        project: project.title,
+        sqm: sqm,
+        amount: amount,
+        reference: reference
+      });
+      setShowPaymentSuccess(true);
+      setShowOwnershipModal(false);
+
+      toast.success(`Payment successful! You now own ${sqm} sqm in ${project.title}`);
+
+    } catch (error) {
+      console.error('Error processing payment success:', error);
+      toast.error('Payment successful but failed to save investment. Please contact support.');
+    }
+  };
+
   // Function to update plots collection after a purchase
   const updatePlotsAvailableSqmAfterPurchase = async (projectId, purchasedSqm) => {
     try {
@@ -1314,10 +1379,34 @@ export default function UserDashboard() {
         return;
       }
 
-      // PAYMENT PAUSED - Show message instead of processing payment
-      toast.info('Payment system is currently being updated. A new payment method will be restored soon. Please check back later.');
-      setShowOwnershipModal(false);
-      return;
+      // Calculate total amount
+      const pricePerSqm = 5000; // ₦5,000 per sqm
+      const totalAmount = selectedSqm * pricePerSqm;
+      
+      // Generate unique reference
+      const reference = `SUBX-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Initialize Paystack payment
+      const handler = window.PaystackPop.setup({
+        key: paystackKey,
+        email: user.email,
+        amount: totalAmount * 100, // Paystack expects amount in kobo
+        currency: 'NGN',
+        ref: reference,
+        label: userData.name || user.email,
+        callback: function(response) {
+          console.log('Payment successful:', response);
+          
+          // Process successful payment
+          handlePaymentSuccess(response, selectedProject, selectedSqm, totalAmount, reference);
+        },
+        onClose: function() {
+          console.log('Payment cancelled');
+          toast.info('Payment cancelled');
+        }
+      });
+      
+      handler.openIframe();
       
     } catch (error) {
       console.error('Payment initialization error:', error);
