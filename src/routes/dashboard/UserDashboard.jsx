@@ -61,7 +61,12 @@ const getRealDataFallback = async (userEmail) => {
   
   if (userData) {
     console.log('Real data fallback found');
-    const mappedData = userData.map(plot => ({
+    console.log('🔍 Original plot data:', userData[0]);
+    const mappedData = userData.map(plot => {
+      console.log('🔍 Mapping plot:', plot);
+      console.log('🔍 plot.amountPaid:', plot.amountPaid);
+      console.log('🔍 plot.sqmOwned:', plot.sqmOwned);
+      return {
       ...plot,
       id: `real_${plot.plot_id}_${userEmail}`,
       user_id: auth.currentUser?.uid || 'fallback_uid',
@@ -76,7 +81,8 @@ const getRealDataFallback = async (userEmail) => {
       amountPaid: plot.amountPaid || 0,  // FIXED: Use correct field name
       totalSqm: 500, // Standard plot size
       sqmOwned: plot.sqmOwned || 0       // FIXED: Use correct field name
-    }));
+      };
+    });
     console.log('✅ Mapped fallback data:', mappedData);
     return mappedData;
   } else {
