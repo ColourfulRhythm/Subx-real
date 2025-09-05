@@ -8,11 +8,15 @@ export default function ReferralWallet({ user }) {
   const [referralBalance, setReferralBalance] = useState(0);
   const [referralHistory, setReferralHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showBuyModal, setShowBuyModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [selectedSqm, setSelectedSqm] = useState(1);
-  const [withdrawAmount, setWithdrawAmount] = useState(0);
   const [currentUser, setCurrentUser] = useState(null);
+  const [withdrawalForm, setWithdrawalForm] = useState({
+    bankName: '',
+    accountNumber: '',
+    accountName: '',
+    referralCode: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     // Get current user from Firebase Auth
@@ -69,56 +73,92 @@ export default function ReferralWallet({ user }) {
     }
   };
 
-  const handleBuySqm = async () => {
+  const handleWithdrawSubmit = async () => {
     try {
-      const userId = currentUser?.uid;
+      setIsSubmitting(true);
       
-      // Safety check for user
-      if (!userId) {
-        alert('User information not available');
+      // Validate form
+      if (!withdrawalForm.bankName || !withdrawalForm.accountNumber || !withdrawalForm.accountName) {
+        alert('Please fill in all required fields');
         return;
       }
       
-      const sqmCost = selectedSqm * 5000; // ₦5,000 per sqm
-      
-      if (sqmCost > referralBalance) {
-        alert('Insufficient referral balance for this purchase');
+      if (referralBalance < 10000) {
+        alert('Minimum withdrawal amount is ₦10,000');
         return;
       }
       
-      // Create purchase record in Firestore
-      const purchaseRef = collection(db, 'referral_purchases');
-      await addDoc(purchaseRef, {
-        user_id: userId,
-        sqm_amount: selectedSqm,
-        cost: sqmCost,
-        purchase_date: new Date(),
-        status: 'completed'
-      });
-      
-      // Update user's referral balance
-      const newBalance = referralBalance - sqmCost;
-      setReferralBalance(newBalance);
-      
-      // Update user profile in Firestore
+      // Get user's referral code
       const userProfilesRef = collection(db, 'user_profiles');
-      const profileQuery = query(userProfilesRef, where('user_id', '==', userId));
+      const profileQuery = query(userProfilesRef, where('user_id', '==', currentUser.uid));
       const profileSnapshot = await getDocs(profileQuery);
       
+      let userReferralCode = '';
       if (!profileSnapshot.empty) {
-        const profileDoc = doc(db, 'user_profiles', profileSnapshot.docs[0].id);
-        await updateDoc(profileDoc, {
-          wallet_balance: newBalance,
-          updated_at: new Date()
-        });
+        const profileData = profileSnapshot.docs[0].data();
+        userReferralCode = profileData.referral_code || 'N/A';
       }
       
-      setShowBuyModal(false);
-      alert(`Successfully purchased ${selectedSqm} sqm for ₦${sqmCost.toLocaleString()}`);
+      // Create withdrawal request record
+      const withdrawalRef = collection(db, 'withdrawal_requests');
+      await addDoc(withdrawalRef, {
+        user_id: currentUser.uid,
+        user_email: currentUser.email,
+        user_name: currentUser.displayName || currentUser.email,
+        amount: referralBalance,
+        bank_name: withdrawalForm.bankName,
+        account_number: withdrawalForm.accountNumber,
+        account_name: withdrawalForm.accountName,
+        referral_code: userReferralCode,
+        status: 'pending',
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+      
+      // Send email notification (this would typically be handled by a backend service)
+      const emailData = {
+        to: 'subx@focalpointprop.com',
+        subject: 'New Withdrawal Request - Subx Referral Program',
+        body: `
+New Withdrawal Request Details:
+
+User Information:
+- Full Name: ${currentUser.displayName || currentUser.email}
+- Email: ${currentUser.email}
+- Referral Code: ${userReferralCode}
+
+Withdrawal Details:
+- Amount: ₦${referralBalance.toLocaleString()}
+- Bank: ${withdrawalForm.bankName}
+- Account Number: ${withdrawalForm.accountNumber}
+- Account Name: ${withdrawalForm.accountName}
+
+Request Date: ${new Date().toLocaleString()}
+
+Please process this withdrawal request.
+        `
+      };
+      
+      // Store email for processing (in a real app, this would be sent via backend)
+      const emailRef = collection(db, 'withdrawal_emails');
+      await addDoc(emailRef, emailData);
+      
+      setShowWithdrawModal(false);
+      alert('Withdrawal request submitted successfully! You will receive your payment within 3-5 business days.');
+      
+      // Reset form
+      setWithdrawalForm({
+        bankName: '',
+        accountNumber: '',
+        accountName: '',
+        referralCode: ''
+      });
       
     } catch (error) {
-      console.error('Error processing purchase:', error);
-      alert('Failed to process purchase. Please try again.');
+      console.error('Error processing withdrawal:', error);
+      alert('Failed to process withdrawal request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -134,55 +174,6 @@ export default function ReferralWallet({ user }) {
     );
   }
 
-  const handleWithdraw = async () => {
-    try {
-      const userId = currentUser?.uid;
-      
-      if (!userId) {
-        alert('User information not available');
-        return;
-      }
-      
-      if (withdrawAmount <= 0 || withdrawAmount > referralBalance) {
-        alert('Invalid withdrawal amount');
-        return;
-      }
-      
-      // Create withdrawal record in Firestore
-      const withdrawalsRef = collection(db, 'referral_withdrawals');
-      await addDoc(withdrawalsRef, {
-        user_id: userId,
-        amount: withdrawAmount,
-        withdrawal_date: new Date(),
-        status: 'pending'
-      });
-      
-      // Update user's referral balance
-      const newBalance = referralBalance - withdrawAmount;
-      setReferralBalance(newBalance);
-      
-      // Update user profile in Firestore
-      const userProfilesRef = collection(db, 'user_profiles');
-      const profileQuery = query(userProfilesRef, where('user_id', '==', userId));
-      const profileSnapshot = await getDocs(profileQuery);
-      
-      if (!profileSnapshot.empty) {
-        const profileDoc = doc(db, 'user_profiles', profileSnapshot.docs[0].id);
-        await updateDoc(profileDoc, {
-          wallet_balance: newBalance,
-          updated_at: new Date()
-        });
-      }
-      
-      setShowWithdrawModal(false);
-      setWithdrawAmount(0);
-      alert(`Withdrawal request submitted for ₦${withdrawAmount.toLocaleString()}`);
-      
-    } catch (error) {
-      console.error('Error processing withdrawal:', error);
-      alert('Failed to process withdrawal. Please try again.');
-    }
-  };
 
   if (loading) {
     return (
@@ -211,22 +202,29 @@ export default function ReferralWallet({ user }) {
       </div>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <button
-          onClick={() => setShowBuyModal(true)}
-          disabled={referralBalance < 5000}
-          className="bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          🏠 Buy SQM
-        </button>
+      <div className="flex justify-center mb-6">
         <button
           onClick={() => setShowWithdrawModal(true)}
-          disabled={referralBalance < 1000}
-          className="bg-orange-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          disabled={referralBalance < 10000}
+          className="bg-orange-600 text-white py-3 px-8 rounded-lg font-medium hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          💰 Withdraw
+          💰 Withdraw Funds
         </button>
       </div>
+      
+      {/* Minimum withdrawal notice */}
+      {referralBalance < 10000 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <svg className="h-5 w-5 text-yellow-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <p className="text-sm text-yellow-800">
+              Minimum withdrawal amount is ₦10,000. You need ₦{(10000 - referralBalance).toLocaleString()} more to withdraw.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Referral History */}
       <div className="border-t pt-6">
@@ -268,93 +266,91 @@ export default function ReferralWallet({ user }) {
         )}
       </div>
 
-      {/* Buy SQM Modal */}
-      {showBuyModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold mb-4">🏠 Buy SQM with Referral Balance</h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select SQM Amount
-              </label>
-              <select
-                value={selectedSqm}
-                onChange={(e) => setSelectedSqm(Number(e.target.value))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-              >
-                <option value={1}>1 SQM - ₦5,000</option>
-                <option value={2}>2 SQM - ₦10,000</option>
-                <option value={5}>5 SQM - ₦25,000</option>
-                <option value={10}>10 SQM - ₦50,000</option>
-              </select>
-            </div>
-            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-              <div className="text-sm text-blue-800">
-                Cost: ₦{(selectedSqm * 5000).toLocaleString()}
-              </div>
-              <div className="text-sm text-blue-800">
-                Balance after: ₦{(referralBalance - (selectedSqm * 5000)).toLocaleString()}
-              </div>
-            </div>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowBuyModal(false)}
-                className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBuySqm}
-                disabled={selectedSqm * 5000 > referralBalance}
-                className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg disabled:bg-gray-400"
-              >
-                Confirm Purchase
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Withdraw Modal */}
       {showWithdrawModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-xl font-bold mb-4">💰 Withdraw Referral Balance</h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Withdrawal Amount (₦)
-              </label>
-              <input
-                type="number"
-                value={withdrawAmount}
-                onChange={(e) => setWithdrawAmount(Number(e.target.value))}
-                min="1000"
-                max={referralBalance}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                placeholder="Enter amount"
-              />
+            
+            {/* Withdrawal Amount Display */}
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+              <div className="text-sm text-blue-600 mb-1">Available Balance</div>
+              <div className="text-2xl font-bold text-blue-800">₦{referralBalance.toLocaleString()}</div>
+              <div className="text-xs text-blue-600 mt-1">Minimum withdrawal: ₦10,000</div>
             </div>
-            <div className="mb-4 p-3 bg-orange-50 rounded-lg">
-              <div className="text-sm text-orange-800">
-                Available: ₦{referralBalance.toLocaleString()}
+            
+            {/* Bank Details Form */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Bank Name *
+                </label>
+                <input
+                  type="text"
+                  value={withdrawalForm.bankName}
+                  onChange={(e) => setWithdrawalForm({...withdrawalForm, bankName: e.target.value})}
+                  placeholder="e.g., Access Bank, GTBank, First Bank"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  required
+                />
               </div>
-              <div className="text-sm text-orange-800">
-                Minimum: ₦1,000
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Account Number *
+                </label>
+                <input
+                  type="text"
+                  value={withdrawalForm.accountNumber}
+                  onChange={(e) => setWithdrawalForm({...withdrawalForm, accountNumber: e.target.value})}
+                  placeholder="Enter your account number"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Account Name *
+                </label>
+                <input
+                  type="text"
+                  value={withdrawalForm.accountName}
+                  onChange={(e) => setWithdrawalForm({...withdrawalForm, accountName: e.target.value})}
+                  placeholder="Enter the name on the account"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  required
+                />
               </div>
             </div>
-            <div className="flex space-x-3">
+            
+            {/* Terms and Conditions */}
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-gray-600">
+                By submitting this withdrawal request, you agree that:
+              </p>
+              <ul className="text-xs text-gray-600 mt-2 space-y-1">
+                <li>• Withdrawal will be processed within 3-5 business days</li>
+                <li>• Bank details must be correct to avoid delays</li>
+                <li>• Minimum withdrawal amount is ₦10,000</li>
+                <li>• Your referral code will be included in the request</li>
+              </ul>
+            </div>
+            {/* Action Buttons */}
+            <div className="flex space-x-3 mt-6">
               <button
                 onClick={() => setShowWithdrawModal(false)}
-                className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg"
+                className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400"
               >
                 Cancel
               </button>
               <button
-                onClick={handleWithdraw}
-                disabled={withdrawAmount < 1000 || withdrawAmount > referralBalance}
-                className="flex-1 bg-orange-600 text-white py-2 px-4 rounded-lg disabled:bg-gray-400"
+                onClick={handleWithdrawSubmit}
+                disabled={isSubmitting || referralBalance < 10000}
+                className="flex-1 bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                Submit Withdrawal
+                {isSubmitting ? 'Submitting...' : 'Submit Request'}
               </button>
             </div>
           </div>

@@ -1264,6 +1264,23 @@ export default function UserDashboard() {
       
       console.log('Investment saved with ID:', docRef.id);
 
+      // Create plot ownership record
+      const plotOwnershipRef = collection(db, 'plot_ownership');
+      const plotOwnershipData = {
+        user_id: user.uid,
+        user_email: user.email,
+        plot_id: project.id,
+        project_title: project.title,
+        sqm_owned: sqm,
+        amount_paid: amount,
+        status: 'Active',
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+
+      await addDoc(plotOwnershipRef, plotOwnershipData);
+      console.log('✅ Plot ownership record created');
+
       // Update available SQM
       updateAvailableSqm(project.id, sqm);
       updatePlotsAvailableSqmAfterPurchase(project.id, sqm);
