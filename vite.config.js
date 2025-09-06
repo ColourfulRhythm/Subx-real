@@ -24,14 +24,24 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
-      sourcemap: true,
+      sourcemap: false, // Disable sourcemap for faster builds
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: true,
+          drop_debugger: true,
+        },
+      },
       rollupOptions: {
         output: {
           manualChunks: {
-            vendor: ['react', 'react-dom', 'react-router-dom']
+            vendor: ['react', 'react-dom', 'react-router-dom'],
+            firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+            ui: ['framer-motion', 'react-hook-form', 'yup']
           }
         }
-      }
+      },
+      chunkSizeWarningLimit: 1000
     },
     define: {
       __VUE_OPTIONS_API__: true,
