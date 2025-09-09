@@ -44,8 +44,8 @@ class PaymentService {
       const saveResult = await this.savePaymentDataAtomically(investmentData, plotOwnershipData, project, sqm);
       
       // Step 4: Verify data was saved
-      const verificationResult = await this.verifyDataSaved(user.email, reference);
-      if (!verificationResult.success) {
+      const dataVerificationResult = await this.verifyDataSaved(user.email, reference);
+      if (!dataVerificationResult.success) {
         throw new Error('Data verification failed after save');
       }
 
