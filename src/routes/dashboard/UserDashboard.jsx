@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { auth, db } from '../../firebase';
 import { signOut, onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs, addDoc, orderBy, limit } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs, addDoc, orderBy, limit, writeBatch } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
@@ -15,6 +15,8 @@ import {
   generateDocumentContent
 } from '../../utils/plotNamingConsistency';
 import { createComprehensiveBackup, validateDataIntegrity, scheduleAutomaticBackups } from '../../services/dataPreservationService';
+import PaymentService from '../../services/paymentService';
+import DataRecoveryService from '../../services/dataRecoveryService';
 
 // FIXED: Removed backend API calls - now using Firebase only
 // No more 500 errors from backend server
@@ -31,7 +33,7 @@ const getRealDataFallback = async (userEmail) => {
     ],
     'michelleunachukwu@gmail.com': [
       { plot_id: 1, project_title: 'Plot 77', sqmOwned: 1, amountPaid: 5000, status: 'Active' },
-      { plot_id: 1, project_title: 'Plot 77', sqmOwned: 50, amountPaid: 250000, status: 'Active', referral_bonus: true }
+      { plot_id: 1, project_title: 'Plot 77 - Referral Bonus', sqmOwned: 2.5, amountPaid: 12500, status: 'Active', referral_bonus: true, note: '5% referral bonus from gloriaunachukwu@gmail.com' }
     ],
     'gloriaunachukwu@gmail.com': [
       { plot_id: 1, project_title: 'Plot 77', sqmOwned: 50, amountPaid: 250000, status: 'Active' }
@@ -87,24 +89,9 @@ const getRealDataFallback = async (userEmail) => {
     return mappedData;
   } else {
     console.log('No real data fallback found for user:', userEmail);
-    // FALLBACK: Return default data for any user not in the hardcoded list
-    console.log('🔄 Using generic fallback data for user:', userEmail);
-    return [{
-      plot_id: 1,
-      project_title: 'Plot 77',
-      sqmOwned: 1,
-      amountPaid: 5000,
-      status: 'Active',
-      id: `fallback_${userEmail}`,
-      user_id: auth.currentUser?.uid || 'fallback_uid',
-      user_email: userEmail,
-      plot_type: 'Residential',
-      location: 'Ogun State',
-      developer: 'Focal Point Property Development and Management Services Ltd.',
-      purchase_date: new Date(),
-      created_at: new Date(),
-      updated_at: new Date()
-    }];
+    // CRITICAL FIX: Return empty array for users not in the hardcoded list
+    console.log('🔄 User not in hardcoded list, returning empty array for:', userEmail);
+  return [];
   }
 };
 
@@ -216,6 +203,7 @@ export default function UserDashboard() {
   const [projects, setProjects] = useState([]);
   const [userProperties, setUserProperties] = useState([]);
   const [portfolioCalculated, setPortfolioCalculated] = useState(false);
+  const [fetchingUserData, setFetchingUserData] = useState(false);
   const [activeTab, setActiveTab] = useState('opportunities');
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [paymentData, setPaymentData] = useState(null);
@@ -354,25 +342,16 @@ export default function UserDashboard() {
         fetchUserData();
         fetchUserPropertiesNUCLEAR(user);
         
-        // DIRECT FIX: Force update userData for kingflamebeats@gmail.com
-        if (user.email === 'kingflamebeats@gmail.com') {
-          console.log('🚀 DIRECT FIX: Forcing userData update for kingflamebeats@gmail.com');
-          setTimeout(() => {
-            setUserData(prev => {
-              const newData = {
-                ...prev,
-                portfolioValue: '₦5,000',
-                totalLandOwned: '1 sqm',
-                totalInvestments: 1
-              };
-              console.log('🚀 DIRECT FIX - Updated userData:', newData);
-              return newData;
-            });
-          }, 1000); // Wait 1 second to ensure other updates are done
-        }
+        // UNIVERSAL FIX: Ensure all users get their portfolio data
+        console.log('🚀 UNIVERSAL FIX: Ensuring portfolio data for all users');
+        setTimeout(() => {
+          // Force refresh user properties to ensure data is loaded
+          fetchUserPropertiesNUCLEAR(user);
+        }, 2000); // Wait 2 seconds to ensure other updates are done
       } else {
         console.log('🔐 Auth state changed - no user');
         setUserProperties([]);
+        setPortfolioCalculated(false); // Reset portfolio calculation flag
         // Redirect to login when user is not authenticated
         navigate('/login');
       }
@@ -401,13 +380,13 @@ export default function UserDashboard() {
       // Calculate portfolio metrics from userProperties
       const totalSqm = userProperties.reduce((sum, property) => {
         const sqm = parseFloat(property.sqmOwned) || 0;
-        console.log('🔍 Processing property sqm:', property.sqmOwned, '->', sqm);
+        console.log('🔍 Processing property sqm:', property.sqmOwned, '->', sqm, 'for property:', property.project_title);
         return sum + sqm;
       }, 0);
       
       const portfolioValue = userProperties.reduce((sum, property) => {
         const amount = parseFloat(property.amountPaid) || 0;
-        console.log('🔍 Processing property amount:', property.amountPaid, '->', amount);
+        console.log('🔍 Processing property amount:', property.amountPaid, '->', amount, 'for property:', property.project_title);
         return sum + amount;
       }, 0);
       
@@ -475,33 +454,97 @@ export default function UserDashboard() {
   const fetchUserPropertiesNUCLEAR = async (currentUser) => {
     if (!currentUser) {
       console.log('❌ No user found, skipping fetchUserPropertiesNUCLEAR');
-      return;
-    }
-    
+        return;
+      }
+
     try {
       console.log('🔥 NUCLEAR RESET - Fetching plot ownership for user:', currentUser.email);
       console.log('🔥 NUCLEAR RESET - User UID:', currentUser.uid);
       
-      // Use the real data fallback
-      const fallbackData = await getRealDataFallback(currentUser.email);
-      console.log('✅ Real data fallback found for user:', currentUser.email, fallbackData);
+      // FIRST: Try to fetch real data from Firestore
+      console.log('🔍 Attempting to fetch real data from Firestore...');
+      console.log('🔍 Searching for user_email:', currentUser.email);
+      const plotOwnershipRef = collection(db, 'plot_ownership');
+      const userQuery = query(plotOwnershipRef, where('user_email', '==', currentUser.email));
+      const userSnapshot = await getDocs(userQuery);
       
-      if (fallbackData && fallbackData.length > 0) {
-        console.log('✅ Setting userProperties with fallback data:', fallbackData);
-        setUserProperties(fallbackData);
-        console.log('✅ User properties set from fallback data - should trigger useEffect');
+      console.log('🔍 Query executed, found documents:', userSnapshot.docs.length);
+      
+      let userPropertiesData = [];
+      
+      if (!userSnapshot.empty) {
+        console.log('✅ Found real Firestore data for user:', currentUser.email);
+        userPropertiesData = userSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            plot_id: data.plot_id,
+            project_title: data.project_title,
+            sqmOwned: data.sqm_owned || 0,
+            amountPaid: data.amount_paid || 0,
+            status: data.status || 'Active',
+            user_id: data.user_id,
+            user_email: data.user_email,
+            plot_type: 'Residential',
+            location: 'Ogun State',
+            developer: 'Focal Point Property Development and Management Services Ltd.',
+            purchase_date: data.created_at || new Date(),
+            created_at: data.created_at || new Date(),
+            updated_at: data.updated_at || new Date()
+          };
+        });
+        console.log('✅ Mapped Firestore data:', userPropertiesData);
+      } else {
+        console.log('⚠️ No Firestore data found with user_email, trying user_id query...');
+        // Try querying with user_id as fallback
+        const userQueryById = query(plotOwnershipRef, where('user_id', '==', currentUser.uid));
+        const userSnapshotById = await getDocs(userQueryById);
+        
+        if (!userSnapshotById.empty) {
+          console.log('✅ Found data using user_id query:', userSnapshotById.docs.length, 'documents');
+          userPropertiesData = userSnapshotById.docs.map(doc => {
+            const data = doc.data();
+          return {
+              id: doc.id,
+              plot_id: data.plot_id,
+              project_title: data.project_title,
+              sqmOwned: data.sqm_owned || 0,
+              amountPaid: data.amount_paid || 0,
+              status: data.status || 'Active',
+              user_id: data.user_id,
+              user_email: data.user_email,
+              plot_type: 'Residential',
+              location: 'Ogun State',
+              developer: 'Focal Point Property Development and Management Services Ltd.',
+              purchase_date: data.created_at || new Date(),
+              created_at: data.created_at || new Date(),
+              updated_at: data.updated_at || new Date()
+          };
+        });
+          console.log('✅ Mapped Firestore data (by user_id):', userPropertiesData);
+        } else {
+          console.log('⚠️ No Firestore data found with user_id either, using fallback data');
+          // Use the real data fallback
+          userPropertiesData = await getRealDataFallback(currentUser.email);
+        }
+      }
+      
+      if (userPropertiesData && userPropertiesData.length > 0) {
+        console.log('✅ Setting userProperties with data:', userPropertiesData);
+        setUserProperties(userPropertiesData);
+        console.log('✅ User properties set - should trigger useEffect');
         
         // MANUAL TRIGGER: Force update userData immediately
-        console.log('🔧 MANUAL TRIGGER: Updating userData directly from fallback data');
-        const totalSqm = fallbackData.reduce((sum, property) => sum + (property.sqmOwned || 0), 0);
-        const portfolioValue = fallbackData.reduce((sum, property) => sum + (property.amountPaid || 0), 0);
-        const totalInvestments = fallbackData.length;
+        console.log('🔧 MANUAL TRIGGER: Updating userData directly from data');
+        const totalSqm = userPropertiesData.reduce((sum, property) => sum + (property.sqmOwned || 0), 0);
+        const portfolioValue = userPropertiesData.reduce((sum, property) => sum + (property.amountPaid || 0), 0);
+        const totalInvestments = userPropertiesData.length;
         
         console.log('🔧 MANUAL TRIGGER - Calculated values:', { totalSqm, portfolioValue, totalInvestments });
         
         setUserData(prev => {
           const newData = {
-            ...prev,
+          ...prev,
             portfolioValue: `₦${portfolioValue.toLocaleString()}`,
             totalLandOwned: `${totalSqm} sqm`,
             totalInvestments: totalInvestments
@@ -510,8 +553,15 @@ export default function UserDashboard() {
           return newData;
         });
       } else {
-        console.log('❌ No fallback data found, setting empty array');
+        console.log('❌ No data found, setting empty array and zero values');
         setUserProperties([]);
+        // Set default values for users with no data
+        setUserData(prev => ({
+          ...prev,
+          portfolioValue: '₦0',
+          totalLandOwned: '0 sqm',
+          totalInvestments: 0
+        }));
       }
     } catch (error) {
       console.error('❌ Error fetching user properties:', error);
@@ -756,10 +806,19 @@ export default function UserDashboard() {
   const fetchUserData = async () => {
     try {
       console.log('🚀 fetchUserData called');
+      
+      // Prevent multiple simultaneous calls
+      if (fetchingUserData) {
+        console.log('🚫 fetchUserData already in progress, skipping');
+        return;
+      }
+      
+      setFetchingUserData(true);
       const user = auth.currentUser;
       console.log('👤 Current user:', user);
       if (!user) {
         console.log('❌ No current user found');
+        setFetchingUserData(false);
         return;
       }
 
@@ -815,8 +874,26 @@ export default function UserDashboard() {
           // CRITICAL: Do NOT overwrite portfolio values here - they are managed by userProperties useEffect
         };
         
-        console.log('📝 Setting user data to:', updatedUserData);
+        // CRITICAL FIX: Only update userData if portfolio hasn't been calculated yet
+        if (!portfolioCalculated) {
+          console.log('📝 Setting user data (portfolio not calculated yet):', updatedUserData);
         setUserData(updatedUserData);
+        } else {
+          console.log('🚫 Skipping userData update - portfolio already calculated, preserving portfolio values');
+          // Only update non-portfolio fields
+          setUserData(prev => ({
+            ...prev,
+            name: displayName,
+            email: userProfile.email || user.email,
+            avatar: userProfile.avatar || userProfile.profile_image || '',
+            phone: userProfile.phone || 'Not provided',
+            address: userProfile.address || 'Not provided',
+            dateOfBirth: userProfile.date_of_birth || '1990-01-01',
+            occupation: userProfile.occupation || 'Not provided',
+            memberSince: memberSinceValue
+            // Keep existing portfolio values: portfolioValue, totalLandOwned, totalInvestments
+          }));
+        }
         
         return;
       }
@@ -893,11 +970,32 @@ export default function UserDashboard() {
          memberSince: 'Recently'
        };
       
-      console.log('📝 Setting basic user data to:', basicUserData);
+      // CRITICAL FIX: Only update userData if portfolio hasn't been calculated yet
+      if (!portfolioCalculated) {
+        console.log('📝 Setting basic user data (portfolio not calculated yet):', basicUserData);
       setUserData(basicUserData);
+      } else {
+        console.log('🚫 Skipping basic userData update - portfolio already calculated, preserving portfolio values');
+        // Only update non-portfolio fields
+        setUserData(prev => ({
+          ...prev,
+          name: userName,
+          email: user.email,
+          avatar: user.photoURL || '',
+          phone: userData.phone || 'Not provided',
+          address: userData.address || 'Not provided',
+          dateOfBirth: userData.date_of_birth || '1990-01-01',
+          occupation: userData.occupation || 'Not provided',
+          memberSince: 'Recently'
+          // Keep existing portfolio values: portfolioValue, totalLandOwned, totalInvestments
+        }));
+      }
+      
+      setFetchingUserData(false);
       
     } catch (error) {
       console.error('❌ Failed to fetch user data:', error);
+      setFetchingUserData(false);
       // Fallback to basic data
       const user = auth.currentUser;
       if (user) {
@@ -1230,85 +1328,153 @@ export default function UserDashboard() {
     }
   };
 
-  // Handle successful payment
+  // Handle successful payment - BULLETPROOF VERSION using PaymentService
   const handlePaymentSuccess = async (response, project, sqm, amount, reference) => {
+    const user = auth.currentUser;
+    if (!user) {
+      console.error('❌ No authenticated user found during payment success');
+      toast.error('Authentication error. Please log in again.');
+      return;
+    }
+    
+    console.log('🔄 PROCESSING PAYMENT SUCCESS - BULLETPROOF VERSION');
+    console.log('📊 Payment Response:', response);
+    console.log('👤 User:', user.email, user.uid);
+    console.log('🏠 Project:', project.title, project.id);
+    console.log('📏 SQM:', sqm);
+    console.log('💰 Amount:', amount);
+    console.log('🔗 Reference:', reference);
+
     try {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      console.log('Processing payment success:', response);
-
-      // Create investment data
-      const investmentData = {
-        user_id: user.uid,
-        user_email: user.email,
-        project_id: project.id,
-        project_title: project.title,
-        sqm: sqm,
-        amount: amount,
-        location: project.location,
-        payment_reference: reference,
-        status: 'active',
-        created_at: new Date(),
-        updated_at: new Date(),
-        documents: [
-          { name: 'Investment Certificate', type: 'pdf', signed: false },
-          { name: 'Deed of Sale', type: 'pdf', signed: false },
-          { name: 'Co-ownership Certificate', type: 'pdf', signed: false }
-        ]
+      // Use the bulletproof payment service
+      const paymentData = {
+        user,
+        project,
+        sqm,
+        amount,
+        reference,
+        paystackResponse: response
       };
 
-      // Save investment to Firestore
-      const investmentsRef = collection(db, 'investments');
-      const docRef = await addDoc(investmentsRef, investmentData);
+      const result = await PaymentService.processSuccessfulPayment(paymentData);
       
-      console.log('Investment saved with ID:', docRef.id);
+      if (result.success) {
+        console.log('✅ PAYMENT SERVICE: Payment processed successfully');
+        
+        // Force refresh user data immediately
+        console.log('🔄 FORCING IMMEDIATE DATA REFRESH...');
+        await fetchUserPropertiesNUCLEAR(user);
+        
+        // Double-check with additional retry
+        setTimeout(async () => {
+          console.log('🔄 RETRY: Double-checking data refresh...');
+          await fetchUserPropertiesNUCLEAR(user);
+        }, 1000);
 
-      // Create plot ownership record
-      const plotOwnershipRef = collection(db, 'plot_ownership');
-      const plotOwnershipData = {
-        user_id: user.uid,
-        user_email: user.email,
-        plot_id: project.id,
-        project_title: project.title,
-        sqm_owned: sqm,
-        amount_paid: amount,
-        status: 'Active',
-        created_at: new Date(),
-        updated_at: new Date()
-      };
+        // Show success message
+        setPaymentData({
+          project: project.title,
+          sqm: sqm,
+          amount: amount,
+          reference: reference
+        });
+        setShowPaymentSuccess(true);
+        setShowOwnershipModal(false);
 
-      await addDoc(plotOwnershipRef, plotOwnershipData);
-      console.log('✅ Plot ownership record created');
-
-      // Update available SQM
-      updateAvailableSqm(project.id, sqm);
-      updatePlotsAvailableSqmAfterPurchase(project.id, sqm);
-
-      // Process referral reward
-      await processReferralReward({ ...investmentData, id: docRef.id });
-
-      // Send notifications
-      await sendPurchaseNotifications(investmentData);
-
-      // Update user properties
-      await fetchUserPropertiesNUCLEAR(user);
-
-      // Show success message
-      setPaymentData({
-        project: project.title,
-        sqm: sqm,
-        amount: amount,
-        reference: reference
-      });
-      setShowPaymentSuccess(true);
-      setShowOwnershipModal(false);
-
-      toast.success(`Payment successful! You now own ${sqm} sqm in ${project.title}`);
-
+        toast.success(`Payment successful! You now own ${sqm} sqm in ${project.title}`);
+        console.log('✅ PAYMENT SUCCESS PROCESSING COMPLETE');
+        
+      } else {
+        throw new Error('Payment service returned failure');
+      }
+      
     } catch (error) {
-      console.error('Error processing payment success:', error);
-      toast.error('Payment successful but failed to save investment. Please contact support.');
+      console.error('❌ CRITICAL ERROR in payment success processing:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
+      
+      // Show detailed error to user
+      toast.error(`Payment successful but failed to save data: ${error.message}. Please contact support with reference: ${reference}`);
+      
+      // Try to save error details for debugging
+      try {
+        const errorRef = collection(db, 'payment_errors');
+        await addDoc(errorRef, {
+          user_email: user?.email || 'unknown',
+          user_id: user?.uid || 'unknown',
+          payment_reference: reference,
+          error_message: error.message,
+          error_code: error.code,
+          project_title: project?.title || 'unknown',
+          sqm: sqm,
+          amount: amount,
+          timestamp: new Date()
+        });
+        console.log('✅ Error details saved for debugging');
+      } catch (errorSaveError) {
+        console.error('❌ Failed to save error details:', errorSaveError);
+      }
+    }
+  };
+
+  // Data recovery function for users with missing payment records
+  const recoverUserData = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      toast.error('No user found');
+      return;
+    }
+
+    try {
+      console.log('🔧 DATA RECOVERY: Starting recovery for user:', user.email);
+      toast.info('Starting data recovery...');
+      
+      const result = await DataRecoveryService.recoverUserPaymentData(user.email);
+      
+      if (result.success) {
+        if (result.recovered > 0) {
+          toast.success(`Data recovery successful! Recovered ${result.recovered} payment records.`);
+          // Refresh user data
+          await fetchUserPropertiesNUCLEAR(user);
+        } else {
+          toast.info('No data recovery needed - your data is already complete.');
+        }
+      } else {
+        toast.error(`Data recovery failed: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('❌ DATA RECOVERY: Failed:', error);
+      toast.error('Data recovery failed. Please contact support.');
+    }
+  };
+
+  // Manual data recovery for specific payment details
+  const manualDataRecovery = async (paymentDetails) => {
+    const user = auth.currentUser;
+    if (!user) {
+      toast.error('No user found');
+      return;
+    }
+
+    try {
+      console.log('🔧 MANUAL RECOVERY: Starting manual recovery for:', user.email);
+      toast.info('Starting manual data recovery...');
+      
+      const result = await DataRecoveryService.manualRecovery(user.email, paymentDetails);
+      
+      if (result.success) {
+        toast.success('Manual data recovery successful!');
+        // Refresh user data
+        await fetchUserPropertiesNUCLEAR(user);
+      } else {
+        toast.error(`Manual recovery failed: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('❌ MANUAL RECOVERY: Failed:', error);
+      toast.error('Manual recovery failed. Please contact support.');
     }
   };
 
@@ -1648,7 +1814,9 @@ export default function UserDashboard() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {userProperties.map((property, index) => {
-                    const totalOwnership = ((property.sqmOwned / property.totalSqm) * 100).toFixed(2);
+                    const totalOwnership = property.totalSqm && property.totalSqm > 0 
+                      ? ((property.sqmOwned / property.totalSqm) * 100).toFixed(2)
+                      : '0.00';
                     return (
                       <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                         <div className="flex items-center justify-between mb-2">
@@ -1673,7 +1841,7 @@ export default function UserDashboard() {
                           <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
                             <div 
                               className="bg-indigo-600 h-2 rounded-full transition-all duration-300" 
-                              style={{ width: `${Math.min(totalOwnership, 100)}%` }}
+                              style={{ width: `${Math.min(parseFloat(totalOwnership) || 0, 100)}%` }}
                             ></div>
                           </div>
                         </div>
@@ -1697,17 +1865,28 @@ export default function UserDashboard() {
                 <h2 className="text-2xl font-bold text-gray-900">Land Ownership Opportunities</h2>
                 <div className="flex space-x-2">
                   <button 
-                    onClick={() => {
-                      fetchUserPropertiesNUCLEAR(user);
-                      toast.success('Data refreshed!');
+                    onClick={async () => {
+                      console.log('🔄 Manual refresh triggered by user');
+                      await fetchUserPropertiesNUCLEAR(user);
+                      toast.success('Data refreshed! Check your portfolio now.');
                     }}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                    title="Refresh data"
+                    title="Refresh data - Click if your purchase isn't showing"
                   >
                     <svg className="h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    Refresh
+                    Refresh Data
+                  </button>
+                  <button 
+                    onClick={recoverUserData}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-red-600 rounded-lg hover:bg-red-700"
+                    title="Recover missing payment data - Click if you paid but don't see your investment"
+                  >
+                    <svg className="h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Recover Data
                   </button>
                   <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
                     Filter

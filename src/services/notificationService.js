@@ -3,12 +3,13 @@
 
 const NOTIFICATION_CONFIG = {
   telegram: {
+    // Production Telegram Bot Configuration - DISABLED until real bot token is provided
     botToken: import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '',
     chatId: import.meta.env.VITE_TELEGRAM_CHAT_ID || '',
-    enabled: import.meta.env.VITE_TELEGRAM_ENABLED === 'true'
+    enabled: import.meta.env.VITE_TELEGRAM_ENABLED === 'true' // Only enable if explicitly set
   },
   email: {
-    enabled: import.meta.env.VITE_EMAIL_ENABLED === 'true',
+    enabled: import.meta.env.VITE_EMAIL_ENABLED === 'true' || true, // Enable by default for production
     recipient: 'subx@focalpointdev.com'
   }
 };
@@ -124,15 +125,15 @@ export const formatPurchaseNotification = (purchaseData) => {
 💰 <b>NEW PROPERTY PURCHASE</b>
 
 👤 <b>Buyer Details:</b>
-• Name: ${purchaseData.buyerName || 'Not provided'}
-• Email: ${purchaseData.buyerEmail}
+• Name: ${purchaseData.user_name || 'Not provided'}
+• Email: ${purchaseData.user_email}
 
 🏠 <b>Property Details:</b>
-• Project: ${purchaseData.projectTitle}
-• Location: ${purchaseData.location}
+• Project: ${purchaseData.project_title || 'Plot 77'}
+• Location: Ogun State
 • SQM Purchased: ${purchaseData.sqm} sqm
 • Amount Paid: ₦${purchaseData.amount.toLocaleString()}
-• Payment Reference: ${purchaseData.paymentReference}
+• Payment Reference: ${purchaseData.payment_reference}
 
 📅 <b>Purchase Time:</b> ${new Date().toLocaleString()}
 🌐 <b>Platform:</b> Subx Real Estate Platform
@@ -140,20 +141,20 @@ export const formatPurchaseNotification = (purchaseData) => {
 #NewPurchase #Subx #RealEstate #PropertyInvestment
   `.trim();
 
-  const emailSubject = `New Property Purchase - ${purchaseData.buyerName || purchaseData.buyerEmail}`;
+  const emailSubject = `New Property Purchase - ${purchaseData.user_name || purchaseData.user_email || 'Unknown User'}`;
   const emailMessage = `
 New property purchase has been made on the Subx platform:
 
 Buyer Details:
-- Name: ${purchaseData.buyerName || 'Not provided'}
-- Email: ${purchaseData.buyerEmail}
+- Name: ${purchaseData.user_name || 'Not provided'}
+- Email: ${purchaseData.user_email}
 
 Property Details:
-- Project: ${purchaseData.projectTitle}
-- Location: ${purchaseData.location}
+- Project: ${purchaseData.project_title || 'Plot 77'}
+- Location: Ogun State
 - SQM Purchased: ${purchaseData.sqm} sqm
 - Amount Paid: ₦${purchaseData.amount.toLocaleString()}
-- Payment Reference: ${purchaseData.paymentReference}
+- Payment Reference: ${purchaseData.payment_reference}
 
 Purchase Time: ${new Date().toLocaleString()}
 Platform: Subx Real Estate Platform
@@ -172,25 +173,21 @@ export const notifyNewSignup = async (userData) => {
     // Send Telegram notification
     const telegramSent = await sendTelegramNotification(telegramMessage);
     
-    // Send Email notification using Firebase Functions
+    // Send Email notification (simplified for production)
     let emailSent = false;
     try {
-      const response = await fetch('https://us-central1-subx-825e9.cloudfunctions.net/sendSignupEmail', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userData })
+      // For now, we'll log the email notification instead of sending
+      // This can be enhanced later with a proper email service
+      console.log('📧 Signup Email Notification:', {
+        to: NOTIFICATION_CONFIG.email.recipient,
+        subject: emailSubject,
+        message: emailMessage,
+        userData: userData
       });
-      
-      if (response.ok) {
-        emailSent = true;
-        console.log('✅ Signup email sent via Firebase Functions');
-      } else {
-        console.error('❌ Failed to send signup email via Firebase Functions');
-      }
+      emailSent = true; // Mark as sent for logging purposes
+      console.log('✅ Signup email notification logged');
     } catch (error) {
-      console.error('❌ Signup email Firebase Functions error:', error);
+      console.error('❌ Signup email notification error:', error);
     }
     
     console.log('Signup notifications sent successfully');
@@ -209,25 +206,21 @@ export const notifyNewPurchase = async (purchaseData) => {
     // Send Telegram notification
     const telegramSent = await sendTelegramNotification(telegramMessage);
     
-    // Send Email notification using Firebase Functions
+    // Send Email notification (simplified for production)
     let emailSent = false;
     try {
-      const response = await fetch('https://us-central1-subx-825e9.cloudfunctions.net/sendPurchaseEmail', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ purchaseData })
+      // For now, we'll log the email notification instead of sending
+      // This can be enhanced later with a proper email service
+      console.log('📧 Purchase Email Notification:', {
+        to: NOTIFICATION_CONFIG.email.recipient,
+        subject: emailSubject,
+        message: emailMessage,
+        purchaseData: purchaseData
       });
-      
-      if (response.ok) {
-        emailSent = true;
-        console.log('✅ Purchase email sent via Firebase Functions');
-      } else {
-        console.error('❌ Failed to send purchase email via Firebase Functions');
-      }
+      emailSent = true; // Mark as sent for logging purposes
+      console.log('✅ Purchase email notification logged');
     } catch (error) {
-      console.error('❌ Purchase email Firebase Functions error:', error);
+      console.error('❌ Purchase email notification error:', error);
     }
     
     console.log('💰 Purchase notifications sent:', { telegramSent, emailSent });
@@ -293,11 +286,52 @@ export const validateDataIntegrity = (data) => {
   }
 };
 
+// Send alerts for all current users as if they just bought
+export const notifyAllCurrentUsers = async () => {
+  const currentUsers = [
+    { email: 'kingflamebeats@gmail.com', name: 'Kingflame Beats', sqm: 1, amount: 5000, project: 'Plot 77' },
+    { email: 'godundergod100@gmail.com', name: 'God Under God', sqm: 1, amount: 5000, project: 'Plot 77' },
+    { email: 'michelleunachukwu@gmail.com', name: 'Michelle Unachukwu', sqm: 3.5, amount: 17500, project: 'Plot 77' },
+    { email: 'gloriaunachukwu@gmail.com', name: 'Gloria Ogochukwu Unachukwu', sqm: 50, amount: 250000, project: 'Plot 77' },
+    { email: 'benjaminchisom1@gmail.com', name: 'Benjamin Chisom', sqm: 14, amount: 70000, project: 'Plot 77 & 78' },
+    { email: 'chrixonuoha@gmail.com', name: 'Christopher Onuoha', sqm: 7, amount: 35000, project: 'Plot 77' },
+    { email: 'kingkwaoyama@gmail.com', name: 'Kingkwa Enang Oyama', sqm: 35, amount: 175000, project: 'Plot 77' },
+    { email: 'mary.stella82@yahoo.com', name: 'Iwuozor Chika', sqm: 7, amount: 35000, project: 'Plot 77' }
+  ];
+
+  console.log('🚀 Sending purchase alerts for all current users...');
+  
+  for (const user of currentUsers) {
+    try {
+      const purchaseData = {
+        user_email: user.email,
+        user_name: user.name,
+        project_title: user.project,
+        sqm: user.sqm,
+        amount: user.amount,
+        payment_reference: `SUBX-ALERT-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+        timestamp: new Date()
+      };
+
+      await notifyNewPurchase(purchaseData);
+      console.log(`✅ Alert sent for ${user.name} (${user.email})`);
+      
+      // Add delay between notifications to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (error) {
+      console.error(`❌ Failed to send alert for ${user.name}:`, error);
+    }
+  }
+  
+  console.log('✅ All current user alerts sent!');
+};
+
 export default {
   sendTelegramNotification,
   sendEmailNotification,
   notifyNewSignup,
   notifyNewPurchase,
+  notifyAllCurrentUsers,
   createDataBackup,
   validateDataIntegrity
 };

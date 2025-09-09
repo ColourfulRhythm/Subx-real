@@ -8,6 +8,7 @@ import {
   onAuthStateChanged,
   updateProfile
 } from 'firebase/auth';
+import EmailService from '../services/emailService';
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -178,79 +179,20 @@ export function AuthProvider({ children }) {
   async function resetPassword(email) {
     try {
       console.log('🔄 Sending password reset email to:', email);
-      console.log('🔧 Firebase Auth instance:', auth);
-      console.log('🌐 Action URL: https://subxhq.com/reset-password');
       
-      // Validate email format
-      if (!email || !email.includes('@')) {
-        throw new Error('Invalid email address format.');
+      // Use the improved email service
+      const result = await EmailService.sendPasswordReset(email);
+      
+      if (result.success) {
+        console.log('✅ Password reset email sent successfully');
+        return { success: true, message: result.message };
+      } else {
+        throw new Error(result.error);
       }
       
-      // FIXED: Use the correct production URL for password reset
-      const actionCodeSettings = {
-        url: 'https://subxhq.com/reset-password',
-        handleCodeInApp: true
-      };
-      
-      console.log('📧 Action code settings:', actionCodeSettings);
-      
-      // Try primary method first
-      try {
-        await sendPasswordResetEmail(auth, email, actionCodeSettings);
-        console.log('✅ Password reset email sent successfully to:', email);
-        return { success: true };
-      } catch (primaryError) {
-        console.log('⚠️ Primary method failed, trying fallback...', primaryError.code);
-        
-        // Fallback: Try without action code settings
-        try {
-          await sendPasswordResetEmail(auth, email);
-          console.log('✅ Password reset email sent via fallback method to:', email);
-          return { success: true };
-        } catch (fallbackError) {
-          console.log('❌ Both methods failed, using primary error:', fallbackError.code);
-          throw primaryError; // Use the original error
-        }
-      }
     } catch (error) {
-      console.error('❌ Password reset failed for email:', email);
-      console.error('❌ Error details:', {
-        code: error.code,
-        message: error.message,
-        stack: error.stack
-      });
-      
-      // Provide user-friendly error messages
-      let userMessage = error.message;
-      switch (error.code) {
-        case 'auth/user-not-found':
-          userMessage = 'No account found with this email address.';
-          break;
-        case 'auth/invalid-email':
-          userMessage = 'Invalid email address format.';
-          break;
-        case 'auth/too-many-requests':
-          userMessage = 'Too many requests. Please try again later.';
-          break;
-        case 'auth/network-request-failed':
-          userMessage = 'Network error. Please check your connection and try again.';
-          break;
-        case 'auth/invalid-action-code':
-          userMessage = 'Invalid reset link. Please request a new one.';
-          break;
-        case 'auth/operation-not-allowed':
-          userMessage = 'Password reset is not enabled. Please contact support.';
-          break;
-        case 'auth/email-not-verified':
-          userMessage = 'Please verify your email address first.';
-          break;
-        default:
-          userMessage = 'Failed to send password reset email. Please try again.';
-      }
-      
-      const friendlyError = new Error(userMessage);
-      friendlyError.code = error.code;
-      throw friendlyError;
+      console.error('❌ Password reset failed:', error);
+      throw error;
     }
   }
 

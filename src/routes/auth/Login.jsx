@@ -143,13 +143,31 @@ export default function Login() {
             <motion.div 
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`mb-4 p-3 border rounded-md ${
+              className={`mb-4 p-4 border rounded-lg ${
                 resetMessage.includes('sent') 
-                  ? 'bg-green-50 border-green-200 text-green-600' 
+                  ? 'bg-green-50 border-green-200 text-green-700' 
                   : 'bg-red-50 border-red-200 text-red-600'
               }`}
             >
-              <p className="text-sm">{resetMessage}</p>
+              {resetMessage.includes('sent') ? (
+                <div>
+                  <h3 className="font-semibold text-green-800 mb-2">📧 Check Your Email</h3>
+                  <p className="text-sm text-green-700 mb-2">
+                    We've sent a password reset link to <strong>{resetEmail}</strong>
+                  </p>
+                  <div className="text-sm text-green-600">
+                    <p className="font-medium mb-1">Can't find the email?</p>
+                    <ul className="list-disc list-inside space-y-1 text-xs">
+                      <li>Check your <strong>spam/junk folder</strong></li>
+                      <li>Look for emails from "Subx" or "noreply@subxhq.com"</li>
+                      <li>Wait a few minutes for delivery</li>
+                      <li>Contact support at <a href="mailto:support@subxhq.com" className="underline">support@subxhq.com</a> if you still don't receive it</li>
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm">{resetMessage}</p>
+              )}
             </motion.div>
           )}
 
