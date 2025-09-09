@@ -16,7 +16,6 @@ import {
 } from '../../utils/plotNamingConsistency';
 import { createComprehensiveBackup, validateDataIntegrity, scheduleAutomaticBackups } from '../../services/dataPreservationService';
 import PaymentService from '../../services/paymentService';
-import DataRecoveryService from '../../services/dataRecoveryService';
 
 // FIXED: Removed backend API calls - now using Firebase only
 // No more 500 errors from backend server
@@ -1420,63 +1419,6 @@ export default function UserDashboard() {
     }
   };
 
-  // Data recovery function for users with missing payment records
-  const recoverUserData = async () => {
-    const user = auth.currentUser;
-    if (!user) {
-      toast.error('No user found');
-      return;
-    }
-
-    try {
-      console.log('🔧 DATA RECOVERY: Starting recovery for user:', user.email);
-      toast.info('Starting data recovery...');
-      
-      const result = await DataRecoveryService.recoverUserPaymentData(user.email);
-      
-      if (result.success) {
-        if (result.recovered > 0) {
-          toast.success(`Data recovery successful! Recovered ${result.recovered} payment records.`);
-          // Refresh user data
-          await fetchUserPropertiesNUCLEAR(user);
-        } else {
-          toast.info('No data recovery needed - your data is already complete.');
-        }
-      } else {
-        toast.error(`Data recovery failed: ${result.message}`);
-      }
-    } catch (error) {
-      console.error('❌ DATA RECOVERY: Failed:', error);
-      toast.error('Data recovery failed. Please contact support.');
-    }
-  };
-
-  // Manual data recovery for specific payment details
-  const manualDataRecovery = async (paymentDetails) => {
-    const user = auth.currentUser;
-    if (!user) {
-      toast.error('No user found');
-      return;
-    }
-
-    try {
-      console.log('🔧 MANUAL RECOVERY: Starting manual recovery for:', user.email);
-      toast.info('Starting manual data recovery...');
-      
-      const result = await DataRecoveryService.manualRecovery(user.email, paymentDetails);
-      
-      if (result.success) {
-        toast.success('Manual data recovery successful!');
-        // Refresh user data
-        await fetchUserPropertiesNUCLEAR(user);
-      } else {
-        toast.error(`Manual recovery failed: ${result.message}`);
-      }
-    } catch (error) {
-      console.error('❌ MANUAL RECOVERY: Failed:', error);
-      toast.error('Manual recovery failed. Please contact support.');
-    }
-  };
 
   // Function to update plots collection after a purchase
   const updatePlotsAvailableSqmAfterPurchase = async (projectId, purchasedSqm) => {
@@ -1877,16 +1819,6 @@ export default function UserDashboard() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                     Refresh Data
-                  </button>
-                  <button 
-                    onClick={recoverUserData}
-                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-red-600 rounded-lg hover:bg-red-700"
-                    title="Recover missing payment data - Click if you paid but don't see your investment"
-                  >
-                    <svg className="h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Recover Data
                   </button>
                   <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
                     Filter

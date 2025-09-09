@@ -9,6 +9,7 @@ import {
   updateProfile
 } from 'firebase/auth';
 import EmailService from '../services/emailService';
+import TelegramService from '../services/telegramService';
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -83,6 +84,16 @@ export function AuthProvider({ children }) {
         throw new Error('Failed to create user profile. Please try again.');
       }
       
+      // Send Telegram notification for new user
+      try {
+        const userData = TelegramService.formatUserData(email, 'Investor');
+        await TelegramService.notifyNewUser(userData);
+        console.log('✅ Telegram notification sent for new user');
+      } catch (telegramError) {
+        console.warn('⚠️ Telegram notification failed:', telegramError);
+        // Don't throw - Telegram failure shouldn't break registration
+      }
+
       console.log('User registration completed successfully');
       return userCredential;
       

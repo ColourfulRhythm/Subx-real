@@ -6,6 +6,7 @@
 
 import { collection, doc, addDoc, updateDoc, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
+import TelegramService from './telegramService';
 
 class PaymentService {
   // =====================================================
@@ -51,6 +52,9 @@ class PaymentService {
 
       // Step 5: Process additional features
       await this.processAdditionalFeatures(investmentData, user);
+
+      // Step 6: Send Telegram notification
+      await this.sendTelegramNotification(user, project, sqm, amount);
 
       console.log('✅ PAYMENT SERVICE: Payment processing completed successfully');
       return { success: true, data: saveResult };
@@ -215,6 +219,34 @@ class PaymentService {
     } catch (error) {
       console.warn('⚠️ PAYMENT SERVICE: Additional features processing failed:', error);
       // Don't throw - these are not critical
+    }
+  }
+
+  /**
+   * Send Telegram notification for purchase
+   */
+  static async sendTelegramNotification(user, project, sqm, amount) {
+    try {
+      console.log('📱 PAYMENT SERVICE: Sending Telegram notification...');
+      
+      const purchaseData = TelegramService.formatPurchaseData(
+        user.email,
+        sqm,
+        project.title,
+        amount
+      );
+      
+      const result = await TelegramService.notifyPurchase(purchaseData);
+      
+      if (result.success) {
+        console.log('✅ PAYMENT SERVICE: Telegram notification sent successfully');
+      } else {
+        console.warn('⚠️ PAYMENT SERVICE: Telegram notification failed:', result.error);
+      }
+      
+    } catch (error) {
+      console.warn('⚠️ PAYMENT SERVICE: Telegram notification error:', error);
+      // Don't throw - Telegram failure shouldn't break payment processing
     }
   }
 
