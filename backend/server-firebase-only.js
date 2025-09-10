@@ -126,7 +126,7 @@ const transporter = nodemailer.createTransport({
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.json({
+  res.json({ 
     status: 'ok', 
     message: 'Firebase backend is running',
     timestamp: new Date().toISOString(),
@@ -141,7 +141,7 @@ app.get('/api/users/count', async (req, res) => {
     const userProfilesSnapshot = await db.collection('user_profiles').get();
     const totalUsers = Math.max(usersSnapshot.size, userProfilesSnapshot.size);
     
-    res.json({
+    res.json({ 
       totalUsers,
       message: `Total registered users: ${totalUsers}`,
       database: 'Firebase Firestore'
@@ -387,6 +387,6 @@ const startServer = async () => {
 };
 
 // Start server
-startServer(); 
+startServer();
 
 export default app;

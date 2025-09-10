@@ -3,6 +3,7 @@ import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getAnalytics, logEvent } from 'firebase/analytics';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
 
 // Firebase configuration - hardcoded for production
@@ -31,6 +32,13 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
+
+// Initialize Analytics (only in browser environment)
+let analytics = null;
+if (typeof window !== 'undefined') {
+  analytics = getAnalytics(app);
+}
+export { analytics, logEvent };
 
 // Connect to emulators in development
 if (import.meta.env.DEV) {

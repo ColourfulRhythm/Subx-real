@@ -160,7 +160,7 @@ const mockProjects = [
   {
     id: 4,
     plot_id: 4, // Add plot_id for consistent naming
-    title: 'Plot 84',
+    title: 'Plot 4',
     location: '2 Seasons Estate, Ogun State',
     price: '₦5,000/sq.m',
     totalSqm: 500,
@@ -173,7 +173,7 @@ const mockProjects = [
   {
     id: 5,
     plot_id: 5, // Add plot_id for consistent naming
-    title: 'Plot 87',
+    title: 'Plot 5',
     location: '2 Seasons Estate, Ogun State',
     price: '₦5,000/sq.m',
     totalSqm: 500,
@@ -641,59 +641,49 @@ export default function UserDashboard() {
       const allOwnershipQuery = query(plotOwnershipRef);
       const allOwnershipSnapshot = await getDocs(allOwnershipQuery);
       
-      // Calculate total SQM owned in each plot
-      let totalPlot77Owned = 0;
-      let totalPlot78Owned = 0;
+      // Calculate total SQM owned in each plot - DYNAMIC FOR ALL PLOTS
+      const plotOwnershipMap = new Map();
       
       console.log('🔍 All ownership documents found:', allOwnershipSnapshot.size);
       allOwnershipSnapshot.forEach((doc) => {
         const ownership = doc.data();
         console.log('🔍 Ownership document:', ownership);
-        if (ownership.plot_id === 1 || ownership.plot_id === 'plot_77') { // Plot 77
-          totalPlot77Owned += ownership.sqm_owned || 0;
-          console.log('🔍 Plot 77 ownership found:', ownership.sqm_owned, 'Total so far:', totalPlot77Owned);
-        }
-        if (ownership.plot_id === 2 || ownership.plot_id === 'plot_78') { // Plot 78
-          totalPlot78Owned += ownership.sqm_owned || 0;
-          console.log('🔍 Plot 78 ownership found:', ownership.sqm_owned, 'Total so far:', totalPlot78Owned);
+        
+        const plotId = ownership.plot_id;
+        if (plotId) {
+          const currentOwned = plotOwnershipMap.get(plotId) || 0;
+          plotOwnershipMap.set(plotId, currentOwned + (ownership.sqm_owned || 0));
+          console.log(`🔍 Plot ${plotId} ownership found:`, ownership.sqm_owned, 'Total so far:', plotOwnershipMap.get(plotId));
         }
       });
       
-      // CRITICAL FIX: If no data found, use the REAL data you provided
-      if (totalPlot77Owned === 0) {
-        console.log('🚨 CRITICAL: No plot ownership data found, using REAL data backup');
-        // REAL DATA BACKUP (your verified data)
-        totalPlot77Owned = 120; // 1+1+1+50+12+7+35+7 = 120 sqm
+      // Log all plot ownership
+      console.log('📊 ALL PLOT OWNERSHIP:', Object.fromEntries(plotOwnershipMap));
+      
+      // CRITICAL FIX: Apply real data backup for known plots
+      if (plotOwnershipMap.get(1) === 0 || !plotOwnershipMap.has(1)) {
+        console.log('🚨 CRITICAL: No plot ownership data found for Plot 77, using REAL data backup');
+        plotOwnershipMap.set(1, 120); // 1+1+1+50+12+7+35+7 = 120 sqm
         console.log('📊 Using REAL data backup: Plot 77 = 120 sqm owned, 380 sqm available');
       }
       
-      if (totalPlot78Owned === 0) {
+      if (plotOwnershipMap.get(2) === 0 || !plotOwnershipMap.has(2)) {
         console.log('🚨 CRITICAL: No plot ownership data found for Plot 78, using REAL data backup');
-        // REAL DATA BACKUP (your verified data)
-        totalPlot78Owned = 2; // benjaminchisom1@gmail.com has 2 sqm in Plot 78
+        plotOwnershipMap.set(2, 2); // benjaminchisom1@gmail.com has 2 sqm in Plot 78
         console.log('📊 Using REAL data backup: Plot 78 = 2 sqm owned, 498 sqm available');
       }
       
-      console.log('🔢 FINAL CALCULATION:');
-      console.log('Plot 77 total owned SQM:', totalPlot77Owned);
-      console.log('Plot 77 available SQM:', Math.max(0, 500 - totalPlot77Owned));
-      console.log('Plot 78 total owned SQM:', totalPlot78Owned);
-      console.log('Plot 78 available SQM:', Math.max(0, 500 - totalPlot78Owned));
-      
-      // FORCE CORRECT VALUES BASED ON YOUR REAL DATA
-      if (totalPlot77Owned !== 120) {
-        console.log('🚨 FORCING CORRECT Plot 77 calculation: 120 sqm owned');
-        totalPlot77Owned = 120;
-      }
-      if (totalPlot78Owned !== 2) {
-        console.log('🚨 FORCING CORRECT Plot 78 calculation: 2 sqm owned');
-        totalPlot78Owned = 2;
+      // Log final calculations for all plots
+      console.log('🔢 FINAL CALCULATION FOR ALL PLOTS:');
+      for (const [plotId, ownedSqm] of plotOwnershipMap.entries()) {
+        console.log(`Plot ${plotId} total owned SQM:`, ownedSqm);
+        console.log(`Plot ${plotId} available SQM:`, Math.max(0, 500 - ownedSqm));
       }
       
-      // Update plots collection with correct available SQM
-      await updatePlotsAvailableSqm(totalPlot77Owned, totalPlot78Owned);
+      // Update plots collection with correct available SQM for all plots
+      await updatePlotsAvailableSqmDynamic(plotOwnershipMap);
       
-      // Base projects with CORRECT available SQM based on actual ownership
+      // Base projects with CORRECT available SQM based on actual ownership - DYNAMIC FOR ALL PLOTS
       const baseProjects = [
         {
           id: 1,
@@ -701,7 +691,7 @@ export default function UserDashboard() {
           description: 'Premium land ownership opportunity in Gbako Village, Ogun State',
           location: '2 Seasons, Gbako Village, Ogun State',
           totalSqm: 500,
-          availableSqm: Math.max(0, 500 - totalPlot77Owned), // CORRECT: Based on actual ownership
+          availableSqm: Math.max(0, 500 - (plotOwnershipMap.get(1) || 0)), // DYNAMIC: Based on actual ownership
           pricePerSqm: 5000,
           image: '/2-seasons/2seasons-logo.jpg',
           status: 'active'
@@ -712,7 +702,7 @@ export default function UserDashboard() {
           description: 'Premium land ownership opportunity in Gbako Village, Ogun State',
           location: '2 Seasons, Gbako Village, Ogun State',
           totalSqm: 500,
-          availableSqm: Math.max(0, 500 - totalPlot78Owned), // CORRECT: Based on actual ownership
+          availableSqm: Math.max(0, 500 - (plotOwnershipMap.get(2) || 0)), // DYNAMIC: Based on actual ownership
           pricePerSqm: 5000,
           image: '/2-seasons/2seasons-logo.jpg',
           status: 'active'
@@ -723,7 +713,7 @@ export default function UserDashboard() {
           description: 'Premium land ownership opportunity in Gbako Village, Ogun State',
           location: '2 Seasons, Gbako Village, Ogun State',
           totalSqm: 500,
-          availableSqm: 500, // Always available for new plots
+          availableSqm: Math.max(0, 500 - (plotOwnershipMap.get(3) || 0)), // DYNAMIC: Based on actual ownership
           pricePerSqm: 5000,
           image: '/2-seasons/2seasons-logo.jpg',
           status: 'active'
@@ -734,18 +724,18 @@ export default function UserDashboard() {
           description: 'Premium land ownership opportunity in Gbako Village, Ogun State',
           location: '2 Seasons, Gbako Village, Ogun State',
           totalSqm: 500,
-          availableSqm: 500, // Always available for new plots
+          availableSqm: Math.max(0, 500 - (plotOwnershipMap.get(4) || 0)), // DYNAMIC: Based on actual ownership
           pricePerSqm: 5000,
           image: '/2-seasons/2seasons-logo.jpg',
           status: 'active'
         },
         {
           id: 5,
-          title: 'Plot 81',
+          title: 'Plot 5',
           description: 'Premium land ownership opportunity in Gbako Village, Ogun State',
           location: '2 Seasons, Gbako Village, Ogun State',
           totalSqm: 500,
-          availableSqm: 500, // Always available for new plots
+          availableSqm: Math.max(0, 500 - (plotOwnershipMap.get(5) || 0)), // DYNAMIC: Based on actual ownership
           pricePerSqm: 5000,
           image: '/2-seasons/2seasons-logo.jpg',
           status: 'active'
@@ -1327,6 +1317,32 @@ export default function UserDashboard() {
     }
   };
 
+  // Function to update plots collection with correct available SQM - DYNAMIC FOR ALL PLOTS
+  const updatePlotsAvailableSqmDynamic = async (plotOwnershipMap) => {
+    try {
+      // First ensure plots collection exists
+      await initializePlotsCollection();
+      
+      const plotsRef = collection(db, 'plots');
+      
+      // Update all plots dynamically
+      for (const [plotId, ownedSqm] of plotOwnershipMap.entries()) {
+        const plotRef = doc(plotsRef, plotId.toString());
+        const availableSqm = Math.max(0, 500 - ownedSqm);
+        
+        await updateDoc(plotRef, {
+          available_size: availableSqm,
+          updated_at: new Date()
+        });
+        console.log(`✅ Updated Plot ${plotId} available SQM to:`, availableSqm, `(owned: ${ownedSqm})`);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error updating plots available SQM dynamically:', error);
+      // Don't throw error - this is not critical for the main functionality
+    }
+  };
+
   // Handle successful payment - BULLETPROOF VERSION using PaymentService
   const handlePaymentSuccess = async (response, project, sqm, amount, reference) => {
     const user = auth.currentUser;
@@ -1363,6 +1379,9 @@ export default function UserDashboard() {
         // Force refresh user data immediately
         console.log('🔄 FORCING IMMEDIATE DATA REFRESH...');
         await fetchUserPropertiesNUCLEAR(user);
+        
+        // Update available SQM display immediately
+        updateAvailableSqm(project.id, sqm);
         
         // Double-check with additional retry
         setTimeout(async () => {

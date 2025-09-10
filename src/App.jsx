@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { motion, AnimatePresence } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './contexts/AuthContext'
+import AnalyticsService from './services/analyticsService'
 import LandingPage from './routes/LandingPage'
 import Login from './routes/auth/Login'
 import ResetPassword from './routes/auth/ResetPassword'
@@ -94,6 +95,11 @@ const LoadingFallback = () => (
 // Page Transition Component
 const PageTransition = ({ children }) => {
   const location = useLocation()
+  
+  // Track page views
+  useEffect(() => {
+    AnalyticsService.trackPageView(location.pathname);
+  }, [location.pathname]);
   
   return (
     <motion.div

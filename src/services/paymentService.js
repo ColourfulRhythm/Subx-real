@@ -159,12 +159,8 @@ class PaymentService {
     const plotDocRef = doc(plotOwnershipRef);
     batch.set(plotDocRef, plotOwnershipData);
     
-    // Update project available SQM
-    const projectRef = doc(db, 'projects', project.id);
-    batch.update(projectRef, {
-      total_sqm: project.total_sqm - sqm,
-      updated_at: new Date()
-    });
+    // Note: availableSqm is calculated dynamically in the frontend
+    // No need to update it in the database as it's computed from plot_ownership data
     
     // Commit the batch
     await batch.commit();

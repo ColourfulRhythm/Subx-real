@@ -9,6 +9,8 @@ const PLOT_NAMING_MAP = {
   1: 'Plot 77',
   2: 'Plot 78', 
   3: 'Plot 79',
+  4: 'Plot 4',
+  5: 'Plot 5',
   77: 'Plot 77',
   78: 'Plot 78',
   79: 'Plot 79'
@@ -152,7 +154,7 @@ export const getPlotInfo = (plotId) => {
     displayName: getPlotDisplayName(numericId),
     location: getPlotLocation(numericId),
     branding: getPlotBranding(numericId),
-    totalSqm: numericId === 1 ? 500 : 500, // Plot 77 is 500 sqm
+    totalSqm: 500, // All plots are 500 sqm
     pricePerSqm: 5000, // ₦5,000 per sqm
     development: '2 Seasons Estate'
   };

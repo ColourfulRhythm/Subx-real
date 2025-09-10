@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth';
 import EmailService from '../services/emailService';
 import TelegramService from '../services/telegramService';
+import AnalyticsService from '../services/analyticsService';
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -95,6 +96,10 @@ export function AuthProvider({ children }) {
       }
 
       console.log('User registration completed successfully');
+      
+      // Track signup in analytics
+      AnalyticsService.trackSignup('email');
+      
       return userCredential;
       
     } catch (error) {
@@ -143,6 +148,10 @@ export function AuthProvider({ children }) {
       }
       
       console.log('✅ Login successful for:', user.email);
+      
+      // Track login in analytics
+      AnalyticsService.trackLogin('email');
+      
       return userCredential;
     } catch (error) {
       console.error('❌ Login failed:', error.code, error.message);

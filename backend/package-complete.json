@@ -11,11 +11,7 @@
     "migrate": "node migration-tools.js",
     "monitor": "node monitoring-job.js",
     "test": "jest",
-    "test:watch": "jest --watch",
-    "init-plots": "node automated-plot-system.js init",
-    "test-plots": "node test-all-plots-automated.js",
-    "test-simple": "node test-system-simple.js",
-    "deploy-auto": "./deploy-automated.sh"
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "firebase-admin": "^12.0.0",
