@@ -291,7 +291,7 @@ export const notifyAllCurrentUsers = async () => {
   const currentUsers = [
     { email: 'kingflamebeats@gmail.com', name: 'Kingflame Beats', sqm: 1, amount: 5000, project: 'Plot 77' },
     { email: 'godundergod100@gmail.com', name: 'God Under God', sqm: 1, amount: 5000, project: 'Plot 77' },
-    { email: 'michelleunachukwu@gmail.com', name: 'Michelle Unachukwu', sqm: 3.5, amount: 17500, project: 'Plot 77' },
+    { email: 'michelleunachukwu@gmail.com', name: 'Michelle Unachukwu', sqm: 1, amount: 5000, project: 'Plot 77' },
     { email: 'gloriaunachukwu@gmail.com', name: 'Gloria Ogochukwu Unachukwu', sqm: 50, amount: 250000, project: 'Plot 77' },
     { email: 'benjaminchisom1@gmail.com', name: 'Benjamin Chisom', sqm: 14, amount: 70000, project: 'Plot 77 & 78' },
     { email: 'chrixonuoha@gmail.com', name: 'Christopher Onuoha', sqm: 7, amount: 35000, project: 'Plot 77' },

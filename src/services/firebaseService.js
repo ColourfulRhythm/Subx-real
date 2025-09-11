@@ -344,7 +344,12 @@ This is an automated notification from the Subx platform.
           const existingPlot = plots.find(p => p.plot_id === inv.plot_id);
           if (!existingPlot) {
             totalSqm += sqm;
-            totalAmount += amount;
+            // FIXED: Exclude referral bonuses from total amount calculation
+            if (inv.referral_bonus !== true) {
+              totalAmount += amount;
+            } else {
+              console.log('🔍 Skipping referral bonus from portfolio calculation:', inv.project_title, amount);
+            }
             
             plots.push({
               id: doc.id,
@@ -372,7 +377,14 @@ This is an automated notification from the Subx platform.
         if (realData.length > 0) {
           plots = realData;
           totalSqm = realData.reduce((sum, plot) => sum + plot.sqm_owned, 0);
-          totalAmount = realData.reduce((sum, plot) => sum + plot.amount_paid, 0);
+          // FIXED: Exclude referral bonuses from total amount calculation
+          totalAmount = realData.reduce((sum, plot) => {
+            if (plot.referral_bonus === true) {
+              console.log('🔍 Skipping referral bonus from portfolio calculation:', plot.project_title, plot.amount_paid);
+              return sum;
+            }
+            return sum + plot.amount_paid;
+          }, 0);
           console.log('✅ Real data fallback loaded:', realData.length, 'plots');
           console.log('✅ Fallback data details:', realData.map(p => `${p.sqm_owned}sqm in ${p.project_title}`));
         } else {
@@ -410,7 +422,7 @@ This is an automated notification from the Subx platform.
       ],
       'michelleunachukwu@gmail.com': [
         { plot_id: 'plot_77', project_title: 'Plot 77', sqm_owned: 1, amount_paid: 5000, status: 'Active' },
-        { plot_id: 'plot_77', project_title: 'Plot 77', sqm_owned: 50, amount_paid: 250000, status: 'Active', referral_bonus: true }
+        { plot_id: 'plot_77', project_title: 'Plot 77 - Referral Bonus', sqm_owned: 0, amount_paid: 12500, status: 'Active', referral_bonus: true, note: '5% referral bonus from gloriaunachukwu@gmail.com' }
       ],
       'gloriaunachukwu@gmail.com': [
         { plot_id: 'plot_77', project_title: 'Plot 77', sqm_owned: 50, amount_paid: 250000, status: 'Active' }

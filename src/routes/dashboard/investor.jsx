@@ -371,7 +371,14 @@ export default function InvestorDashboard() {
       // Update analytics based on plot ownership
       if (plotOwnership.length > 0) {
         const totalSqm = plotOwnership.reduce((sum, plot) => sum + (plot.sqm_owned || 0), 0);
-        const totalValue = plotOwnership.reduce((sum, plot) => sum + (plot.amount_paid || 0), 0);
+        // FIXED: Exclude referral bonuses from total value calculation
+        const totalValue = plotOwnership.reduce((sum, plot) => {
+          if (plot.referral_bonus === true) {
+            console.log('🔍 Skipping referral bonus from portfolio calculation:', plot.project_title, plot.amount_paid);
+            return sum;
+          }
+          return sum + (plot.amount_paid || 0);
+        }, 0);
         
         setAnalytics(prev => ({
           ...prev,

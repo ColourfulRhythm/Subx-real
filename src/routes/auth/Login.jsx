@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../contexts/AuthContext'
 import { auth } from '../../firebase'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import { signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth'
 import Navbar from '../../components/Navbar'
 
 export default function Login() {
@@ -18,6 +18,9 @@ export default function Login() {
   const [resetEmail, setResetEmail] = useState('')
   const [resetMessage, setResetMessage] = useState('')
   const [isResetting, setIsResetting] = useState(false)
+  const [showEmailResend, setShowEmailResend] = useState(false)
+  const [isResendingEmail, setIsResendingEmail] = useState(false)
+  const [resendMessage, setResendMessage] = useState('')
 
   // Form validation
   const isFormValid = email.trim() !== '' && password.trim() !== ''
@@ -36,6 +39,7 @@ export default function Login() {
         // Check if email is verified
         if (!user.emailVerified) {
           setError('Please verify your email before logging in. Check your inbox for the verification link.')
+          setShowEmailResend(true)
           setIsLoading(false)
           return
         }
@@ -83,6 +87,26 @@ export default function Login() {
     setShowPasswordReset(!showPasswordReset)
     setResetEmail(email) // Pre-fill with current email
     setResetMessage('')
+  }
+
+  const handleResendEmail = async () => {
+    setIsResendingEmail(true)
+    setResendMessage('')
+
+    try {
+      // Get the current user to resend verification email
+      const currentUser = auth.currentUser
+      if (currentUser && !currentUser.emailVerified) {
+        await sendEmailVerification(currentUser)
+        setResendMessage('Verification email sent! Check your inbox and spam folder.')
+      } else {
+        setResendMessage('No unverified user found. Please try logging in again.')
+      }
+    } catch (error) {
+      setResendMessage(`Error: ${error.message}`)
+    } finally {
+      setIsResendingEmail(false)
+    }
   }
 
   return (
@@ -135,6 +159,32 @@ export default function Login() {
               className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md"
             >
               <p className="text-sm text-red-600">{error}</p>
+              {showEmailResend && (
+                <div className="mt-3">
+                  <button
+                    onClick={handleResendEmail}
+                    disabled={isResendingEmail}
+                    className="text-sm text-indigo-600 hover:text-indigo-500 underline disabled:opacity-50"
+                  >
+                    {isResendingEmail ? 'Sending...' : 'Resend verification email'}
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Resend Message */}
+          {resendMessage && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`mb-4 p-4 border rounded-lg ${
+                resendMessage.includes('sent') 
+                  ? 'bg-green-50 border-green-200 text-green-700' 
+                  : 'bg-red-50 border-red-200 text-red-600'
+              }`}
+            >
+              <p className="text-sm">{resendMessage}</p>
             </motion.div>
           )}
 

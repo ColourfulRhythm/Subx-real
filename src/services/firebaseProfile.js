@@ -94,11 +94,14 @@ export const firebaseProfileService = {
     }
   },
 
-  // Generate referral code for user
+  // Generate referral code for user - STANDARDIZED FORMAT
   generateReferralCode(userId) {
-    const prefix = 'SUBX';
-    const suffix = userId.substring(0, 5).toUpperCase();
-    return `${prefix}-${suffix}`;
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return `SUBX-${result}`;
   },
 
   // Get user by email

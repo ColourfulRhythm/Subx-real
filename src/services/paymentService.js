@@ -55,6 +55,9 @@ class PaymentService {
 
       // Step 6: Send Telegram notification
       await this.sendTelegramNotification(user, project, sqm, amount);
+      
+      // Step 7: Send Email notification
+      await this.sendEmailNotification(user, project, sqm, amount);
 
       console.log('✅ PAYMENT SERVICE: Payment processing completed successfully');
       return { success: true, data: saveResult };
@@ -224,25 +227,62 @@ class PaymentService {
   static async sendTelegramNotification(user, project, sqm, amount) {
     try {
       console.log('📱 PAYMENT SERVICE: Sending Telegram notification...');
-      
+
       const purchaseData = TelegramService.formatPurchaseData(
         user.email,
         sqm,
         project.title,
         amount
       );
-      
+
       const result = await TelegramService.notifyPurchase(purchaseData);
-      
+
       if (result.success) {
         console.log('✅ PAYMENT SERVICE: Telegram notification sent successfully');
       } else {
         console.warn('⚠️ PAYMENT SERVICE: Telegram notification failed:', result.error);
       }
-      
+
     } catch (error) {
       console.warn('⚠️ PAYMENT SERVICE: Telegram notification error:', error);
       // Don't throw - Telegram failure shouldn't break payment processing
+    }
+  }
+
+  /**
+   * Send Email notification for purchase
+   */
+  static async sendEmailNotification(user, project, sqm, amount) {
+    try {
+      console.log('📧 PAYMENT SERVICE: Sending email notification...');
+
+      // Import EmailService dynamically to avoid circular dependencies
+      const { default: EmailService } = await import('./emailService');
+      
+      const emailData = {
+        to: user.email,
+        subject: `Purchase Confirmation - ${project.title}`,
+        template: 'purchase_confirmation',
+        data: {
+          userName: user.displayName || user.email?.split('@')[0] || 'User',
+          projectName: project.title,
+          sqm: sqm,
+          amount: amount,
+          date: new Date().toLocaleDateString()
+        }
+      };
+
+      const result = await EmailService.sendEmail(emailData);
+
+      if (result.success) {
+        console.log('✅ PAYMENT SERVICE: Email notification sent successfully');
+      } else {
+        console.warn('⚠️ PAYMENT SERVICE: Email notification failed:', result.error);
+      }
+
+    } catch (error) {
+      console.warn('⚠️ PAYMENT SERVICE: Email notification error:', error);
+      // Don't throw - Email failure shouldn't break payment processing
     }
   }
 
