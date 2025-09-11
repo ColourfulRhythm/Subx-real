@@ -105,8 +105,8 @@ export default function DeveloperSignup() {
 
         // Store user info in localStorage (but not authenticated yet)
         localStorage.setItem('userType', 'developer')
-        localStorage.setItem('userId', authData.user.id)
-        localStorage.setItem('userEmail', authData.user.email)
+        localStorage.setItem('userId', user.uid)
+        localStorage.setItem('userEmail', user.email)
         localStorage.setItem('userName', data.name)
 
         // Show verification message
@@ -116,7 +116,20 @@ export default function DeveloperSignup() {
         navigate('/login')
       }
     } catch (error) {
-      setError('Failed to create account. Please try again.')
+      console.error('Developer signup error:', error);
+      let errorMessage = 'Failed to create account. Please try again.';
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'An account with this email already exists. Please try logging in instead.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Please choose a stronger password.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address format.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false)
     }

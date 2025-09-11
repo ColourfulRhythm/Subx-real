@@ -219,8 +219,13 @@ export default function UserDashboard() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showOwnershipModal, setShowOwnershipModal] = useState(false);
+  const [showBankTransferModal, setShowBankTransferModal] = useState(false);
   const [selectedSqm, setSelectedSqm] = useState(1);
   const [ownershipAmount, setOwnershipAmount] = useState('₦5,000');
+  const [bankTransferForm, setBankTransferForm] = useState({
+    nameOnTransaction: '',
+    email: ''
+  });
   const [signatureCanvas, setSignatureCanvas] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [signatureData, setSignatureData] = useState(null);
@@ -1498,6 +1503,73 @@ export default function UserDashboard() {
     setOwnershipAmount(`₦${(sqm * 5000).toLocaleString()}`);
   };
 
+  const handleBankTransferConfirm = async () => {
+    try {
+      // Validate form
+      if (!bankTransferForm.nameOnTransaction.trim()) {
+        toast.error('Please enter your name as it appears on the transaction');
+        return;
+      }
+
+      if (!bankTransferForm.email.trim()) {
+        toast.error('Please enter your email address');
+        return;
+      }
+
+      // Calculate total amount
+      const pricePerSqm = 5000;
+      const totalAmount = selectedSqm * pricePerSqm;
+
+      // Generate unique reference
+      const reference = `SUBX-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Create payment data for processing
+      const paymentData = {
+        project: selectedProject,
+        sqm: selectedSqm,
+        amount: totalAmount,
+        reference: reference,
+        nameOnTransaction: bankTransferForm.nameOnTransaction,
+        email: bankTransferForm.email,
+        paymentMethod: 'bank_transfer'
+      };
+
+      // Process the bank transfer payment
+      const result = await PaymentService.processSuccessfulPayment(paymentData);
+      
+      if (result.success) {
+        console.log('✅ BANK TRANSFER: Payment processed successfully');
+        
+        // Force refresh user data immediately
+        console.log('🔄 FORCING IMMEDIATE DATA REFRESH...');
+        await fetchUserPropertiesNUCLEAR(auth.currentUser);
+        
+        // Update available SQM display immediately
+        updateAvailableSqm(selectedProject.id, selectedSqm);
+        
+        // Show success message
+        setPaymentData({
+          project: selectedProject.title,
+          sqm: selectedSqm,
+          amount: totalAmount,
+          reference: reference
+        });
+        setShowPaymentSuccess(true);
+        setShowBankTransferModal(false);
+
+        toast.success(`Bank transfer confirmed! You now own ${selectedSqm} sqm in ${selectedProject.title}. Your land ownership will reflect once payment is confirmed.`);
+        console.log('✅ BANK TRANSFER SUCCESS PROCESSING COMPLETE');
+        
+      } else {
+        throw new Error('Bank transfer processing returned failure');
+      }
+      
+    } catch (error) {
+      console.error('❌ CRITICAL ERROR in bank transfer processing:', error);
+      toast.error('Failed to process bank transfer confirmation. Please try again.');
+    }
+  };
+
   const handleOwnershipSubmit = async () => {
     try {
       // Get current user
@@ -1537,38 +1609,19 @@ export default function UserDashboard() {
         return;
       }
 
-      // Calculate total amount
-      const pricePerSqm = 5000; // ₦5,000 per sqm
-      const totalAmount = selectedSqm * pricePerSqm;
-      
-      // Generate unique reference
-      const reference = `SUBX-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Initialize Paystack payment
-      const handler = window.PaystackPop.setup({
-        key: paystackKey,
-        email: user.email,
-        amount: totalAmount * 100, // Paystack expects amount in kobo
-        currency: 'NGN',
-        ref: reference,
-        label: userData.name || user.email,
-        callback: function(response) {
-          console.log('Payment successful:', response);
-          
-          // Process successful payment
-          handlePaymentSuccess(response, selectedProject, selectedSqm, totalAmount, reference);
-        },
-        onClose: function() {
-          console.log('Payment cancelled');
-          toast.info('Payment cancelled');
-        }
+      // Pre-fill the bank transfer form with user data
+      setBankTransferForm({
+        nameOnTransaction: userData.name || user.displayName || '',
+        email: user.email
       });
-      
-      handler.openIframe();
+
+      // Close ownership modal and show bank transfer modal
+      setShowOwnershipModal(false);
+      setShowBankTransferModal(true);
       
     } catch (error) {
-      console.error('Payment initialization error:', error);
-      toast.error('Failed to initialize payment. Please try again.');
+      console.error('Error preparing bank transfer:', error);
+      toast.error('Failed to prepare payment details. Please try again.');
     }
   };
 
@@ -2754,6 +2807,143 @@ export default function UserDashboard() {
         )}
       </AnimatePresence>
 
+      {/* Bank Transfer Modal */}
+      <AnimatePresence>
+        {showBankTransferModal && selectedProject && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-start mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Bank Transfer Payment</h2>
+                <button 
+                  onClick={() => setShowBankTransferModal(false)} 
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-6">
+                {/* Bank Account Details */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-3">Transfer to this account:</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-700">Account Name:</span>
+                      <span className="font-semibold text-blue-900">FOCAL POINT PROPERTY DEVELOPMENT</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-700">Account Number:</span>
+                      <span className="font-semibold text-blue-900">1228540598</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-700">Bank:</span>
+                      <span className="font-semibold text-blue-900">ZENITH BANK</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Details */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Payment Details:</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-700">Plot:</span>
+                      <span className="font-semibold text-gray-900">{getPlotDisplayName(selectedProject.plot_id || selectedProject.id)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-700">Square Meters:</span>
+                      <span className="font-semibold text-gray-900">{selectedSqm} sqm</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-700">Amount:</span>
+                      <span className="font-semibold text-indigo-600">{ownershipAmount}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Form */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Payment Information:</h3>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Name on Transaction *
+                    </label>
+                    <input
+                      type="text"
+                      value={bankTransferForm.nameOnTransaction}
+                      onChange={(e) => setBankTransferForm(prev => ({
+                        ...prev,
+                        nameOnTransaction: e.target.value
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Enter your name as it appears on the transaction"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      value={bankTransferForm.email}
+                      onChange={(e) => setBankTransferForm(prev => ({
+                        ...prev,
+                        email: e.target.value
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Enter your email address"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Important Note */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <svg className="h-5 w-5 text-yellow-400 mt-0.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <p className="text-sm text-yellow-800">
+                      <strong>Note:</strong> Your land ownership will reflect once payment is confirmed. Please keep your transaction reference for verification.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex space-x-4">
+                  <button
+                    onClick={() => setShowBankTransferModal(false)}
+                    className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleBankTransferConfirm}
+                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                  >
+                    Confirm Payment
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Documents Modal - DISABLED */}
       {false && (
